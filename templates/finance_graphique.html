@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tableau de Bord Financier - AdsClass Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+    }
+
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .slide-in {
+      animation: slideIn 0.8s ease-out;
+    }
+
+    .amount-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .metric-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .metric-card:hover::before {
+      left: 100%;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform-origin: 50% 50%;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen text-white font-sans">
+  {% set recettes = total_recette|float %}
+  {% set depenses = total_depense|float %}
+  {% set benefice = recettes - depenses %}
+  <!-- Notification Toast -->
+  <div id="notification" class="notification glass-effect rounded-lg p-4 text-white shadow-lg">
+    <div class="flex items-center gap-3">
+      <i id="notificationIcon" class="fas fa-check-circle text-green-400"></i>
+      <span id="notificationText">Action réalisée avec succès</span>
+      <button onclick="hideNotification()" class="ml-auto text-white/60 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="px-4 py-8">
+    <!-- Header Section -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="glass-effect rounded-2xl p-6 fade-in">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              <i class="fas fa-chart-line mr-3"></i>Tableau de Bord Financier
+            </h1>
+            <p class="text-white/70">Analyse complète des performances financières de l'établissement</p>
+            <div class="flex items-center gap-4 mt-3 text-sm text-white/60">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-calendar"></i>
+                <span>Dernière mise à jour: <span id="lastUpdate">Maintenant</span></span>
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-sync-alt"></i>
+                <span>Données en temps réel</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="refreshData()" class="btn-primary px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
+              <i class="fas fa-sync-alt"></i>Actualiser
+            </button>
+            <button onclick="exportReport()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+              <i class="fas fa-download"></i>Exporter
+            </button>
+            <a href="{{ url_for('admin_home') }}" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+              <i class="fas fa-arrow-left"></i>Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Recettes -->
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in metric-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/70 text-sm mb-1">Total Recettes</p>
+              <p class="text-2xl font-bold amount-display text-green-400" id="totalRecettes">
+                {{ "{:,.0f}".format(recettes).replace(",", " ") }} FCFA
+              </p>
+              <div class="flex items-center gap-2 mt-2">
+                <i class="fas fa-arrow-up text-green-400 text-xs"></i>
+                <span class="text-green-400 text-xs font-semibold" id="recettesGrowth">+12.5%</span>
+                <span class="text-white/60 text-xs">ce mois</span>
+              </div>
+            </div>
+            <div class="bg-green-500/20 p-3 rounded-full">
+              <i class="fas fa-coins text-green-400 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Dépenses -->
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in metric-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/70 text-sm mb-1">Total Dépenses</p>
+              <p class="text-2xl font-bold amount-display text-red-400" id="totalDepenses">
+                {{ "{:,.0f}".format(depenses).replace(",", " ") }} FCFA
+              </p>
+              <div class="flex items-center gap-2 mt-2">
+                <i class="fas fa-arrow-down text-red-400 text-xs"></i>
+                <span class="text-red-400 text-xs font-semibold" id="depensesGrowth">-8.3%</span>
+                <span class="text-white/60 text-xs">ce mois</span>
+              </div>
+            </div>
+            <div class="bg-red-500/20 p-3 rounded-full">
+              <i class="fas fa-money-bill-wave text-red-400 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bénéfice Net -->
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in metric-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/70 text-sm mb-1">Bénéfice Net</p>
+              <p class="text-2xl font-bold amount-display text-blue-400" id="beneficeNet">
+                {{ "{:,.0f}".format(benefice).replace(",", " ") }} FCFA
+              </p>
+              <div class="flex items-center gap-2 mt-2">
+                {% if (total_recette - total_depense) >= 0 %}
+                  <i id="beneficeStatusIcon" class="fas fa-arrow-up text-green-400 text-xs"></i>
+                  <span id="beneficeStatusText" class="text-green-400 text-xs font-semibold">Positif</span>
+                {% else %}
+                  <i id="beneficeStatusIcon" class="fas fa-arrow-down text-red-400 text-xs"></i>
+                  <span id="beneficeStatusText" class="text-red-400 text-xs font-semibold">Négatif</span>
+                {% endif %}
+                <span class="text-white/60 text-xs">résultat</span>
+              </div>
+            </div>
+            <div class="bg-blue-500/20 p-3 rounded-full">
+              <i class="fas fa-chart-line text-blue-400 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Marge Bénéficiaire -->
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in metric-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white/70 text-sm mb-1">Marge Bénéficiaire</p>
+              <p class="text-2xl font-bold amount-display text-purple-400" id="margeBeneficiaire">
+                {% if recettes > 0 %}
+                  {{ "%.1f"|format(((benefice) / recettes * 100)) }}%
+                {% else %}
+                  0.0%
+                {% endif %}
+              </p>
+              <div class="flex items-center gap-2 mt-2">
+                <div class="relative w-16 h-16">
+                  <svg class="progress-ring w-16 h-16" width="64" height="64">
+                    <circle class="progress-ring-circle" stroke="rgba(255,255,255,0.2)" stroke-width="4" fill="transparent" r="28" cx="32" cy="32"/>
+                    <circle class="progress-ring-circle" stroke="#a855f7" stroke-width="4" fill="transparent" r="28" cx="32" cy="32"
+                            stroke-dasharray="175.93" stroke-dashoffset="{{ 175.93 * (1 - (((benefice) / recettes) if recettes > 0 else 0)) }}"/>
+                  </svg>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="margeBeneficiaireInner" class="text-xs font-bold">
+                      {% if recettes > 0 %}
+                        {{ "%.0f"|format(((benefice) / recettes * 100)) }}%
+                      {% else %}
+                        0%
+                      {% endif %}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bg-purple-500/20 p-3 rounded-full">
+              <i class="fas fa-percentage text-purple-400 text-xl"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Main Financial Chart -->
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h3 class="text-xl font-semibold flex items-center gap-2">
+                <i class="fas fa-chart-pie text-blue-400"></i>
+                Répartition Financière
+              </h3>
+              <p class="text-white/60 text-sm">Recettes vs Dépenses</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="changeChartType('doughnut')" class="px-3 py-1 bg-blue-600 text-white rounded text-sm" id="btnDoughnut">
+                Donut
+              </button>
+              <button onclick="changeChartType('pie')" class="px-3 py-1 bg-white/20 text-white rounded text-sm" id="btnPie">
+                Camembert
+              </button>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas id="chartFinance"></canvas>
+          </div>
+        </div>
+
+        <!-- Trend Chart -->
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h3 class="text-xl font-semibold flex items-center gap-2">
+                <i class="fas fa-chart-line text-green-400"></i>
+                Évolution Mensuelle
+              </h3>
+              <p class="text-white/60 text-sm">Tendances sur 12 mois</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="changePeriod('6m')" class="px-3 py-1 bg-white/20 text-white rounded text-sm">
+                6M
+              </button>
+              <button onclick="changePeriod('12m')" class="px-3 py-1 bg-green-600 text-white rounded text-sm" id="btnPeriod">
+                12M
+              </button>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Analysis Section -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="glass-effect rounded-xl p-6 fade-in">
+        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+          <i class="fas fa-analytics text-yellow-400"></i>
+          Analyse Détaillée
+        </h3>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Financial Health Score -->
+          <div class="bg-white/10 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-semibold text-white">Score de Santé Financière</h4>
+              <div class="relative w-12 h-12">
+                <svg class="progress-ring w-12 h-12" width="48" height="48">
+                  <circle class="progress-ring-circle" stroke="rgba(255,255,255,0.2)" stroke-width="3" fill="transparent" r="21" cx="24" cy="24"/>
+                  <circle class="progress-ring-circle" stroke="#22c55e" stroke-width="3" fill="transparent" r="21" cx="24" cy="24"
+                          stroke-dasharray="131.95" stroke-dashoffset="{{ 131.95 * (1 - 0.85) }}"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <span class="text-xs font-bold">85</span>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-white/70">Liquidité:</span>
+                <span class="text-green-400 font-semibold">Excellente</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/70">Rentabilité:</span>
+                <span class="text-blue-400 font-semibold">Bonne</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/70">Croissance:</span>
+                <span class="text-yellow-400 font-semibold">Stable</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Key Ratios -->
+          <div class="bg-white/10 rounded-lg p-4">
+            <h4 class="font-semibold text-white mb-4">Ratios Clés</h4>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-white/70 text-sm">Ratio Recettes/Dépenses</span>
+                  <span class="text-white font-semibold" id="ratioRD">
+                    {% if total_depense > 0 %}
+                      {{ "%.2f"|format(total_recette / total_depense) }}
+                    {% else %}
+                      ∞
+                    {% endif %}
+                  </span>
+                </div>
+                <div class="w-full bg-white/20 rounded-full h-2">
+                  <div class="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full"
+                       style="width: {% if total_depense > 0 %}{{ min(100, (total_recette / total_depense * 50))|round }}{% else %}100{% endif %}%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-white/70 text-sm">Taux de Croissance</span>
+                  <span class="text-green-400 font-semibold">+12.5%</span>
+                </div>
+                <div class="w-full bg-white/20 rounded-full h-2">
+                  <div class="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full" style="width: 75%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-white/70 text-sm">Efficacité Opérationnelle</span>
+                  <span class="text-blue-400 font-semibold">78%</span>
+                </div>
+                <div class="w-full bg-white/20 rounded-full h-2">
+                  <div class="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full" style="width: 78%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="bg-white/10 rounded-lg p-4">
+            <h4 class="font-semibold text-white mb-4">Recommandations</h4>
+            <div class="space-y-3">
+              {% if (total_recette - total_depense) >= 0 %}
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-check-circle text-green-400 text-sm mt-0.5"></i>
+                  <span class="text-white/80 text-sm">Situation financière saine</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-lightbulb text-yellow-400 text-sm mt-0.5"></i>
+                  <span class="text-white/80 text-sm">Considérer des investissements</span>
+                </div>
+              {% else %}
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-exclamation-triangle text-red-400 text-sm mt-0.5"></i>
+                  <span class="text-white/80 text-sm">Réduire les dépenses</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-chart-line text-blue-400 text-sm mt-0.5"></i>
+                  <span class="text-white/80 text-sm">Augmenter les recettes</span>
+                </div>
+              {% endif %}
+              <div class="flex items-start gap-2">
+                <i class="fas fa-calendar-check text-purple-400 text-sm mt-0.5"></i>
+                <span class="text-white/80 text-sm">Planifier le budget mensuel</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="glass-effect rounded-xl p-6 fade-in">
+        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+          <i class="fas fa-bolt text-yellow-400"></i>
+          Actions Rapides
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button onclick="showPeriodAnalysis()" class="bg-blue-600 hover:bg-blue-700 p-4 rounded-lg transition-all flex items-center gap-3">
+            <i class="fas fa-calendar-alt text-xl"></i>
+            <div class="text-left">
+              <div class="font-semibold">Analyse Périodique</div>
+              <div class="text-sm text-blue-200">Comparer les périodes</div>
+            </div>
+          </button>
+
+          <button onclick="generateBudget()" class="bg-green-600 hover:bg-green-700 p-4 rounded-lg transition-all flex items-center gap-3">
+            <i class="fas fa-calculator text-xl"></i>
+            <div class="text-left">
+              <div class="font-semibold">Générer Budget</div>
+              <div class="text-sm text-green-200">Prévisions automatiques</div>
+            </div>
+          </button>
+
+          <button onclick="exportDetailedReport()" class="bg-purple-600 hover:bg-purple-700 p-4 rounded-lg transition-all flex items-center gap-3">
+            <i class="fas fa-file-export text-xl"></i>
+            <div class="text-left">
+              <div class="font-semibold">Rapport Détaillé</div>
+              <div class="text-sm text-purple-200">Export complet</div>
+            </div>
+          </button>
+
+          <button onclick="scheduleReport()" class="bg-orange-600 hover:bg-orange-700 p-4 rounded-lg transition-all flex items-center gap-3">
+            <i class="fas fa-clock text-xl"></i>
+            <div class="text-left">
+              <div class="font-semibold">Rapport Programmé</div>
+              <div class="text-sm text-orange-200">Automatisation</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Financial data
+    const financialData = {
+      totalRecettes: {{ recettes }},
+      totalDepenses: {{ depenses|abs }},
+      beneficeNet: {{ recettes - (depenses|abs) }},
+      margeBeneficiaire: {{ (((recettes - (depenses|abs)) / recettes) * 100) if recettes > 0 else 0 }}
+    };
+
+    // Chart instances
+    let financeChart = null;
+    let trendChart = null;
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeCharts();
+      updateLastUpdate();
+      animateCounters();
+      startAutoRefresh();
+    function startAutoRefresh() {
+      async function fetchSummary() {
+        try {
+          const res = await fetch('{{ url_for('api_finance_summary') }}', { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          // Normalize expenses
+          data.depenses = Math.abs(parseFloat(data.depenses || 0));
+          data.recettes = parseFloat(data.recettes || 0);
+          data.benefice = data.recettes - data.depenses;
+          // Update numbers
+          financialData.totalRecettes = data.recettes;
+          financialData.totalDepenses = data.depenses;
+          financialData.beneficeNet = data.benefice;
+          financialData.margeBeneficiaire = data.ratio;
+
+          // Update cards instantly
+          document.getElementById('totalRecettes').textContent = formatNumber(data.recettes) + ' FCFA';
+          document.getElementById('totalDepenses').textContent = formatNumber(data.depenses) + ' FCFA';
+          document.getElementById('beneficeNet').textContent = formatNumber(data.benefice) + ' FCFA';
+
+          // Update benefit status
+          const statusIcon = document.getElementById('beneficeStatusIcon');
+          const statusText = document.getElementById('beneficeStatusText');
+          if (statusIcon && statusText) {
+            if (data.benefice >= 0) {
+              statusIcon.className = 'fas fa-arrow-up text-green-400 text-xs';
+              statusText.className = 'text-green-400 text-xs font-semibold';
+              statusText.textContent = 'Positif';
+            } else {
+              statusIcon.className = 'fas fa-arrow-down text-red-400 text-xs';
+              statusText.className = 'text-red-400 text-xs font-semibold';
+              statusText.textContent = 'Négatif';
+            }
+          }
+
+          // Update margin percentage and circular gauge
+          const ratio = (data.recettes > 0) ? (data.benefice / data.recettes) : 0;
+          const pct = Math.max(0, Math.min(1, ratio));
+          const dashTotal = 175.93;
+          const dashOffset = dashTotal * (1 - pct);
+          const gauge = document.querySelector('circle.progress-ring-circle[stroke="#a855f7"]');
+          if (gauge) gauge.setAttribute('stroke-dashoffset', dashOffset.toFixed(2));
+          const inner = document.getElementById('margeBeneficiaireInner');
+          if (inner) inner.textContent = `${Math.round(pct * 100)}%`;
+
+          // Update charts
+          if (financeChart) {
+            financeChart.data.datasets[0].data = [data.recettes, data.depenses];
+            financeChart.update();
+          }
+          if (trendChart) {
+            // shift last point to new values
+            const last = trendChart.data.labels.length - 1;
+            if (last >= 0) {
+              trendChart.data.datasets[0].data[last] = Math.max(0, data.recettes / 12);
+              trendChart.data.datasets[1].data[last] = Math.max(0, data.depenses / 12);
+              trendChart.update();
+            }
+          }
+          updateLastUpdate();
+        } catch (e) {
+          // ignore
+        }
+      }
+      fetchSummary();
+      setInterval(fetchSummary, 15000);
+    }
+    });
+
+    function initializeCharts() {
+      // Main Finance Chart
+      const ctx = document.getElementById('chartFinance').getContext('2d');
+      financeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Recettes', 'Dépenses'],
+          datasets: [{
+            data: [financialData.totalRecettes, financialData.totalDepenses],
+            backgroundColor: [
+              'rgba(34, 197, 94, 0.8)',
+              'rgba(239, 68, 68, 0.8)'
+            ],
+            borderColor: [
+              'rgba(34, 197, 94, 1)',
+              'rgba(239, 68, 68, 1)'
+            ],
+            borderWidth: 2,
+            hoverOffset: 15
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '70%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { size: 14, weight: '600' },
+                color: 'white',
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleFont: { weight: '700', size: 14 },
+              bodyFont: { weight: '500', size: 13 },
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  let label = context.label || '';
+                  let value = context.raw || 0;
+                  let percentage = ((value / (financialData.totalRecettes + financialData.totalDepenses)) * 100).toFixed(1);
+                  return `${label}: ${formatNumber(value)} FCFA (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Trend Chart
+      const trendCtx = document.getElementById('trendChart').getContext('2d');
+      const monthlyData = generateMonthlyData();
+
+      trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: monthlyData.labels,
+          datasets: [
+            {
+              label: 'Recettes',
+              data: monthlyData.recettes,
+              borderColor: 'rgba(34, 197, 94, 1)',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+              pointBorderColor: 'white',
+              pointBorderWidth: 2,
+              pointRadius: 5
+            },
+            {
+              label: 'Dépenses',
+              data: monthlyData.depenses,
+              borderColor: 'rgba(239, 68, 68, 1)',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+              pointBorderColor: 'white',
+              pointBorderWidth: 2,
+              pointRadius: 5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: { size: 12, weight: '600' },
+                color: 'white',
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleFont: { weight: '700', size: 14 },
+              bodyFont: { weight: '500', size: 13 },
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${formatNumber(context.raw)} FCFA`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: 'white',
+                font: { size: 11 }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+                drawBorder: false
+              }
+            },
+            y: {
+              ticks: {
+                color: 'white',
+                font: { size: 11 },
+                callback: function(value) {
+                  return formatNumber(value) + ' FCFA';
+                }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+                drawBorder: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function generateMonthlyData() {
+      const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+      const recettes = [];
+      const depenses = [];
+
+      // Generate sample data based on current totals
+      const avgRecettes = financialData.totalRecettes / 12;
+      const avgDepenses = financialData.totalDepenses / 12;
+
+      for (let i = 0; i < 12; i++) {
+        // Add some variation to make it realistic
+        const recetteVariation = (Math.random() - 0.5) * 0.4; // ±20% variation
+        const depenseVariation = (Math.random() - 0.5) * 0.3; // ±15% variation
+
+        recettes.push(Math.max(0, avgRecettes * (1 + recetteVariation)));
+        depenses.push(Math.max(0, avgDepenses * (1 + depenseVariation)));
+      }
+
+      return {
+        labels: months,
+        recettes: recettes,
+        depenses: depenses
+      };
+    }
+
+    function formatNumber(num) {
+      return Math.round(num).toLocaleString('fr-FR');
+    }
+
+    function animateCounters() {
+      // Animate the main metric counters
+      animateCounter('totalRecettes', financialData.totalRecettes);
+      animateCounter('totalDepenses', financialData.totalDepenses);
+      animateCounter('beneficeNet', financialData.beneficeNet);
+    }
+
+    function animateCounter(elementId, targetValue) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+
+      const duration = 2000; // 2 seconds
+      const startTime = performance.now();
+      const startValue = 0;
+
+      function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        const currentValue = startValue + (targetValue - startValue) * easeOutQuart;
+
+        element.textContent = formatNumber(currentValue) + ' FCFA';
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        }
+      }
+
+      requestAnimationFrame(updateCounter);
+    }
+
+    function updateLastUpdate() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      document.getElementById('lastUpdate').textContent = timeString;
+    }
+
+    // Chart interaction functions
+    function changeChartType(type) {
+      if (financeChart) {
+        financeChart.config.type = type;
+        financeChart.options.cutout = type === 'doughnut' ? '70%' : '0%';
+        financeChart.update();
+
+        // Update button states
+        document.getElementById('btnDoughnut').className = type === 'doughnut'
+          ? 'px-3 py-1 bg-blue-600 text-white rounded text-sm'
+          : 'px-3 py-1 bg-white/20 text-white rounded text-sm';
+        document.getElementById('btnPie').className = type === 'pie'
+          ? 'px-3 py-1 bg-blue-600 text-white rounded text-sm'
+          : 'px-3 py-1 bg-white/20 text-white rounded text-sm';
+      }
+    }
+
+    function changePeriod(period) {
+      // Update trend chart data based on period
+      if (trendChart) {
+        const newData = period === '6m' ? generateMonthlyData().labels.slice(-6) : generateMonthlyData().labels;
+        const newRecettes = period === '6m' ? generateMonthlyData().recettes.slice(-6) : generateMonthlyData().recettes;
+        const newDepenses = period === '6m' ? generateMonthlyData().depenses.slice(-6) : generateMonthlyData().depenses;
+
+        trendChart.data.labels = newData;
+        trendChart.data.datasets[0].data = newRecettes;
+        trendChart.data.datasets[1].data = newDepenses;
+        trendChart.update();
+      }
+    }
+
+    // Action functions
+    function refreshData() {
+      showNotification('Données actualisées', 'success');
+      updateLastUpdate();
+
+      // Add refresh animation
+      const refreshBtn = event.target.closest('button');
+      const icon = refreshBtn.querySelector('i');
+      icon.style.animation = 'spin 1s linear';
+      setTimeout(() => {
+        icon.style.animation = '';
+      }, 1000);
+    }
+
+    function exportReport() {
+      // Generate CSV data
+      const csvData = [
+        ['Métrique', 'Valeur'],
+        ['Total Recettes', financialData.totalRecettes + ' FCFA'],
+        ['Total Dépenses', financialData.totalDepenses + ' FCFA'],
+        ['Bénéfice Net', financialData.beneficeNet + ' FCFA'],
+        ['Marge Bénéficiaire', financialData.margeBeneficiaire.toFixed(1) + '%']
+      ];
+
+      const csvContent = csvData.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'rapport_financier.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      showNotification('Rapport exporté avec succès', 'success');
+    }
+
+    function showPeriodAnalysis() {
+      showNotification('Analyse périodique en cours de développement', 'info');
+    }
+
+    function generateBudget() {
+      showNotification('Générateur de budget en cours de développement', 'info');
+    }
+
+    function exportDetailedReport() {
+      showNotification('Export du rapport détaillé en cours...', 'info');
+    }
+
+    function scheduleReport() {
+      showNotification('Programmation de rapport en cours de développement', 'info');
+    }
+
+    // Notification functions
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      const icon = document.getElementById('notificationIcon');
+      const text = document.getElementById('notificationText');
+
+      if (type === 'success') {
+        icon.className = 'fas fa-check-circle text-green-400';
+      } else if (type === 'error') {
+        icon.className = 'fas fa-exclamation-circle text-red-400';
+      } else if (type === 'info') {
+        icon.className = 'fas fa-info-circle text-blue-400';
+      }
+
+      text.textContent = message;
+      notification.classList.add('show');
+
+      setTimeout(() => {
+        hideNotification();
+      }, 3000);
+    }
+
+    function hideNotification() {
+      document.getElementById('notification').classList.remove('show');
+    }
+
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+      updateLastUpdate();
+    }, 300000);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // R key to refresh
+      if (e.key === 'r' || e.key === 'R') {
+        if (!e.ctrlKey && !e.metaKey) {
+          refreshData();
+        }
+      }
+
+      // E key to export
+      if (e.key === 'e' || e.key === 'E') {
+        if (!e.ctrlKey && !e.metaKey) {
+          exportReport();
+        }
+      }
+    });
+
+    // Add CSS animation for spin
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

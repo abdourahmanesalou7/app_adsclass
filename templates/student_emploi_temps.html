@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Emploi du Temps - AdsClass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .course-card {
+            transition: all 0.3s ease;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .day-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .time-badge {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-graduation-cap text-2xl text-blue-600"></i>
+                    <h1 class="text-xl font-bold text-gray-800">AdsClass</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">{{ prenom }} {{ nom }}</span>
+                    <a href="{{ url_for('student_dashboard') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-calendar-week text-blue-600 mr-3"></i>
+                        Mon Emploi du Temps
+                    </h1>
+                    <p class="text-gray-600">Voici vos cours de la semaine, mis à jour automatiquement</p>
+                </div>
+                <div class="text-right">
+                    <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        <span class="font-semibold">Synchronisé</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emploi du temps par jour -->
+        <div class="space-y-6">
+            {% for jour in jours_semaine %}
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- En-tête du jour -->
+                    <div class="day-header text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-2xl font-bold">
+                                <i class="fas fa-calendar-day mr-3"></i>
+                                {{ jour }}
+                            </h2>
+                            <div class="text-right">
+                                <div class="text-sm opacity-90">
+                                    {{ emploi_temps[jour]|length }} cours
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cours du jour -->
+                    <div class="p-6">
+                        {% if emploi_temps[jour] %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {% for course in emploi_temps[jour] %}
+                                    <div class="course-card bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-lg p-6 hover:border-blue-300">
+                                        <!-- Heure -->
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div class="time-badge text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                                {{ course.heure_debut }} - {{ course.heure_fin }}
+                                            </div>
+                                            {% if course.visible %}
+                                                <i class="fas fa-eye text-green-500" title="Visible"></i>
+                                            {% else %}
+                                                <i class="fas fa-eye-slash text-gray-400" title="Masqué"></i>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Nom du cours -->
+                                        <h3 class="text-lg font-bold text-gray-800 mb-2">
+                                            {{ course.nom_cours }}
+                                        </h3>
+
+                                        <!-- Professeur -->
+                                        {% if course.professeur_nom %}
+                                            <div class="flex items-center text-gray-600 mb-2">
+                                                <i class="fas fa-user-tie mr-2 text-purple-500"></i>
+                                                <span class="text-sm">{{ course.professeur_nom }}</span>
+                                            </div>
+                                        {% endif %}
+
+                                        <!-- Salle -->
+                                        {% if course.salle %}
+                                            <div class="flex items-center text-gray-600 mb-2">
+                                                <i class="fas fa-door-open mr-2 text-indigo-500"></i>
+                                                <span class="text-sm">{{ course.salle }}</span>
+                                            </div>
+                                        {% endif %}
+
+                                        <!-- Description -->
+                                        {% if course.description %}
+                                            <div class="text-gray-600 text-sm mb-3">
+                                                <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                                                {{ course.description[:100] }}{% if course.description|length > 100 %}...{% endif %}
+                                            </div>
+                                        {% endif %}
+
+                                        <!-- Badges -->
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex space-x-2">
+                                                {% if course.recurrent %}
+                                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                                        <i class="fas fa-repeat mr-1"></i>Récurrent
+                                                    </span>
+                                                {% endif %}
+                                                {% if course.notifications %}
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                                        <i class="fas fa-bell mr-1"></i>Notif
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-xs text-gray-500">
+                                                ID: {{ course.id }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-12">
+                                <i class="fas fa-calendar-times text-6xl text-gray-300 mb-4"></i>
+                                <h3 class="text-xl font-semibold text-gray-500 mb-2">Aucun cours ce {{ jour.lower() }}</h3>
+                                <p class="text-gray-400">Profitez de cette journée libre !</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Statistiques -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-chart-bar text-green-600 mr-2"></i>
+                Statistiques de la Semaine
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {% set total_courses = emploi_temps.values() | sum(attribute='__len__') %}
+                
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-600 mb-2">{{ total_courses }}</div>
+                    <div class="text-sm text-blue-800">Total Cours</div>
+                </div>
+                
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    {% set jours_avec_cours = emploi_temps.values() | selectattr('__len__', 'gt', 0) | list | length %}
+                    <div class="text-3xl font-bold text-green-600 mb-2">{{ jours_avec_cours }}</div>
+                    <div class="text-sm text-green-800">Jours Actifs</div>
+                </div>
+                
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    {% set professeurs_uniques = emploi_temps.values() | sum(start=[]) | map(attribute='professeur_nom') | select | unique | list | length %}
+                    <div class="text-3xl font-bold text-purple-600 mb-2">{{ professeurs_uniques }}</div>
+                    <div class="text-sm text-purple-800">Professeurs</div>
+                </div>
+                
+                <div class="text-center p-4 bg-orange-50 rounded-lg">
+                    {% set salles_uniques = emploi_temps.values() | sum(start=[]) | map(attribute='salle') | select | unique | list | length %}
+                    <div class="text-3xl font-bold text-orange-600 mb-2">{{ salles_uniques }}</div>
+                    <div class="text-sm text-orange-800">Salles</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Légende -->
+        <div class="mt-8 bg-gray-100 rounded-xl p-6">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                Informations
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-sync-alt text-green-500 mr-2"></i>
+                    <span>Cet emploi du temps est mis à jour automatiquement quand l'admin ajoute des cours</span>
+                </div>
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-bell text-blue-500 mr-2"></i>
+                    <span>Les notifications vous alertent des nouveaux cours et modifications</span>
+                </div>
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-repeat text-purple-500 mr-2"></i>
+                    <span>Les cours récurrents se répètent chaque semaine</span>
+                </div>
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-calendar-check text-orange-500 mr-2"></i>
+                    <span>Consultez régulièrement pour les mises à jour</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

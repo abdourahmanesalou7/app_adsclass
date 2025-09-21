@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 py-12 px-4">
+  <div class="max-w-2xl mx-auto">
+    <!-- Header Card -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 mb-8">
+      <div class="text-center">
+        <div class="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+          <i class="fas fa-clipboard-list text-white text-2xl"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-gray-900 mb-3">
+          Saisie des <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">notes</span>
+        </h1>
+        <div class="flex items-center justify-center space-x-3 text-lg text-gray-600">
+          <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <span class="text-white font-bold">{{ etudiant.prenom[0] }}{{ etudiant.nom[0] }}</span>
+          </div>
+          <span class="font-semibold text-indigo-700">{{ etudiant.prenom }} {{ etudiant.nom }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+      <form method="POST" novalidate class="space-y-8">
+        <!-- Subject Input -->
+        <div class="space-y-2">
+          <label for="nom_cours" class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <i class="fas fa-book text-indigo-500"></i>
+            Matière
+          </label>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="nom_cours" 
+              name="nom_cours" 
+              required
+              placeholder="Ex: Mathématiques, Physique, Informatique..."
+              class="w-full px-6 py-4 bg-white/70 border-2 border-gray-200 rounded-2xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 transition-all duration-200 text-lg"
+              autocomplete="off"
+            />
+            <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+              <i class="fas fa-graduation-cap text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grades Grid -->
+        <div class="space-y-6">
+          <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <i class="fas fa-chart-line text-indigo-500"></i>
+            Évaluations
+          </h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- CC1 -->
+            <div class="space-y-2">
+              <label for="CC1" class="flex items-center justify-between text-sm font-semibold text-gray-700">
+                <span class="flex items-center gap-2">
+                  <i class="fas fa-file-alt text-blue-500"></i>
+                  Contrôle Continu 1
+                </span>
+                <span class="text-xs text-gray-500">/ 20</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="number" step="0.01" min="0" max="20"
+                  id="CC1" name="CC1" required
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-white/70 border-2 border-gray-200 rounded-2xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
+                />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                  <span class="text-gray-400 font-medium">pts</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- CC2 -->
+            <div class="space-y-2">
+              <label for="CC2" class="flex items-center justify-between text-sm font-semibold text-gray-700">
+                <span class="flex items-center gap-2">
+                  <i class="fas fa-file-alt text-emerald-500"></i>
+                  Contrôle Continu 2
+                </span>
+                <span class="text-xs text-gray-500">/ 20</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="number" step="0.01" min="0" max="20"
+                  id="CC2" name="CC2" required
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-white/70 border-2 border-gray-200 rounded-2xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all duration-200 text-lg font-semibold"
+                />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                  <span class="text-gray-400 font-medium">pts</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Participation -->
+            <div class="space-y-2">
+              <label for="Participation" class="flex items-center justify-between text-sm font-semibold text-gray-700">
+                <span class="flex items-center gap-2">
+                  <i class="fas fa-comments text-orange-500"></i>
+                  Participation
+                </span>
+                <span class="text-xs text-gray-500">/ 20</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="number" step="0.01" min="0" max="20"
+                  id="Participation" name="Participation" required
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-white/70 border-2 border-gray-200 rounded-2xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition-all duration-200 text-lg font-semibold"
+                />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                  <span class="text-gray-400 font-medium">pts</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Examen -->
+            <div class="space-y-2">
+              <label for="Examen" class="flex items-center justify-between text-sm font-semibold text-gray-700">
+                <span class="flex items-center gap-2">
+                  <i class="fas fa-certificate text-red-500"></i>
+                  Examen Final
+                </span>
+                <span class="text-xs text-gray-500">/ 20</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="number" step="0.01" min="0" max="20"
+                  id="Examen" name="Examen" required
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-white/70 border-2 border-gray-200 rounded-2xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-500 transition-all duration-200 text-lg font-semibold"
+                />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                  <span class="text-gray-400 font-medium">pts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Average Preview -->
+        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <i class="fas fa-calculator text-white"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-gray-800">Moyenne prévisionnelle</h4>
+                <p class="text-sm text-gray-600">Calculée automatiquement</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <div id="average-display" class="text-3xl font-bold text-indigo-600">--</div>
+              <div class="text-sm text-gray-500">/ 20</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex flex-col sm:flex-row gap-4 pt-4">
+          <button
+            type="button"
+            onclick="history.back()"
+            class="flex-1 py-4 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-2xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-arrow-left"></i>
+            Annuler
+          </button>
+          <button
+            type="submit"
+            class="flex-1 py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-200 transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-save"></i>
+            Enregistrer les notes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Calculate average in real-time
+function calculateAverage() {
+  const cc1 = parseFloat(document.getElementById('CC1').value) || 0;
+  const cc2 = parseFloat(document.getElementById('CC2').value) || 0;
+  const participation = parseFloat(document.getElementById('Participation').value) || 0;
+  const examen = parseFloat(document.getElementById('Examen').value) || 0;
+  
+  const average = (cc1 + cc2 + participation + examen) / 4;
+  const display = document.getElementById('average-display');
+  
+  if (cc1 || cc2 || participation || examen) {
+    display.textContent = average.toFixed(2);
+    display.className = `text-3xl font-bold ${
+      average >= 16 ? 'text-green-600' :
+      average >= 14 ? 'text-blue-600' :
+      average >= 12 ? 'text-orange-600' :
+      average >= 10 ? 'text-yellow-600' : 'text-red-600'
+    }`;
+  } else {
+    display.textContent = '--';
+    display.className = 'text-3xl font-bold text-indigo-600';
+  }
+}
+
+// Add event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  ['CC1', 'CC2', 'Participation', 'Examen'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calculateAverage);
+  });
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+  const inputs = this.querySelectorAll('input[required]');
+  let isValid = true;
+  
+  inputs.forEach(input => {
+    if (!input.value.trim()) {
+      input.classList.add('border-red-500', 'ring-red-200');
+      input.classList.remove('border-gray-200');
+      isValid = false;
+    } else {
+      input.classList.remove('border-red-500', 'ring-red-200');
+      input.classList.add('border-gray-200');
+    }
+  });
+  
+  if (!isValid) {
+    e.preventDefault();
+    // Show error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50';
+    errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Veuillez remplir tous les champs requis';
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 3000);
+  }
+});
+</script>
+{% endblock %}

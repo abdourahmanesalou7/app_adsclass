@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Planning - AdsClass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .course-card {
+            transition: all 0.3s ease;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .day-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .time-badge {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .prof-badge {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="glass-effect shadow-xl">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">AdsClass</h1>
+                        <p class="text-sm text-gray-600">Planning Professeur</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600 font-medium">{{ prenom }} {{ nom }}</span>
+                    <a href="{{ url_for('prof_dashboard') }}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all">
+                        <i class="fas fa-arrow-left mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Message d'erreur si présent -->
+        {% if error_message %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <strong>Attention :</strong> {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- Header Ultra-Pro -->
+        <div class="glass-effect rounded-3xl p-8 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-calendar-week text-blue-600 mr-3"></i>
+                        Planning de {{ prenom }} {{ nom }}
+                    </h1>
+                    <p class="text-gray-600 text-lg">Emploi du temps personnalisé et synchronisé automatiquement</p>
+                    <div class="flex items-center mt-4 space-x-6">
+                        <div class="flex items-center text-green-600">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            <span class="text-sm font-medium">Synchronisé en temps réel</span>
+                        </div>
+                        <div class="flex items-center text-blue-600">
+                            <i class="fas fa-bell mr-2"></i>
+                            <span class="text-sm">Notifications actives</span>
+                        </div>
+                        <div class="flex items-center text-purple-600">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span class="text-sm">Mise à jour : maintenant</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="prof-badge text-white px-6 py-3 rounded-xl">
+                        <i class="fas fa-user-tie mr-2"></i>
+                        <span class="font-semibold">Professeur {{ prenom }}</span>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('prof_dashboard') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all">
+                            <i class="fas fa-arrow-left mr-2"></i>Retour Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques Rapides -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {% set total_courses = 0 %}
+            {% set jours_avec_cours = 0 %}
+            {% set total_etudiants = 0 %}
+            {% set salles_uniques = [] %}
+
+            {% for jour, cours_list in emploi_temps.items() %}
+                {% set total_courses = total_courses + cours_list|length %}
+                {% if cours_list|length > 0 %}
+                    {% set jours_avec_cours = jours_avec_cours + 1 %}
+                {% endif %}
+                {% for course in cours_list %}
+                    {% set total_etudiants = total_etudiants + (course.nb_etudiants or 0) %}
+                    {% if course.salle and course.salle not in salles_uniques %}
+                        {% set _ = salles_uniques.append(course.salle) %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            
+            <div class="glass-effect rounded-2xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Total Cours</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ total_courses }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-book text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Jours Actifs</p>
+                        <p class="text-3xl font-bold text-green-600">{{ jours_avec_cours }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Étudiants</p>
+                        <p class="text-3xl font-bold text-purple-600">{{ total_etudiants or 0 }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-users text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Salles</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ salles_uniques|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-door-open text-orange-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planning par jour -->
+        <div class="space-y-6">
+            {% for jour in jours_semaine %}
+                <div class="glass-effect rounded-3xl overflow-hidden">
+                    <!-- En-tête du jour avec date -->
+                    <div class="day-header text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-4">
+                                    <i class="fas fa-calendar-day text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-bold">{{ jour }}</h2>
+                                    <p class="text-blue-100" id="date-{{ loop.index0 }}">
+                                        <script>
+                                            // Calculer la date pour {{ jour }}
+                                            const today = new Date();
+                                            const currentDay = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
+                                            const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                                            const targetDay = jours.indexOf('{{ jour }}');
+                                            let diff = targetDay - currentDay;
+                                            if (diff < 0) diff += 7; // Semaine suivante si le jour est passé
+                                            const targetDate = new Date(today);
+                                            targetDate.setDate(today.getDate() + diff);
+
+                                            const options = {
+                                                weekday: 'long',
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric'
+                                            };
+                                            document.getElementById('date-{{ loop.index0 }}').innerHTML =
+                                                targetDate.toLocaleDateString('fr-FR', options) + ' • {{ emploi_temps[jour]|length }} cours';
+                                        </script>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                {% if emploi_temps[jour] %}
+                                    <div class="bg-white/20 rounded-lg px-4 py-2">
+                                        {% set total_etudiants_jour = 0 %}
+                                        {% for course in emploi_temps[jour] %}
+                                            {% set total_etudiants_jour = total_etudiants_jour + (course.nb_etudiants or 0) %}
+                                        {% endfor %}
+                                        <div class="text-lg font-bold">{{ total_etudiants_jour }}</div>
+                                        <div class="text-xs opacity-75">étudiants</div>
+                                    </div>
+                                {% else %}
+                                    <div class="bg-white/10 rounded-lg px-4 py-2">
+                                        <div class="text-sm">Journée libre</div>
+                                        <div class="text-xs opacity-75">Repos</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cours du jour -->
+                    <div class="p-6">
+                        {% if emploi_temps[jour] %}
+                            <div class="space-y-4">
+                                {% for course in emploi_temps[jour] %}
+                                    <div class="course-card bg-gradient-to-r from-white to-blue-50 border-l-4 border-blue-500 rounded-xl p-6 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                                        <div class="flex items-start justify-between">
+                                            <!-- Informations principales -->
+                                            <div class="flex-1">
+                                                <div class="flex items-center mb-3">
+                                                    <div class="time-badge text-white px-4 py-2 rounded-full text-sm font-bold mr-4">
+                                                        {{ course.heure_debut }} - {{ course.heure_fin }}
+                                                    </div>
+                                                    <div class="flex items-center space-x-2">
+                                                        {% if course.visible %}
+                                                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                                                <i class="fas fa-eye mr-1"></i>Visible
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if course.notifications %}
+                                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                                                <i class="fas fa-bell mr-1"></i>Notif
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if course.recurrent %}
+                                                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                                                                <i class="fas fa-repeat mr-1"></i>Récurrent
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                <!-- Nom du cours -->
+                                                <h3 class="text-2xl font-bold text-gray-800 mb-3">
+                                                    <i class="fas fa-book text-blue-600 mr-2"></i>
+                                                    {{ course.nom_cours }}
+                                                </h3>
+
+                                                <!-- Détails en grid -->
+                                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                                    <!-- Filière -->
+                                                    <div class="bg-white rounded-lg p-3 text-center">
+                                                        <i class="fas fa-graduation-cap text-blue-500 text-lg mb-1"></i>
+                                                        <p class="text-xs text-gray-500">Filière</p>
+                                                        <p class="text-sm font-semibold text-gray-800">{{ course.filiere }}</p>
+                                                    </div>
+
+                                                    <!-- Salle -->
+                                                    <div class="bg-white rounded-lg p-3 text-center">
+                                                        <i class="fas fa-door-open text-indigo-500 text-lg mb-1"></i>
+                                                        <p class="text-xs text-gray-500">Salle</p>
+                                                        <p class="text-sm font-semibold text-gray-800">{{ course.salle or 'Non définie' }}</p>
+                                                    </div>
+
+                                                    <!-- Étudiants -->
+                                                    <div class="bg-white rounded-lg p-3 text-center">
+                                                        <i class="fas fa-users text-green-500 text-lg mb-1"></i>
+                                                        <p class="text-xs text-gray-500">Étudiants</p>
+                                                        <p class="text-sm font-semibold text-gray-800">{{ course.nb_etudiants or 0 }}</p>
+                                                    </div>
+
+                                                    <!-- Durée -->
+                                                    <div class="bg-white rounded-lg p-3 text-center">
+                                                        <i class="fas fa-clock text-orange-500 text-lg mb-1"></i>
+                                                        <p class="text-xs text-gray-500">Durée</p>
+                                                        <p class="text-sm font-semibold text-gray-800">2h</p>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Description -->
+                                                {% if course.description %}
+                                                    <div class="bg-gray-50 rounded-lg p-3 mb-4">
+                                                        <p class="text-sm text-gray-700">
+                                                            <i class="fas fa-info-circle text-purple-500 mr-2"></i>
+                                                            {{ course.description }}
+                                                        </p>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Actions rapides -->
+                                            <div class="flex flex-col space-y-2 ml-4">
+                                                <a href="{{ url_for('professeur_etudiants_cours', course_id=course.id) }}" class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg transition-colors text-center" title="Gérer étudiants">
+                                                    <i class="fas fa-users"></i>
+                                                </a>
+                <a href="{{ url_for('professeur_presences', course_id=course.id) }}" class="bg-purple-500 hover:bg-purple-600 text-white p-3 rounded-lg transition-colors text-center" title="Gérer présences">
+                    <i class="fas fa-user-check"></i>
+                </a>
+                <a href="{{ url_for('professeur_upload_document', course_id=course.id) }}" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg transition-colors text-center" title="Upload Document">
+                    <i class="fas fa-upload"></i>
+                </a>
+                                                <button onclick="viewCourseDetails('{{ course.id }}')" class="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-lg transition-colors" title="Voir détails">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-16">
+                                <div class="bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-calendar-times text-4xl text-gray-400"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-gray-600 mb-3">Journée libre</h3>
+                                <p class="text-gray-500 mb-4">Aucun cours programmé ce {{ jour.lower() }}</p>
+                                <div class="bg-blue-50 rounded-lg p-4 max-w-md mx-auto">
+                                    <p class="text-blue-700 text-sm">
+                                        <i class="fas fa-lightbulb mr-2"></i>
+                                        Profitez de cette journée pour préparer vos cours ou rencontrer vos étudiants !
+                                    </p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Actions Rapides -->
+        <div class="mt-8 glass-effect rounded-3xl p-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-bolt text-yellow-500 mr-3"></i>
+                Actions Rapides
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button onclick="exportSchedule()" class="p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
+                    <i class="fas fa-download text-3xl mb-4"></i>
+                    <h4 class="text-lg font-bold mb-2">Exporter Planning</h4>
+                    <p class="text-sm opacity-90">Télécharger en PDF ou Excel</p>
+                </button>
+                
+                <button onclick="printSchedule()" class="p-6 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
+                    <i class="fas fa-print text-3xl mb-4"></i>
+                    <h4 class="text-lg font-bold mb-2">Imprimer</h4>
+                    <p class="text-sm opacity-90">Version imprimable du planning</p>
+                </button>
+                
+                <button onclick="shareSchedule()" class="p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
+                    <i class="fas fa-share text-3xl mb-4"></i>
+                    <h4 class="text-lg font-bold mb-2">Partager</h4>
+                    <p class="text-sm opacity-90">Envoyer par email ou lien</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Informations -->
+        <div class="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-3xl p-8">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                Informations Importantes
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-sync-alt text-green-500 mr-3"></i>
+                    <span>Votre planning est synchronisé automatiquement avec les ajouts de l'administration</span>
+                </div>
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-bell text-blue-500 mr-3"></i>
+                    <span>Vous recevez des notifications pour tous les nouveaux cours assignés</span>
+                </div>
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-users text-purple-500 mr-3"></i>
+                    <span>Les étudiants voient automatiquement vos cours dans leur emploi du temps</span>
+                </div>
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-calendar-check text-orange-500 mr-3"></i>
+                    <span>Consultez régulièrement pour les mises à jour et modifications</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function viewCourseDetails(courseId) {
+            alert(`Affichage des détails du cours ID: ${courseId}`);
+        }
+
+        function manageCourse(courseId) {
+            alert(`Gestion du cours ID: ${courseId}`);
+        }
+
+        function exportSchedule() {
+            alert('Fonctionnalité d\'export en cours de développement...');
+        }
+
+        function printSchedule() {
+            window.print();
+        }
+
+        function shareSchedule() {
+            alert('Fonctionnalité de partage en cours de développement...');
+        }
+    </script>
+</body>
+</html>

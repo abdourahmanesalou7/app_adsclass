@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carte d'étudiant - Adsclass</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        html { 
+            font-family: 'Inter', sans-serif; 
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .floating-animation {
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(1deg); }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .card-hover {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .student-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%);
+            border: 3px solid transparent;
+            border-radius: 2rem;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+        
+        .student-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, 
+                #3b82f6 0%, 
+                #8b5cf6 25%, 
+                #ec4899 50%, 
+                #f59e0b 75%, 
+                #10b981 100%);
+            background-size: 200% 100%;
+            animation: gradientMove 3s ease-in-out infinite;
+        }
+        
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .student-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, 
+                transparent 0deg, 
+                rgba(59, 130, 246, 0.03) 60deg, 
+                transparent 120deg, 
+                rgba(139, 92, 246, 0.03) 180deg, 
+                transparent 240deg, 
+                rgba(236, 72, 153, 0.03) 300deg, 
+                transparent 360deg);
+            animation: rotate 20s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .pattern-bg {
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 40% 60%, rgba(236, 72, 153, 0.05) 0%, transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%);
+        }
+        
+        .qr-code {
+            background: linear-gradient(145deg, #1e40af 0%, #3b82f6 100%);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                0 8px 25px rgba(30, 64, 175, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .qr-code::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            animation: shine 3s ease-in-out infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        }
+        
+        .qr-pattern {
+            width: 90px;
+            height: 90px;
+            background: 
+                linear-gradient(90deg, #ffffff 25%, transparent 25%, transparent 75%, #ffffff 75%),
+                linear-gradient(#ffffff 25%, transparent 25%, transparent 75%, #ffffff 75%);
+            background-size: 6px 6px;
+            border-radius: 0.75rem;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .photo-placeholder {
+            background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
+            border: 3px solid transparent;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+        
+        .photo-placeholder::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, 
+                transparent 0deg, 
+                rgba(148, 163, 184, 0.1) 90deg, 
+                transparent 180deg);
+            animation: rotate 15s linear infinite;
+        }
+        
+        .professional-logo {
+            background: linear-gradient(145deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 1rem;
+            box-shadow: 
+                0 12px 30px rgba(59, 130, 246, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .professional-logo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                transparent 30%, 
+                rgba(255, 255, 255, 0.2) 50%, 
+                transparent 70%);
+            animation: logoShine 4s ease-in-out infinite;
+        }
+        
+        @keyframes logoShine {
+            0%, 100% { transform: translateX(-100%) skewX(-15deg); }
+            50% { transform: translateX(100%) skewX(-15deg); }
+        }
+        
+        .info-badge {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .info-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+        
+        .status-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .print-only {
+            display: none;
+        }
+        
+        @media print {
+            .print-only {
+                display: block !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+            }
+            .student-card {
+                box-shadow: none !important;
+                border: 3px solid #000 !important;
+                margin: 0 !important;
+                page-break-inside: avoid;
+                background: white !important;
+            }
+            .student-card::before,
+            .student-card::after {
+                display: none !important;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+        
+        .slide-in-left {
+            animation: slideInLeft 0.6s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .slide-in-right {
+            animation: slideInRight 0.6s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+            }
+        }
+        
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .border-gradient {
+            border: 2px solid transparent;
+            background: linear-gradient(white, white) padding-box,
+                        linear-gradient(135deg, #3b82f6, #8b5cf6) border-box;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen font-sans text-gray-900">
+
+    <!-- Enhanced Navigation Header -->
+    <header class="glass-effect fixed top-0 left-0 w-full h-20 shadow-2xl border-b border-white/30 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+            <div class="flex justify-between items-center h-full">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center floating-animation shadow-lg">
+                        <i class="fas fa-graduation-cap text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('student_dashboard') }}" 
+                           class="text-2xl font-bold gradient-text hover:scale-105 transition-transform">
+                            Adsclass
+                        </a>
+                        <p class="text-xs text-gray-600 font-medium">Student Portal</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="hidden lg:flex items-center space-x-8">
+                    <a href="{{ url_for('student_dashboard') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+                        <i class="fas fa-home"></i>
+                        <span>Accueil</span>
+                    </a>
+                    <a href="{{ url_for('student_courses') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+                        <i class="fas fa-book"></i>
+                        <span>Cours</span>
+                    </a>
+                    <a href="{{ url_for('student_grades') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Notes</span>
+                    </a>
+                    <a href="{{ url_for('student_profile') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+                        <i class="fas fa-user"></i>
+                        <span>Profil</span>
+                    </a>
+                    <a href="{{ url_for('student_card') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold transition-all">
+                        <i class="fas fa-id-card"></i>
+                        <span>Carte étudiant</span>
+                    </a>
+                </nav>
+
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('logout') }}" 
+                       class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Déconnexion</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
+        
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-id-card text-blue-600"></i>
+                Carte d'étudiant
+            </h1>
+            <p class="text-gray-600 mt-2">Générez et consultez votre carte d'identification étudiante officielle.</p>
+        </div>
+
+        <!-- Card Navigation -->
+        <div class="glass-effect rounded-2xl p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <span class="font-semibold text-gray-800">Votre carte d'étudiant</span>
+                </div>
+                <div class="flex items-center space-x-3 no-print">
+                    <button onclick="downloadCard()" 
+                            class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-download"></i>
+                        <span>Télécharger la carte</span>
+                    </button>
+                    <button onclick="regenerateCard()" 
+                            class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Régénérer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Card -->
+        <div class="fade-in">
+            <div class="flex justify-center">
+                <div class="student-card pattern-bg w-full max-w-3xl p-10 card-hover pulse-glow">
+                    <!-- Card Header -->
+                    <div class="flex items-center justify-between mb-10 relative z-10">
+                        <div class="flex items-center space-x-6 slide-in-left">
+                            <div class="professional-logo w-20 h-20 flex items-center justify-center">
+                                <span class="text-xs font-bold text-white opacity-70 relative z-10">ADSCLASS</span>
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-bold text-gray-800 text-shadow">Adsclass</h2>
+                                <p class="text-sm text-gray-600 font-medium">Business School</p>
+                                <div class="flex items-center mt-1">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                                    <span class="text-xs text-green-600 font-medium">Institution Accréditée</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right slide-in-right">
+                            <div class="info-badge">
+                                <p class="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">Student ID</p>
+                                <p class="text-xl font-bold text-gray-800 tracking-wider">{{ student_id }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="flex items-start justify-between mb-10 relative z-10">
+                        <!-- Left Side - Name and Info -->
+                        <div class="flex-1 pr-8 slide-in-left">
+                            <div class="mb-8">
+                                <p class="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Nom Complet</p>
+                                <h3 class="text-3xl font-bold text-gray-800 leading-tight text-shadow">
+                                    {{ student_data.prenom.upper() }} {{ student_data.nom.upper() }}
+                                </h3>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 gap-6">
+                                <div class="info-badge">
+                                    <p class="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Programme</p>
+                                    <p class="text-gray-800 font-bold text-lg">{{ student_data.filiere or 'Non défini' }}</p>
+                                    {% if student_data.niveau %}
+                                    <p class="text-sm text-gray-600 mt-1">{{ student_data.niveau }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="info-badge">
+                                    <p class="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Statut Membre</p>
+                                    <div class="flex items-center">
+                                        <div class="status-active px-3 py-1 rounded-full text-sm font-bold">
+                                            ACTIF
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="info-badge">
+                                    <p class="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Contact</p>
+                                    <p class="text-gray-800 font-semibold text-sm">{{ student_data.email }}</p>
+                                    {% if student_data.telephone %}
+                                    <p class="text-gray-600 text-sm mt-1">{{ student_data.telephone }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side - Photo Placeholder -->
+                        <div class="photo-placeholder w-28 h-36 ml-8 slide-in-right">
+                            <div class="text-center relative z-10">
+                                <i class="fas fa-user text-3xl mb-3 text-gray-400"></i>
+                                <p class="text-xs font-medium text-gray-500">Photo Étudiant</p>
+                                <div class="mt-2">
+                                    <div class="w-12 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full mx-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="flex items-center justify-between relative z-10">
+                        <!-- Left Side - Duration and Expiry -->
+                        <div class="flex items-center space-x-12 slide-in-left">
+                            <div class="info-badge">
+                                <p class="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Durée</p>
+                                <p class="text-gray-800 font-bold text-lg">2 ANS</p>
+                            </div>
+                            <div class="info-badge">
+                                <p class="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Expiration</p>
+                                <p class="text-gray-800 font-bold text-lg">{{ expiry_date.strftime('%m/%y') }}</p>
+                            </div>
+                            <div class="info-badge">
+                                <p class="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Année Académique</p>
+                                <p class="text-gray-800 font-bold text-lg">{{ expiry_date.year - 1 }}-{{ expiry_date.year }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Side - QR Code -->
+                        <div class="qr-code slide-in-right">
+                            <div class="qr-pattern mb-3"></div>
+                            <p class="text-xs text-white font-bold text-center tracking-wider">
+                                {{ student_id }}
+                            </p>
+                            <div class="mt-2">
+                                <div class="w-16 h-0.5 bg-white opacity-50 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Info -->
+                    <div class="mt-8 text-center relative z-10">
+                        <div class="border-t border-gray-200 pt-6">
+                            <p class="text-lg font-bold text-gray-800 text-shadow">Adsclass Business School</p>
+                            <p class="text-sm text-gray-600 font-medium">Niamey, Niger • Afrique de l'Ouest</p>
+                            <div class="flex justify-center items-center mt-2 space-x-4">
+                                <div class="flex items-center text-xs text-gray-500">
+                                    <i class="fas fa-globe mr-1"></i>
+                                    <span>www.adsclass.ne</span>
+                                </div>
+                                <div class="flex items-center text-xs text-gray-500">
+                                    <i class="fas fa-envelope mr-1"></i>
+                                    <span>contact@adsclass.ne</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Professional Card Information -->
+        <div class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Card Details -->
+            <div class="glass-effect rounded-2xl p-8 card-hover">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-id-card text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Détails de la Carte</h3>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-gray-600 font-medium">Validité</span>
+                        <span class="font-bold text-gray-800">{{ expiry_date.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-gray-600 font-medium">Type</span>
+                        <span class="font-bold text-blue-600">Étudiant</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span class="text-gray-600 font-medium">Statut</span>
+                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-bold">Active</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3">
+                        <span class="text-gray-600 font-medium">ID Unique</span>
+                        <span class="font-bold text-gray-800 text-sm">{{ student_id }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Guidelines -->
+            <div class="glass-effect rounded-2xl p-8 card-hover">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-shield-alt text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Utilisation</h3>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                        <span class="text-gray-700 text-sm">Accès aux bâtiments et salles de cours</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                        <span class="text-gray-700 text-sm">Emprunt de livres à la bibliothèque</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                        <span class="text-gray-700 text-sm">Réduction sur les services étudiants</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                        <span class="text-gray-700 text-sm">Identification lors des examens</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security & Contact -->
+            <div class="glass-effect rounded-2xl p-8 card-hover">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-lock text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Sécurité</h3>
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-1"></i>
+                            <div>
+                                <p class="font-semibold text-yellow-800 text-sm">Important</p>
+                                <p class="text-yellow-700 text-xs mt-1">En cas de perte, contactez immédiatement l'administration</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-envelope text-gray-500"></i>
+                            <span class="text-gray-700 text-sm">{{ student_data.email }}</span>
+                        </div>
+                        {% if student_data.telephone %}
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-phone text-gray-500"></i>
+                            <span class="text-gray-700 text-sm">{{ student_data.telephone }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-building text-gray-500"></i>
+                            <span class="text-gray-700 text-sm">Bureau Administratif - RDC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Features -->
+        <div class="mt-12 glass-effect rounded-2xl p-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                <i class="fas fa-star text-yellow-500 mr-3"></i>
+                Fonctionnalités Avancées
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200">
+                    <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-qrcode text-white text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2">QR Code</h4>
+                    <p class="text-gray-600 text-sm">Identification rapide et sécurisée</p>
+                </div>
+                <div class="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl border border-green-200">
+                    <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-mobile-alt text-white text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2">Mobile Ready</h4>
+                    <p class="text-gray-600 text-sm">Version numérique disponible</p>
+                </div>
+                <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl border border-purple-200">
+                    <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-download text-white text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2">Téléchargeable</h4>
+                    <p class="text-gray-600 text-sm">Sauvegardez votre carte</p>
+                </div>
+                <div class="text-center p-6 bg-gradient-to-br from-orange-50 to-red-100 rounded-xl border border-orange-200">
+                    <div class="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-print text-white text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2">Imprimable</h4>
+                    <p class="text-gray-600 text-sm">Version physique disponible</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Enhanced JavaScript -->
+    <script>
+        // Professional Download card function with high quality
+        function downloadCard() {
+            const card = document.querySelector('.student-card');
+            const button = event.target.closest('button');
+            
+            // Add loading state
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Téléchargement...';
+            button.disabled = true;
+            
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(card, {
+                    scale: 3, // Higher resolution for professional quality
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    width: card.offsetWidth,
+                    height: card.offsetHeight,
+                    scrollX: 0,
+                    scrollY: 0
+                }).then(function(canvas) {
+                    // Create download link
+                    const link = document.createElement('a');
+                    const fileName = `Carte_Etudiant_{{ student_data.nom.upper() }}_{{ student_data.prenom.upper() }}_{{ student_id }}.png`;
+                    link.download = fileName;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    
+                    // Trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Show success message
+                    showNotification('Carte téléchargée avec succès!', 'success');
+                    
+                    // Reset button
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }).catch(function(error) {
+                    console.error('Erreur lors du téléchargement:', error);
+                    showNotification('Erreur lors du téléchargement', 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                });
+            } else {
+                showNotification('Bibliothèque de téléchargement non disponible', 'warning');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        // Professional Print card function
+        function printCard() {
+            // Hide non-printable elements
+            document.querySelectorAll('.no-print').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Add print-specific styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @media print {
+                    body { background: white !important; }
+                    .student-card {
+                        box-shadow: none !important;
+                        border: 3px solid #000 !important;
+                        margin: 0 !important;
+                        page-break-inside: avoid;
+                        background: white !important;
+                    }
+                    .student-card::before,
+                    .student-card::after { display: none !important; }
+                    .no-print { display: none !important; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Print
+            window.print();
+            
+            // Clean up
+            setTimeout(() => {
+                document.head.removeChild(style);
+                document.querySelectorAll('.no-print').forEach(el => {
+                    el.style.display = '';
+                });
+            }, 1000);
+        }
+        
+        // Regenerate card function with confirmation
+        function regenerateCard() {
+            const modal = createModal(
+                'Régénérer la carte',
+                'Êtes-vous sûr de vouloir régénérer votre carte ? Cela créera un nouvel ID étudiant et invalidera l\'ancien.',
+                [
+                    {
+                        text: 'Annuler',
+                        class: 'bg-gray-500 hover:bg-gray-600',
+                        action: () => closeModal()
+                    },
+                    {
+                        text: 'Régénérer',
+                        class: 'bg-red-500 hover:bg-red-600',
+                        action: () => {
+                            // Show loading
+                            showNotification('Régénération en cours...', 'info');
+                            // In a real application, this would call the backend
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                        }
+                    }
+                ]
+            );
+        }
+        
+        // Create professional modal
+        function createModal(title, message, buttons = []) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm';
+            modal.innerHTML = `
+                <div class="glass-effect rounded-3xl p-8 max-w-md mx-4 shadow-2xl border border-white/20">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold gradient-text">${title}</h3>
+                        </div>
+                        <button onclick="closeModal()" class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors">
+                            <i class="fas fa-times text-gray-600"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-700 mb-8 leading-relaxed">${message}</p>
+                    <div class="flex justify-end space-x-3">
+                        ${buttons.map(btn => `
+                            <button onclick="${btn.action}" class="px-6 py-3 ${btn.class} text-white rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
+                                ${btn.text}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        }
+        
+        // Close modal function
+        function closeModal() {
+            const modal = document.querySelector('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: 'from-green-50 to-emerald-50 text-green-800 border-green-500',
+                error: 'from-red-50 to-rose-50 text-red-800 border-red-500',
+                warning: 'from-yellow-50 to-amber-50 text-yellow-800 border-yellow-500',
+                info: 'from-blue-50 to-cyan-50 text-blue-800 border-blue-500'
+            };
+            
+            notification.className = `fixed top-24 right-6 z-40 rounded-2xl px-6 py-4 shadow-2xl border-l-4 backdrop-blur-sm bg-gradient-to-r ${colors[type]} transition-all duration-300`;
+            notification.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-sm">${type.charAt(0).toUpperCase() + type.slice(1)}</p>
+                        <p class="text-sm mt-1">${message}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="flex-shrink-0 ml-4 text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        // Add card interaction effects
+        function addCardEffects() {
+            const card = document.querySelector('.student-card');
+            if (!card) return;
+            
+            // 3D tilt effect on mouse move
+            card.addEventListener('mousemove', function(e) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 10;
+                const rotateY = (centerX - x) / 10;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-12px) scale(1.02)`;
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                card.style.transform = '';
+            });
+        }
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Add loading animation and initialize effects
+        window.addEventListener('load', function() {
+            document.body.classList.add('loaded');
+            
+            // Initialize card effects
+            setTimeout(() => {
+                addCardEffects();
+            }, 1000);
+            
+            // Show welcome message
+            setTimeout(() => {
+                showNotification('Bienvenue dans votre espace carte étudiante!', 'success');
+            }, 1500);
+        });
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'p':
+                        e.preventDefault();
+                        printCard();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        downloadCard();
+                        break;
+                }
+            }
+        });
+    </script>
+
+    <!-- html2canvas library for downloading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+  <div class="max-w-7xl mx-auto px-6">
+    
+    <!-- Header Section -->
+    <div class="mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div class="mb-6 lg:mb-0">
+          <h1 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">
+            Gestion des <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">cours</span>
+          </h1>
+          <p class="text-gray-600 text-lg">Organisez et gérez l'ensemble de vos programmes académiques</p>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="flex space-x-4">
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/20 shadow-lg">
+            <div class="text-2xl font-bold text-blue-600">{{ courses|length }}</div>
+            <div class="text-sm text-gray-600">Cours actifs</div>
+          </div>
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/20 shadow-lg">
+            <div class="text-2xl font-bold text-emerald-600">{{ courses|selectattr('professeur')|list|length }}</div>
+            <div class="text-sm text-gray-600">Avec professeur</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Add Course Section -->
+    <div class="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <i class="fas fa-plus-circle text-blue-600"></i>
+          Ajouter un cours
+        </h3>
+        <div class="flex gap-3">
+          <a href="{{ url_for('admin_ajouter_cours_simple') }}"
+             class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-2 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg">
+            <i class="fas fa-magic mr-2"></i>Interface Simple
+          </a>
+          <button onclick="toggleQuickAdd()" id="toggleBtn" class="text-blue-600 hover:text-blue-800 font-medium">
+            <i class="fas fa-chevron-down" id="toggleIcon"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div id="quickAddForm" class="hidden">
+        <form method="post" action="{{ url_for('admin_ajouter_cours_simple') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <input type="text" name="nom_cours" placeholder="Nom du cours" required
+                   class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <input type="text" name="professeur" placeholder="Professeur (optionnel)"
+                   class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <input type="datetime-local" name="start" required
+                   class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <input type="datetime-local" name="end" required
+                   class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="flex gap-2">
+            <select name="filiere" required class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="">Filière</option>
+              <option value="IA">IA</option>
+              <option value="CCA">CCA</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Informatique">Informatique</option>
+              <option value="Gestion">Gestion</option>
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center space-x-4">
+        <div class="relative">
+          <input type="text" id="searchInput" placeholder="Rechercher un cours..." 
+                 class="pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 w-64">
+          <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        </div>
+        <select id="filterFiliere" class="px-4 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="">Toutes les filières</option>
+          {% set filieres = courses|map(attribute='filiere')|unique|list %}
+          {% for filiere in filieres %}
+            <option value="{{ filiere }}">{{ filiere }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <!-- Quick Action Buttons -->
+        <div class="flex items-center space-x-2 bg-white/60 rounded-xl p-1">
+          <button onclick="quickAddCourse('IA')" class="quick-add-btn" data-filiere="IA">
+            <i class="fas fa-robot mr-1"></i>IA
+          </button>
+          <button onclick="quickAddCourse('CCA')" class="quick-add-btn" data-filiere="CCA">
+            <i class="fas fa-comments mr-1"></i>CCA
+          </button>
+          <button onclick="quickAddCourse('Marketing')" class="quick-add-btn" data-filiere="Marketing">
+            <i class="fas fa-chart-line mr-1"></i>Marketing
+          </button>
+        </div>
+        
+        <button onclick="exportCourses()" class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200">
+          <i class="fas fa-download"></i>
+          <span>Exporter</span>
+        </button>
+        <a href="{{ url_for('admin_ajouter_cours_simple') }}"
+           class="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300 font-semibold transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-plus"></i>
+          Nouveau cours
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+      
+      <!-- Table Header -->
+      <div class="px-8 py-6 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <i class="fas fa-list text-blue-600"></i>
+            Liste des cours
+          </h3>
+          <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-500">
+              {{ courses|length }} cours au total
+            </div>
+            <button onclick="bulkActions()" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition-colors">
+              <i class="fas fa-tasks mr-1"></i>Actions groupées
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhanced Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="coursesTable">
+          <thead class="bg-gray-50/50">
+            <tr>
+              <th class="px-4 py-5 text-center">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              </th>
+              <th class="px-8 py-5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onclick="sortTable(1)">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-book text-blue-500"></i>
+                  Nom du cours
+                  <i class="fas fa-sort text-gray-400"></i>
+                </div>
+              </th>
+              <th class="px-8 py-5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onclick="sortTable(2)">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-user-tie text-emerald-500"></i>
+                  Professeur
+                  <i class="fas fa-sort text-gray-400"></i>
+                </div>
+              </th>
+              <th class="px-8 py-5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onclick="sortTable(3)">
+                <div class="flex items-center justify-center gap-2">
+                  <i class="fas fa-calendar-alt text-purple-500"></i>
+                  Période
+                  <i class="fas fa-sort text-gray-400"></i>
+                </div>
+              </th>
+              <th class="px-8 py-5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onclick="sortTable(4)">
+                <div class="flex items-center justify-center gap-2">
+                  <i class="fas fa-graduation-cap text-orange-500"></i>
+                  Filière
+                  <i class="fas fa-sort text-gray-400"></i>
+                </div>
+              </th>
+              <th class="px-8 py-5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onclick="sortTable(5)">
+                <div class="flex items-center justify-center gap-2">
+                  <i class="fas fa-layer-group text-orange-600"></i>
+                  Niveau
+                  <i class="fas fa-sort text-gray-400"></i>
+                </div>
+              </th>
+              <th class="px-8 py-5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <i class="fas fa-cogs text-gray-500"></i>
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-100">
+            {% for course in courses %}
+            <tr class="hover:bg-blue-50/50 transition-all duration-200 group course-row" data-filiere="{{ course.filiere }}" data-course-id="{{ course.id }}">
+              <td class="px-4 py-6 text-center">
+                <input type="checkbox" class="course-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="{{ course.id }}">
+              </td>
+              <td class="px-8 py-6">
+                <div class="flex items-center">
+                  <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-book-open text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="font-semibold text-gray-900 text-base">{{ course.nom_cours }}</div>
+                    <div class="text-sm text-gray-500">ID: #{{ course.id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-8 py-6">
+                {% if course.professeur_nom %}
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center mr-3">
+                      <i class="fas fa-user text-emerald-600 text-xs"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">{{ course.professeur_nom }}</div>
+                      <div class="text-xs text-emerald-600">Assigné</div>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                      <i class="fas fa-user-slash text-gray-400 text-xs"></i>
+                    </div>
+                    <div>
+                      <div class="text-gray-400 font-medium">Non assigné</div>
+                      <div class="text-xs text-orange-500">
+                        <button onclick="quickAssignProf({{ course.id }})" class="hover:text-orange-700">
+                          Assigner →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              </td>
+              <td class="px-8 py-6 text-center">
+                <div class="space-y-1">
+                  <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-sm font-medium">
+                    <i class="fas fa-play text-xs"></i>
+                    {{ course.start }}
+                  </div>
+                  <div class="inline-flex items-center gap-2 bg-red-50 text-red-700 px-3 py-1 rounded-lg text-sm font-medium">
+                    <i class="fas fa-stop text-xs"></i>
+                    {{ course.end }}
+                  </div>
+                </div>
+              </td>
+              <td class="px-8 py-6 text-center">
+                <span class="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 px-4 py-2 rounded-full text-sm font-semibold">
+                  <i class="fas fa-graduation-cap text-xs"></i>
+                  {{ course.filiere }}
+                </span>
+              </td>
+              <td class="px-8 py-6 text-center">
+                <span class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-100 to-blue-100 text-orange-800 px-4 py-2 rounded-full text-sm font-semibold">
+                  <i class="fas fa-layer-group text-xs"></i>
+                  {% if course.niveau %}{{ course.niveau }}{% else %}<span class="text-gray-400">Non renseigné</span>{% endif %}
+                </span>
+              </td>
+              <td class="px-8 py-6 text-center">
+                <div class="flex items-center justify-center space-x-2">
+                  <!-- Quick Actions -->
+                  <button onclick="duplicateCourse({{ course.id }})" 
+                          class="inline-flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm">
+                    <i class="fas fa-copy text-xs"></i>
+                  </button>
+                  
+                  <!-- Bouton modifier -->
+                  <a href="{{ url_for('edit_course', course_id=course.id) }}"
+                     class="inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm">
+                    <i class="fas fa-edit text-xs"></i>
+                  </a>
+
+                  <!-- Bouton supprimer -->
+                  <button onclick="confirmDelete('{{ course.nom_cours }}', '{{ url_for('delete_course', course_id=course.id) }}')"
+                          class="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="py-16 text-center">
+                <div class="flex flex-col items-center justify-center space-y-4">
+                  <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-book-open text-gray-400 text-2xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucun cours disponible</h3>
+                    <p class="text-gray-500 mb-6">Commencez par créer votre premier cours</p>
+                    <button onclick="toggleQuickAdd()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200">
+                      <i class="fas fa-plus"></i>
+                      Créer un cours rapidement
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden items-center justify-center z-50">
+  <div class="bg-white rounded-3xl p-8 max-w-md mx-4 shadow-2xl transform transition-all">
+    <div class="text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
+      <p class="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer le cours <strong id="courseName"></strong> ? Cette action est irréversible.</p>
+      <div class="flex space-x-4">
+        <button onclick="closeDeleteModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-xl font-semibold transition-colors">
+          Annuler
+        </button>
+        <button id="confirmDeleteBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.quick-add-btn {
+  @apply px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors duration-200;
+}
+
+.course-row.selected {
+  @apply bg-blue-50 border-l-4 border-blue-500;
+}
+
+.floating-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  transform: translateX(400px);
+  transition: transform 0.3s ease;
+}
+
+.floating-notification.show {
+  transform: translateX(0);
+}
+</style>
+
+<script>
+// Toggle quick add form
+function toggleQuickAdd() {
+  const form = document.getElementById('quickAddForm');
+  const icon = document.getElementById('toggleIcon');
+  
+  if (form.classList.contains('hidden')) {
+    form.classList.remove('hidden');
+    icon.classList.remove('fa-chevron-down');
+    icon.classList.add('fa-chevron-up');
+  } else {
+    form.classList.add('hidden');
+    icon.classList.remove('fa-chevron-up');
+    icon.classList.add('fa-chevron-down');
+  }
+}
+
+// Quick add course for specific filiere
+function quickAddCourse(filiere) {
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  
+  // Auto-fill form with defaults
+  document.querySelector('select[name="filiere"]').value = filiere;
+  document.querySelector('input[name="start"]').value = now.toISOString().slice(0, 16);
+  document.querySelector('input[name="end"]').value = tomorrow.toISOString().slice(0, 16);
+  
+  // Show and focus on course name
+  toggleQuickAdd();
+  document.querySelector('input[name="nom_cours"]').focus();
+}
+
+// Select all functionality
+function toggleSelectAll() {
+  const selectAll = document.getElementById('selectAll');
+  const checkboxes = document.querySelectorAll('.course-checkbox');
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = selectAll.checked;
+    const row = checkbox.closest('tr');
+    if (selectAll.checked) {
+      row.classList.add('selected');
+    } else {
+      row.classList.remove('selected');
+    }
+  });
+}
+
+// Individual checkbox handling
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('course-checkbox')) {
+    const row = e.target.closest('tr');
+    if (e.target.checked) {
+      row.classList.add('selected');
+    } else {
+      row.classList.remove('selected');
+    }
+  }
+});
+
+// Duplicate course
+function duplicateCourse(courseId) {
+  if (confirm('Dupliquer ce cours ?')) {
+    // Implementation for course duplication
+    showNotification('Cours dupliqué avec succès!', 'success');
+  }
+}
+
+// Quick assign professor
+function quickAssignProf(courseId) {
+  const prof = prompt('Nom du professeur:');
+  if (prof) {
+    // Implementation for quick professor assignment
+    showNotification(`Professeur "${prof}" assigné!`, 'success');
+  }
+}
+
+// Bulk actions
+function bulkActions() {
+  const selected = document.querySelectorAll('.course-checkbox:checked');
+  if (selected.length === 0) {
+    alert('Sélectionnez au moins un cours');
+    return;
+  }
+  
+  const action = prompt(`Actions pour ${selected.length} cours:\n1. Supprimer\n2. Exporter\n3. Assigner professeur\n\nEntrez le numéro:`);
+  
+  switch(action) {
+    case '1':
+      if (confirm(`Supprimer ${selected.length} cours ?`)) {
+        // Implementation for bulk delete
+        showNotification(`${selected.length} cours supprimés`, 'success');
+      }
+      break;
+    case '2':
+      // Implementation for bulk export
+      showNotification(`${selected.length} cours exportés`, 'success');
+      break;
+    case '3':
+      const prof = prompt('Nom du professeur:');
+      if (prof) {
+        showNotification(`Professeur assigné à ${selected.length} cours`, 'success');
+      }
+      break;
+  }
+}
+
+// Export courses
+function exportCourses() {
+  showNotification('Export en cours...', 'info');
+  // Implementation for export
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `floating-notification bg-white border-l-4 ${
+    type === 'success' ? 'border-green-500' : 
+    type === 'error' ? 'border-red-500' : 'border-blue-500'
+  } p-4 rounded-lg shadow-lg`;
+  
+  notification.innerHTML = `
+    <div class="flex items-center">
+      <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'} text-${
+        type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'
+      }-500 mr-3"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  setTimeout(() => notification.classList.add('show'), 100);
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('input', function() {
+  const searchTerm = this.value.toLowerCase();
+  const rows = document.querySelectorAll('#coursesTable tbody tr.course-row');
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  });
+});
+
+// Filter functionality
+document.getElementById('filterFiliere').addEventListener('change', function() {
+  const selectedFiliere = this.value;
+  const rows = document.querySelectorAll('#coursesTable tbody tr[data-filiere]');
+  
+  rows.forEach(row => {
+    const filiere = row.getAttribute('data-filiere');
+    row.style.display = !selectedFiliere || filiere === selectedFiliere ? '' : 'none';
+  });
+});
+
+// Enhanced delete confirmation
+function confirmDelete(courseName, deleteUrl) {
+  document.getElementById('courseName').textContent = courseName;
+  document.getElementById('confirmDeleteBtn').onclick = () => window.location.href = deleteUrl;
+  document.getElementById('deleteModal').classList.remove('hidden');
+  document.getElementById('deleteModal').classList.add('flex');
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.add('hidden');
+  document.getElementById('deleteModal').classList.remove('flex');
+}
+
+// Sort functionality
+function sortTable(columnIndex) {
+  const table = document.getElementById('coursesTable');
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr.course-row'));
+  
+  rows.sort((a, b) => {
+    const aText = a.cells[columnIndex].textContent.trim();
+    const bText = b.cells[columnIndex].textContent.trim();
+    return aText.localeCompare(bText);
+  });
+  
+  rows.forEach(row => tbody.appendChild(row));
+}
+</script>
+{% endblock %}

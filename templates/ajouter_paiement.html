@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nouveau Paiement - {{ etudiant.prenom }} {{ etudiant.nom }} | AdsClass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+    }
+
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .input-focus {
+      transition: all 0.3s ease;
+    }
+
+    .input-focus:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .loading-spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 3px solid #fff;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .amount-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #22c55e;
+    }
+
+    .payment-method-card {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .payment-method-card:hover {
+      transform: scale(1.05);
+    }
+
+    .payment-method-card.selected {
+      background: rgba(102, 126, 234, 0.3);
+      border-color: #667eea;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen text-white font-sans">
+  <!-- Notification Toast -->
+  <div id="notification" class="notification glass-effect rounded-lg p-4 text-white shadow-lg">
+    <div class="flex items-center gap-3">
+      <i id="notificationIcon" class="fas fa-check-circle text-green-400"></i>
+      <span id="notificationText">Action réalisée avec succès</span>
+      <button onclick="hideNotification()" class="ml-auto text-white/60 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="px-4 py-8">
+    <!-- Header Section -->
+    <div class="max-w-4xl mx-auto mb-8">
+      <div class="glass-effect rounded-2xl p-6 fade-in">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              <i class="fas fa-credit-card mr-3"></i>Nouveau Paiement
+            </h1>
+            <div class="flex items-center gap-3 text-white/80">
+              <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                {{ etudiant.prenom[0].upper() }}{{ etudiant.nom[0].upper() }}
+              </div>
+              <div>
+                <p class="font-semibold">{{ etudiant.prenom }} {{ etudiant.nom }}</p>
+                <p class="text-sm text-white/60">Étudiant ID: #{{ etudiant.id }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <a href="{{ url_for('paiements_etudiant_page', etudiant_id=etudiant.id) }}"
+               class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+              <i class="fas fa-arrow-left"></i>Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="max-w-4xl mx-auto mb-8">
+      <div class="glass-effect rounded-xl p-4 fade-in">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-white/70">Progression du formulaire</span>
+          <span class="text-sm text-white/70" id="progressText">0%</span>
+        </div>
+        <div class="w-full bg-white/20 rounded-full h-2">
+          <div class="progress-bar h-2 rounded-full" id="progressBar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="max-w-4xl mx-auto">
+      <form method="POST" id="paymentForm" class="glass-effect rounded-2xl p-8 fade-in">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Left Column -->
+          <div class="space-y-6">
+            <!-- Date Field -->
+            <div class="space-y-2">
+              <label for="date" class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-calendar text-blue-400"></i>
+                Date du paiement *
+              </label>
+              <input type="date" name="date" id="date" required
+                     class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                     onchange="updateProgress()" />
+              <p class="text-xs text-white/60">Sélectionnez la date de réception du paiement</p>
+            </div>
+
+            <!-- Amount Field -->
+            <div class="space-y-2">
+              <label for="montant" class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-money-bill-wave text-green-400"></i>
+                Montant (FCFA) *
+              </label>
+              <div class="relative">
+                <input type="number" name="montant" id="montant" required min="0" step="1"
+                       class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                       placeholder="Entrez le montant..."
+                       oninput="formatAmount(this); updateProgress()" />
+                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60">
+                  FCFA
+                </div>
+              </div>
+              <div class="flex justify-between items-center">
+                <p class="text-xs text-white/60">Montant en francs CFA</p>
+                <div class="amount-display" id="amountDisplay">0 FCFA</div>
+              </div>
+            </div>
+
+            <!-- Payment Method Selection -->
+            <div class="space-y-4">
+              <label class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-credit-card text-purple-400"></i>
+                Moyen de paiement
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="payment-method-card glass-effect rounded-lg p-4 border border-white/30" onclick="selectPaymentMethod('Espèces', this)">
+                  <div class="text-center">
+                    <i class="fas fa-money-bills text-2xl text-green-400 mb-2"></i>
+                    <p class="text-sm font-medium">Espèces</p>
+                  </div>
+                </div>
+                <div class="payment-method-card glass-effect rounded-lg p-4 border border-white/30" onclick="selectPaymentMethod('Mobile Money', this)">
+                  <div class="text-center">
+                    <i class="fas fa-mobile-alt text-2xl text-blue-400 mb-2"></i>
+                    <p class="text-sm font-medium">Mobile Money</p>
+                  </div>
+                </div>
+                <div class="payment-method-card glass-effect rounded-lg p-4 border border-white/30" onclick="selectPaymentMethod('Chèque', this)">
+                  <div class="text-center">
+                    <i class="fas fa-file-invoice text-2xl text-yellow-400 mb-2"></i>
+                    <p class="text-sm font-medium">Chèque</p>
+                  </div>
+                </div>
+                <div class="payment-method-card glass-effect rounded-lg p-4 border border-white/30" onclick="selectPaymentMethod('Virement', this)">
+                  <div class="text-center">
+                    <i class="fas fa-university text-2xl text-indigo-400 mb-2"></i>
+                    <p class="text-sm font-medium">Virement</p>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" name="moyen" id="moyenHidden" />
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="space-y-6">
+            <!-- Payment Summary -->
+            <div class="glass-effect rounded-xl p-6 border border-white/30">
+              <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-receipt text-blue-400"></i>
+                Résumé du paiement
+              </h3>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-white/70">Étudiant:</span>
+                  <span class="font-medium">{{ etudiant.prenom }} {{ etudiant.nom }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-white/70">Date:</span>
+                  <span class="font-medium" id="summaryDate">Non sélectionnée</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-white/70">Montant:</span>
+                  <span class="font-medium text-green-400" id="summaryAmount">0 FCFA</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-white/70">Moyen:</span>
+                  <span class="font-medium" id="summaryMethod">Non sélectionné</span>
+                </div>
+                <hr class="border-white/20">
+                <div class="flex justify-between items-center text-lg font-bold">
+                  <span>Total:</span>
+                  <span class="text-green-400" id="summaryTotal">0 FCFA</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Observation Field -->
+            <div class="space-y-2">
+              <label for="observation" class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-comment text-yellow-400"></i>
+                Observation / Note
+              </label>
+              <textarea name="observation" id="observation" rows="4"
+                        class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all resize-none"
+                        placeholder="Ajoutez une note ou observation (optionnel)..."
+                        onchange="updateProgress()"></textarea>
+              <p class="text-xs text-white/60">Informations complémentaires sur ce paiement</p>
+            </div>
+
+            <!-- Quick Amount Buttons -->
+            <div class="space-y-2">
+              <label class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-bolt text-yellow-400"></i>
+                Montants rapides
+              </label>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="setQuickAmount(50000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  50,000
+                </button>
+                <button type="button" onclick="setQuickAmount(100000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  100,000
+                </button>
+                <button type="button" onclick="setQuickAmount(150000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  150,000
+                </button>
+                <button type="button" onclick="setQuickAmount(200000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  200,000
+                </button>
+                <button type="button" onclick="setQuickAmount(250000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  250,000
+                </button>
+                <button type="button" onclick="setQuickAmount(300000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  300,000
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-8 pt-6 border-t border-white/20">
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+              <a href="{{ url_for('paiements_etudiant_page', etudiant_id=etudiant.id) }}"
+                 class="text-white/70 hover:text-white transition-colors flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i>
+                Retour aux paiements
+              </a>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="resetForm()"
+                      class="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2">
+                <i class="fas fa-undo"></i>
+                Réinitialiser
+              </button>
+
+              <button type="button" onclick="previewPayment()"
+                      class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2">
+                <i class="fas fa-eye"></i>
+                Aperçu
+              </button>
+
+              <button type="submit" id="submitBtn" disabled
+                      class="btn-primary px-8 py-3 rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-save"></i>
+                <span id="submitText">Enregistrer le paiement</span>
+                <div id="submitSpinner" class="loading-spinner hidden ml-2"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="modal hide fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="glass-effect rounded-2xl p-8 max-w-md w-full">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold flex items-center gap-2">
+          <i class="fas fa-eye text-blue-400"></i>
+          Aperçu du paiement
+        </h3>
+        <button onclick="closePreview()" class="text-white/60 hover:text-white">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4" id="previewContent">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closePreview()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all">
+          Fermer
+        </button>
+        <button onclick="confirmPayment()" class="btn-primary px-6 py-2 rounded-lg">
+          Confirmer et enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedPaymentMethod = '';
+
+    // Set today's date as default
+    document.getElementById('date').valueAsDate = new Date();
+    updateProgress();
+
+    function updateProgress() {
+      const date = document.getElementById('date').value;
+      const montant = document.getElementById('montant').value;
+      const moyen = selectedPaymentMethod;
+      const observation = document.getElementById('observation').value;
+
+      let progress = 0;
+      let total = 3; // Required fields: date, montant, moyen
+
+      if (date) progress++;
+      if (montant && parseFloat(montant) > 0) progress++;
+      if (moyen) progress++;
+
+      const percentage = Math.round((progress / total) * 100);
+
+      document.getElementById('progressBar').style.width = percentage + '%';
+      document.getElementById('progressText').textContent = percentage + '%';
+
+      // Enable/disable submit button
+      const submitBtn = document.getElementById('submitBtn');
+      if (progress === total) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+
+      // Update summary
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const date = document.getElementById('date').value;
+      const montant = document.getElementById('montant').value;
+
+      document.getElementById('summaryDate').textContent = date || 'Non sélectionnée';
+      document.getElementById('summaryAmount').textContent = montant ? formatNumber(montant) + ' FCFA' : '0 FCFA';
+      document.getElementById('summaryMethod').textContent = selectedPaymentMethod || 'Non sélectionné';
+      document.getElementById('summaryTotal').textContent = montant ? formatNumber(montant) + ' FCFA' : '0 FCFA';
+    }
+
+    function formatAmount(input) {
+      const value = input.value;
+      if (value) {
+        document.getElementById('amountDisplay').textContent = formatNumber(value) + ' FCFA';
+      } else {
+        document.getElementById('amountDisplay').textContent = '0 FCFA';
+      }
+    }
+
+    function formatNumber(num) {
+      return parseInt(num).toLocaleString('fr-FR');
+    }
+
+    function selectPaymentMethod(method, element) {
+      // Remove selection from all cards
+      document.querySelectorAll('.payment-method-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+
+      // Add selection to clicked card
+      element.classList.add('selected');
+
+      selectedPaymentMethod = method;
+      document.getElementById('moyenHidden').value = method;
+
+      updateProgress();
+    }
+
+    function setQuickAmount(amount) {
+      const montantInput = document.getElementById('montant');
+      montantInput.value = amount;
+      formatAmount(montantInput);
+      updateProgress();
+    }
+
+    function resetForm() {
+      document.getElementById('paymentForm').reset();
+      document.getElementById('date').valueAsDate = new Date();
+
+      // Reset payment method selection
+      document.querySelectorAll('.payment-method-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      selectedPaymentMethod = '';
+      document.getElementById('moyenHidden').value = '';
+
+      // Reset displays
+      document.getElementById('amountDisplay').textContent = '0 FCFA';
+
+      updateProgress();
+      showNotification('Formulaire réinitialisé', 'info');
+    }
+
+    function previewPayment() {
+      const date = document.getElementById('date').value;
+      const montant = document.getElementById('montant').value;
+      const observation = document.getElementById('observation').value;
+
+      if (!date || !montant || !selectedPaymentMethod) {
+        showNotification('Veuillez remplir tous les champs obligatoires', 'error');
+        return;
+      }
+
+      const previewContent = document.getElementById('previewContent');
+      previewContent.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+            <span class="text-white/70">Étudiant:</span>
+            <span class="font-medium">{{ etudiant.prenom }} {{ etudiant.nom }}</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+            <span class="text-white/70">Date:</span>
+            <span class="font-medium">${new Date(date).toLocaleDateString('fr-FR')}</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+            <span class="text-white/70">Montant:</span>
+            <span class="font-medium text-green-400">${formatNumber(montant)} FCFA</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+            <span class="text-white/70">Moyen de paiement:</span>
+            <span class="font-medium">${selectedPaymentMethod}</span>
+          </div>
+          ${observation ? `
+          <div class="p-3 bg-white/10 rounded-lg">
+            <span class="text-white/70 block mb-2">Observation:</span>
+            <span class="font-medium">${observation}</span>
+          </div>
+          ` : ''}
+        </div>
+      `;
+
+      document.getElementById('previewModal').classList.remove('hide');
+      document.getElementById('previewModal').classList.add('show');
+    }
+
+    function closePreview() {
+      document.getElementById('previewModal').classList.remove('show');
+      document.getElementById('previewModal').classList.add('hide');
+    }
+
+    function confirmPayment() {
+      closePreview();
+      document.getElementById('paymentForm').submit();
+    }
+
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      const icon = document.getElementById('notificationIcon');
+      const text = document.getElementById('notificationText');
+
+      // Set icon and color based on type
+      if (type === 'success') {
+        icon.className = 'fas fa-check-circle text-green-400';
+      } else if (type === 'error') {
+        icon.className = 'fas fa-exclamation-circle text-red-400';
+      } else if (type === 'info') {
+        icon.className = 'fas fa-info-circle text-blue-400';
+      }
+
+      text.textContent = message;
+      notification.classList.add('show');
+
+      // Auto hide after 3 seconds
+      setTimeout(() => {
+        hideNotification();
+      }, 3000);
+    }
+
+    function hideNotification() {
+      document.getElementById('notification').classList.remove('show');
+    }
+
+    // Form submission handling
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitText');
+      const submitSpinner = document.getElementById('submitSpinner');
+
+      // Show loading state
+      submitBtn.disabled = true;
+      submitText.textContent = 'Enregistrement...';
+      submitSpinner.classList.remove('hidden');
+
+      // Simulate processing time (remove this in production)
+      setTimeout(() => {
+        // Submit the form
+        this.submit();
+      }, 1000);
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Ctrl/Cmd + Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!document.getElementById('submitBtn').disabled) {
+          document.getElementById('paymentForm').submit();
+        }
+      }
+
+      // Escape to close modal
+      if (e.key === 'Escape') {
+        closePreview();
+      }
+    });
+
+    // Auto-save to localStorage (optional)
+    function autoSave() {
+      const formData = {
+        date: document.getElementById('date').value,
+        montant: document.getElementById('montant').value,
+        moyen: selectedPaymentMethod,
+        observation: document.getElementById('observation').value
+      };
+
+      localStorage.setItem('paymentForm_{{ etudiant.id }}', JSON.stringify(formData));
+    }
+
+    // Load auto-saved data
+    function loadAutoSaved() {
+      const saved = localStorage.getItem('paymentForm_{{ etudiant.id }}');
+      if (saved) {
+        const data = JSON.parse(saved);
+
+        if (data.date) document.getElementById('date').value = data.date;
+        if (data.montant) {
+          document.getElementById('montant').value = data.montant;
+          formatAmount(document.getElementById('montant'));
+        }
+        if (data.moyen) {
+          selectedPaymentMethod = data.moyen;
+          document.getElementById('moyenHidden').value = data.moyen;
+          // Find and select the payment method card
+          document.querySelectorAll('.payment-method-card').forEach(card => {
+            if (card.textContent.trim().includes(data.moyen)) {
+              card.classList.add('selected');
+            }
+          });
+        }
+        if (data.observation) document.getElementById('observation').value = data.observation;
+
+        updateProgress();
+      }
+    }
+
+    // Auto-save on input changes
+    document.getElementById('date').addEventListener('change', autoSave);
+    document.getElementById('montant').addEventListener('input', autoSave);
+    document.getElementById('observation').addEventListener('input', autoSave);
+
+    // Load auto-saved data on page load
+    loadAutoSaved();
+
+    // Clear auto-saved data on successful submission
+    window.addEventListener('beforeunload', function() {
+      // Only clear if form was submitted successfully
+      if (document.getElementById('submitBtn').disabled &&
+          document.getElementById('submitText').textContent === 'Enregistrement...') {
+        localStorage.removeItem('paymentForm_{{ etudiant.id }}');
+      }
+    });
+  </script>
+</body>
+</html>

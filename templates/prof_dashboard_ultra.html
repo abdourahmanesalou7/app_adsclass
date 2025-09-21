@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Professeur - AdsClass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .course-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .notification-badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+    <!-- Navigation Ultra-Pro -->
+    <nav class="glass-effect shadow-xl">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">AdsClass</h1>
+                        <p class="text-sm text-gray-600">Espace Professeur</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Profile -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 gradient-bg rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <p class="text-sm font-semibold text-gray-800">{{ prenom }} {{ nom }}</p>
+                            <p class="text-xs text-gray-600">Professeur</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Menu -->
+                    <div class="relative">
+                        <button onclick="toggleMenu()" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-48 glass-effect rounded-lg shadow-xl z-50">
+                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-white/20 rounded-t-lg">
+                                <i class="fas fa-user mr-2"></i>Mon Profil
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-white/20">
+                                <i class="fas fa-cog mr-2"></i>Paramètres
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-b-lg">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Message d'erreur si présent -->
+        {% if error_message %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <strong>Attention :</strong> {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- Header Section Ultra-Pro -->
+        <div class="mb-8">
+            <div class="glass-effect rounded-3xl p-8 card-hover">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                    <div class="mb-6 lg:mb-0">
+                        <h1 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">
+                            Bienvenue, <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{{ prenom }}</span>
+                        </h1>
+                        <p class="text-gray-600 text-lg">Gérez vos cours et suivez vos étudiants en temps réel</p>
+                        <div class="flex items-center mt-4 space-x-4">
+                            <div class="flex items-center text-green-600">
+                                <i class="fas fa-circle text-xs mr-2"></i>
+                                <span class="text-sm font-medium">En ligne</span>
+                            </div>
+                            <div class="flex items-center text-blue-600">
+                                <i class="fas fa-sync-alt text-xs mr-2"></i>
+                                <span class="text-sm">Dernière sync: maintenant</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions Ultra-Pro -->
+                    <div class="flex flex-wrap gap-4">
+                        <button onclick="openQuickNote()" class="gradient-bg text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105">
+                            <i class="fas fa-plus mr-2"></i>
+                            Nouvelle Note
+                        </button>
+                        <button onclick="openAttendance()" class="bg-green-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-all transform hover:scale-105">
+                            <i class="fas fa-user-check mr-2"></i>
+                            Présences
+                        </button>
+                        <button onclick="openSchedule()" class="bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-600 transition-all transform hover:scale-105">
+                            <i class="fas fa-calendar mr-2"></i>
+                            Planning
+                        </button>
+                        <a href="{{ url_for('logout') }}" class="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-600 transition-all transform hover:scale-105">
+                            <i class="fas fa-sign-out-alt mr-2"></i>
+                            Déconnexion
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards Ultra-Pro -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="glass-effect rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Mes Cours</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ stats.total_cours if stats else cours|length }}</p>
+                        <p class="text-green-600 text-sm mt-1">
+                            <i class="fas fa-book mr-1"></i>Vos cours
+                        </p>
+                    </div>
+                    <div class="w-16 h-16 gradient-bg rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-book text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Total Étudiants</p>
+                        <p class="text-3xl font-bold text-gray-900">
+                            {{ stats.total_etudiants if stats else (cours_etudiants.values() | sum(attribute='__len__')) }}
+                        </p>
+                        <p class="text-blue-600 text-sm mt-1">
+                            <i class="fas fa-users mr-1"></i>Vos étudiants
+                        </p>
+                    </div>
+                    <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-effect rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Cours Aujourd'hui</p>
+                        <p class="text-3xl font-bold text-gray-900">
+                            {{ stats.cours_aujourd_hui if stats else (events | length if events else 0) }}
+                        </p>
+                        <p class="text-orange-600 text-sm mt-1">
+                            <i class="fas fa-clock mr-1"></i>{{ stats.jour_actuel if stats else 'Aujourd\'hui' }}
+                        </p>
+                    </div>
+                    <div class="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-calendar-day text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-effect rounded-2xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Filières Enseignées</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ stats.filieres_enseignees if stats else 0 }}</p>
+                        <p class="text-purple-600 text-sm mt-1">
+                            <i class="fas fa-graduation-cap mr-1"></i>Spécialisations
+                        </p>
+                    </div>
+                    <div class="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mes Cours Section Ultra-Pro -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Cours d'Aujourd'hui -->
+            <div class="glass-effect rounded-3xl p-8 card-hover">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-calendar-day text-blue-600 mr-3"></i>
+                        Cours d'Aujourd'hui
+                    </h2>
+                    <button class="text-blue-600 hover:text-blue-800 transition-colors">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for course in cours[:3] %}
+                    <div class="course-card rounded-2xl p-6 text-white card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold">{{ course.nom_cours }}</h3>
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-sm">
+                                {{ course.heure_debut or '08:00' }} - {{ course.heure_fin or '10:00' }}
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-users mr-2"></i>
+                                    <span class="text-sm">{{ cours_etudiants[course.id]|length }} étudiants</span>
+                                </div>
+                                {% if course.salle %}
+                                <div class="flex items-center">
+                                    <i class="fas fa-door-open mr-2"></i>
+                                    <span class="text-sm">{{ course.salle }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Statistiques Rapides -->
+            <div class="glass-effect rounded-3xl p-8 card-hover">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-chart-pie text-purple-600 mr-3"></i>
+                    Aperçu Rapide
+                </h2>
+                
+                <div class="space-y-6">
+                    <!-- Graphique circulaire -->
+                    <div class="relative">
+                        <canvas id="attendanceChart" width="200" height="200"></canvas>
+                    </div>
+                    
+                    <!-- Métriques -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-xl">
+                            <div class="text-2xl font-bold text-green-600">92%</div>
+                            <div class="text-sm text-green-800">Présences</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-xl">
+                            <div class="text-2xl font-bold text-blue-600">15.2</div>
+                            <div class="text-sm text-blue-800">Moyenne</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Rapides -->
+        <div class="glass-effect rounded-3xl p-8 card-hover">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-bolt text-yellow-600 mr-3"></i>
+                Actions Rapides
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button onclick="openGradeBook()" class="p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
+                    <i class="fas fa-clipboard-list text-3xl mb-4"></i>
+                    <h3 class="text-lg font-bold mb-2">Carnet de Notes</h3>
+                    <p class="text-sm opacity-90">Gérer les notes et évaluations</p>
+                </button>
+                
+                <button onclick="openAttendanceManager()" class="p-6 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
+                    <i class="fas fa-user-check text-3xl mb-4"></i>
+                    <h3 class="text-lg font-bold mb-2">Présences</h3>
+                    <p class="text-sm opacity-90">Suivre les présences en temps réel</p>
+                </button>
+                
+                <button onclick="openScheduleManager()" class="p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
+                    <i class="fas fa-calendar-alt text-3xl mb-4"></i>
+                    <h3 class="text-lg font-bold mb-2">Planning</h3>
+                    <p class="text-sm opacity-90">Voir mon emploi du temps</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Menu dropdown
+        function toggleMenu() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Fermer le menu si on clique ailleurs
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('dropdownMenu');
+            const button = event.target.closest('button');
+            if (!button || !button.onclick || button.onclick.toString().indexOf('toggleMenu') === -1) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // Graphique de présences
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Présents', 'Absents'],
+                datasets: [{
+                    data: [87, 13],
+                    backgroundColor: ['#10B981', '#EF4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Actions rapides
+        function openQuickNote() {
+            alert('Ouverture du module de notation rapide...');
+        }
+
+        function openAttendance() {
+            alert('Ouverture du module de présences...');
+        }
+
+        function openSchedule() {
+            window.location.href = '{{ url_for("professeur_emploi_temps") }}';
+        }
+
+        function openGradeBook() {
+            alert('Ouverture du carnet de notes...');
+        }
+
+        function openAttendanceManager() {
+            alert('Ouverture du gestionnaire de présences...');
+        }
+
+        function openScheduleManager() {
+            window.location.href = '{{ url_for("professeur_emploi_temps") }}';
+        }
+    </script>
+</body>
+</html>

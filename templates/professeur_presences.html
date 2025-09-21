@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Présences - {{ course.nom_cours }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .presence-card {
+            transition: all 0.3s ease;
+        }
+        
+        .presence-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .status-present {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .status-absent {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .status-retard {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .status-default {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+        }
+        
+        .btn-presence {
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            min-width: 100px;
+        }
+        
+        .btn-presence:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-presence.active {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #fff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+    
+    <!-- Notification Toast -->
+    <div id="notification" class="notification glass-effect rounded-lg p-4 text-white shadow-lg hidden">
+        <div class="flex items-center gap-3">
+            <i id="notificationIcon" class="fas fa-check-circle text-green-400"></i>
+            <span id="notificationText">Action réalisée avec succès</span>
+            <button onclick="hideNotification()" class="ml-auto text-white/60 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="glass-effect shadow-xl">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">AdsClass</h1>
+                        <p class="text-sm text-gray-600">Gestion des Présences</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600 font-medium">{{ prenom }} {{ nom }}</span>
+                    <a href="{{ url_for('professeur_emploi_temps') }}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour Planning
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        
+        <!-- Header Section -->
+        <div class="glass-effect rounded-3xl p-8 mb-8 fade-in">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-user-check text-purple-600 mr-3"></i>
+                        Gestion des Présences
+                    </h1>
+                    <p class="text-gray-600 text-lg">{{ course.nom_cours }} - {{ course.filiere }}</p>
+                    <div class="flex items-center mt-4 space-x-6">
+                        <div class="flex items-center text-green-600">
+                            <i class="fas fa-calendar mr-2"></i>
+                            <span class="text-sm font-medium">Date: {{ today }}</span>
+                        </div>
+                        <div class="flex items-center text-blue-600">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span class="text-sm">{{ course.heure_debut }} - {{ course.heure_fin }}</span>
+                        </div>
+                        <div class="flex items-center text-purple-600">
+                            <i class="fas fa-door-open mr-2"></i>
+                            <span class="text-sm">{{ course.salle or 'Salle non définie' }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="bg-gradient-to-r from-purple-500 to-blue-600 text-white px-6 py-3 rounded-xl">
+                        <i class="fas fa-users mr-2"></i>
+                        <span class="font-semibold">{{ etudiants|length }} étudiants</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Selection -->
+        <div class="glass-effect rounded-2xl p-6 mb-8 fade-in">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <label class="text-gray-700 font-semibold">Date du cours:</label>
+                    <input type="date" id="courseDate" value="{{ today }}" 
+                           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="loadPresencesForDate()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>Charger
+                    </button>
+                    <button onclick="saveAllPresences()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors font-semibold">
+                        <i class="fas fa-save mr-2"></i>Sauvegarder
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students List -->
+        <div class="glass-effect rounded-2xl p-6 mb-8 fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-list text-blue-600 mr-3"></i>
+                Liste des Étudiants
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="studentsList">
+                {% for etudiant in etudiants %}
+                <div class="presence-card bg-white rounded-xl p-6 shadow-lg border border-gray-100" data-student-id="{{ etudiant.id }}">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold text-lg">{{ etudiant.prenom[0] }}{{ etudiant.nom[0] }}</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">{{ etudiant.prenom }} {{ etudiant.nom }}</h3>
+                                <p class="text-sm text-gray-600">{{ etudiant.filiere }} - {{ etudiant.niveau }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500">ID: {{ etudiant.id }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Presence Buttons -->
+                    <div class="space-y-3">
+                        <div class="flex space-x-2">
+                            <button class="btn-presence status-present flex-1" 
+                                    onclick="setPresence({{ etudiant.id }}, 'present')"
+                                    data-status="present">
+                                <i class="fas fa-check mr-2"></i>Présent
+                            </button>
+                            <button class="btn-presence status-absent flex-1" 
+                                    onclick="setPresence({{ etudiant.id }}, 'absent')"
+                                    data-status="absent">
+                                <i class="fas fa-times mr-2"></i>Absent
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="btn-presence status-retard flex-1" 
+                                    onclick="setPresence({{ etudiant.id }}, 'retard')"
+                                    data-status="retard">
+                                <i class="fas fa-clock mr-2"></i>Retard
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Comment Section -->
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Commentaire:</label>
+                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" 
+                                  placeholder="Commentaire optionnel..." 
+                                  data-comment="{{ etudiant.id }}"></textarea>
+                    </div>
+                    
+                    <!-- Current Status Display -->
+                    <div class="mt-4 p-3 rounded-lg bg-gray-50" id="status-{{ etudiant.id }}">
+                        {% if etudiant.id in presences_existantes %}
+                            {% set presence = presences_existantes[etudiant.id] %}
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Statut actuel:</span>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold 
+                                    {% if presence.statut == 'present' %}bg-green-100 text-green-800
+                                    {% elif presence.statut == 'absent' %}bg-red-100 text-red-800
+                                    {% elif presence.statut == 'retard' %}bg-yellow-100 text-yellow-800
+                                    {% endif %}">
+                                    {% if presence.statut == 'present' %}Présent
+                                    {% elif presence.statut == 'absent' %}Absent
+                                    {% elif presence.statut == 'retard' %}Retard
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if presence.commentaire %}
+                            <div class="mt-2">
+                                <span class="text-xs text-gray-600">Commentaire: {{ presence.commentaire }}</span>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Statut actuel:</span>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                                    Non défini
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-green-600" id="presentCount">0</div>
+                <div class="text-sm text-gray-600">Présents</div>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-red-600" id="absentCount">0</div>
+                <div class="text-sm text-gray-600">Absents</div>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-yellow-600" id="retardCount">0</div>
+                <div class="text-sm text-gray-600">Retards</div>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-blue-600" id="totalCount">{{ etudiants|length }}</div>
+                <div class="text-sm text-gray-600">Total</div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        {% if historique %}
+        <div class="glass-effect rounded-2xl p-6 fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-history text-purple-600 mr-3"></i>
+                Historique des Présences (7 derniers jours)
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commentaire</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for hist in historique %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ hist.date_cours }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ hist.prenom }} {{ hist.nom }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold 
+                                    {% if hist.statut == 'present' %}bg-green-100 text-green-800
+                                    {% elif hist.statut == 'absent' %}bg-red-100 text-red-800
+                                    {% elif hist.statut == 'retard' %}bg-yellow-100 text-yellow-800
+                                    {% endif %}">
+                                    {% if hist.statut == 'present' %}Présent
+                                    {% elif hist.statut == 'absent' %}Absent
+                                    {% elif hist.statut == 'retard' %}Retard
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ hist.commentaire or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let currentPresences = {};
+        let courseId = {{ course.id }};
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatistics();
+            loadExistingPresences();
+        });
+
+        function setPresence(studentId, status) {
+            // Remove active class from all buttons for this student
+            const studentCard = document.querySelector(`[data-student-id="${studentId}"]`);
+            const buttons = studentCard.querySelectorAll('.btn-presence');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            const clickedButton = studentCard.querySelector(`[data-status="${status}"]`);
+            clickedButton.classList.add('active');
+            
+            // Store the presence
+            currentPresences[studentId] = {
+                statut: status,
+                commentaire: studentCard.querySelector(`[data-comment="${studentId}"]`).value
+            };
+            
+            updateStatistics();
+            showNotification(`Présence mise à jour pour l'étudiant ${studentId}`, 'success');
+        }
+
+        function updateStatistics() {
+            let presentCount = 0;
+            let absentCount = 0;
+            let retardCount = 0;
+            
+            Object.values(currentPresences).forEach(presence => {
+                if (presence.statut === 'present') presentCount++;
+                else if (presence.statut === 'absent') absentCount++;
+                else if (presence.statut === 'retard') retardCount++;
+            });
+            
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('absentCount').textContent = absentCount;
+            document.getElementById('retardCount').textContent = retardCount;
+        }
+
+        function loadExistingPresences() {
+            // Load existing presences from the page data
+            {% for etudiant in etudiants %}
+                {% if etudiant.id in presences_existantes %}
+                    {% set presence = presences_existantes[etudiant.id] %}
+                    currentPresences[{{ etudiant.id }}] = {
+                        statut: '{{ presence.statut }}',
+                        commentaire: '{{ presence.commentaire or "" }}'
+                    };
+                    
+                    // Set the button as active
+                    const studentCard = document.querySelector(`[data-student-id="{{ etudiant.id }}"]`);
+                    const button = studentCard.querySelector(`[data-status="{{ presence.statut }}"]`);
+                    if (button) {
+                        button.classList.add('active');
+                    }
+                    
+                    // Set the comment
+                    const commentField = studentCard.querySelector(`[data-comment="{{ etudiant.id }}"]`);
+                    if (commentField) {
+                        commentField.value = '{{ presence.commentaire or "" }}';
+                    }
+                {% endif %}
+            {% endfor %}
+            
+            updateStatistics();
+        }
+
+        function loadPresencesForDate() {
+            const selectedDate = document.getElementById('courseDate').value;
+            if (!selectedDate) {
+                showNotification('Veuillez sélectionner une date', 'error');
+                return;
+            }
+            
+            // Reload the page with the new date
+            window.location.href = `{{ url_for('professeur_presences', course_id=course.id) }}?date=${selectedDate}`;
+        }
+
+        function saveAllPresences() {
+            const selectedDate = document.getElementById('courseDate').value;
+            if (!selectedDate) {
+                showNotification('Veuillez sélectionner une date', 'error');
+                return;
+            }
+            
+            // Show loading
+            const saveButton = event.target;
+            const originalText = saveButton.innerHTML;
+            saveButton.innerHTML = '<div class="loading-spinner"></div> Sauvegarde...';
+            saveButton.disabled = true;
+            
+            // Prepare data
+            const data = {
+                date_cours: selectedDate,
+                presences: currentPresences
+            };
+            
+            // Send to server
+            fetch(`{{ url_for('save_presences', course_id=course.id) }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Présences sauvegardées avec succès!', 'success');
+                    // Reload the page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(result.message || 'Erreur lors de la sauvegarde', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Erreur de connexion', 'error');
+            })
+            .finally(() => {
+                // Restore button
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notificationIcon');
+            const text = document.getElementById('notificationText');
+            
+            // Set icon and color based on type
+            if (type === 'success') {
+                icon.className = 'fas fa-check-circle text-green-400';
+                notification.className = notification.className.replace('hidden', '');
+            } else if (type === 'error') {
+                icon.className = 'fas fa-exclamation-circle text-red-400';
+                notification.className = notification.className.replace('hidden', '');
+            }
+            
+            text.textContent = message;
+            notification.classList.add('show');
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 3000);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 300);
+        }
+
+        // Update comment when typing
+        document.addEventListener('input', function(e) {
+            if (e.target.hasAttribute('data-comment')) {
+                const studentId = e.target.getAttribute('data-comment');
+                if (currentPresences[studentId]) {
+                    currentPresences[studentId].commentaire = e.target.value;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

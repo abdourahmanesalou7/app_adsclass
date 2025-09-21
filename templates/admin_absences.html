@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestion des absences - AdsClass Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+    }
+
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-justified { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .status-unjustified { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status-pending { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+
+    .table-row {
+      transition: all 0.2s ease;
+    }
+
+    .table-row:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.01);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .loading-spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 3px solid #fff;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .modal {
+      transition: all 0.3s ease;
+    }
+
+    .modal.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal.hide {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen text-white font-sans">
+  <!-- Notification Toast -->
+  <div id="notification" class="notification glass-effect rounded-lg p-4 text-white shadow-lg">
+    <div class="flex items-center gap-3">
+      <i id="notificationIcon" class="fas fa-check-circle text-green-400"></i>
+      <span id="notificationText">Action réalisée avec succès</span>
+      <button onclick="hideNotification()" class="ml-auto text-white/60 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="px-4 py-8">
+    <!-- Header Section -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="glass-effect rounded-2xl p-6 fade-in">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              <i class="fas fa-calendar-times mr-3"></i>Gestion des Absences
+            </h1>
+            <p class="text-white/70">Tableau de bord complet pour le suivi des absences</p>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="exportData()" class="btn-primary px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
+              <i class="fas fa-download"></i>Exporter
+            </button>
+            <button onclick="openAddModal()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+              <i class="fas fa-plus"></i>Nouvelle absence
+            </button>
+            <a href="{{ url_for('admin_home') }}" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+              <i class="fas fa-arrow-left"></i>Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+        <!-- Statistics Cards -->
+        <div class="max-w-7xl mx-auto mb-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-white/70 text-sm">Total Absences</p>
+                  <p class="text-3xl font-bold" id="totalAbsences">{{ stats.total_absences or 0 }}</p>
+                </div>
+                <div class="bg-blue-500/20 p-3 rounded-full">
+                  <i class="fas fa-calendar-times text-blue-400 text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-white/70 text-sm">Étudiants Absents</p>
+                  <p class="text-3xl font-bold text-orange-400" id="studentsAbsent">{{ stats.etudiants_absents or 0 }}</p>
+                </div>
+                <div class="bg-orange-500/20 p-3 rounded-full">
+                  <i class="fas fa-users text-orange-400 text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-white/70 text-sm">Cours Concernés</p>
+                  <p class="text-3xl font-bold text-purple-400" id="coursesAffected">{{ stats.cours_concernes or 0 }}</p>
+                </div>
+                <div class="bg-purple-500/20 p-3 rounded-full">
+                  <i class="fas fa-book text-purple-400 text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-white/70 text-sm">Taux d'absence</p>
+                  <p class="text-3xl font-bold text-red-400" id="absenceRate">0%</p>
+                </div>
+                <div class="bg-red-500/20 p-3 rounded-full">
+                  <i class="fas fa-chart-line text-red-400 text-xl"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+    <!-- Charts Section -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+          <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-pie text-blue-400"></i>
+            Répartition par motif
+          </h3>
+          <div class="h-64">
+            <canvas id="motifChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+          <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-line text-green-400"></i>
+            Évolution mensuelle
+          </h3>
+          <div class="h-64">
+            <canvas id="evolutionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="glass-effect rounded-xl p-6 fade-in">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher par nom..."
+                   class="w-full pl-10 pr-4 py-3 rounded-lg bg-white/20 border border-white/30 placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white transition-all" />
+          </div>
+
+          <div class="relative">
+            <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"></i>
+            <input type="date" id="dateFilter"
+                   class="w-full pl-10 pr-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          </div>
+
+          <div class="relative">
+            <i class="fas fa-filter absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"></i>
+            <select id="motifFilter" class="w-full pl-10 pr-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+              <option value="">Tous les motifs</option>
+              <option value="Maladie">Maladie</option>
+              <option value="Personnel">Personnel</option>
+              <option value="Formation">Formation</option>
+              <option value="Congé">Congé</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+
+          <button onclick="resetFilters()" class="bg-gray-600 hover:bg-gray-700 px-4 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
+            <i class="fas fa-undo"></i>Réinitialiser
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-2" id="activeFilters"></div>
+      </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="max-w-7xl mx-auto">
+      <div class="glass-effect rounded-xl overflow-hidden fade-in">
+        <div class="p-6 border-b border-white/20">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 class="text-2xl font-semibold flex items-center gap-2">
+              <i class="fas fa-table text-blue-400"></i>
+              Liste des absences
+            </h2>
+            <div class="flex items-center gap-3">
+              <span class="text-white/70 text-sm" id="resultCount">{{ absences|length }} résultat(s)</span>
+              <div class="flex items-center gap-2">
+                <label class="text-white/70 text-sm">Afficher:</label>
+                <select id="pageSize" class="bg-white/20 border border-white/30 rounded px-2 py-1 text-white text-sm">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-white/10">
+              <tr>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider cursor-pointer hover:bg-white/5 transition-all" onclick="sortTable(0)">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-hashtag"></i>
+                    #
+                    <i class="fas fa-sort text-white/40"></i>
+                  </div>
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider cursor-pointer hover:bg-white/5 transition-all" onclick="sortTable(1)">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-user"></i>
+                    Nom
+                    <i class="fas fa-sort text-white/40"></i>
+                  </div>
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider cursor-pointer hover:bg-white/5 transition-all" onclick="sortTable(2)">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-calendar"></i>
+                    Date
+                    <i class="fas fa-sort text-white/40"></i>
+                  </div>
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider cursor-pointer hover:bg-white/5 transition-all" onclick="sortTable(3)">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-book"></i>
+                    Cours
+                    <i class="fas fa-sort text-white/40"></i>
+                  </div>
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider cursor-pointer hover:bg-white/5 transition-all" onclick="sortTable(4)">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-user-tie"></i>
+                    Professeur
+                    <i class="fas fa-sort text-white/40"></i>
+                  </div>
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-info-circle"></i>
+                    Statut
+                  </div>
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-cogs"></i>
+                    Actions
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="absenceTable" class="divide-y divide-white/10">
+              {% for a in absences %}
+              <tr class="table-row hover:bg-white/5 transition-all" data-date="{{ a.date_cours }}" data-course="{{ a.nom_cours }}">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                  {{ loop.index }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      {{ a.prenom[0].upper() }}{{ a.nom[0].upper() }}
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium text-white">{{ a.prenom }} {{ a.nom }}</div>
+                      <div class="text-xs text-white/60">{{ a.filiere }} - {{ a.niveau }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-white">{{ a.date_cours }}</div>
+                  <div class="text-xs text-white/60">{{ a.date_cours | strftime('%A') if a.date_cours else '' }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-white flex items-center gap-2">
+                    <i class="fas fa-book text-blue-400"></i>
+                    {{ a.nom_cours }}
+                  </div>
+                  <div class="text-xs text-white/60">{{ a.salle or 'Salle non définie' }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-white flex items-center gap-2">
+                    <i class="fas fa-user-tie text-purple-400"></i>
+                    {{ a.prof_prenom }} {{ a.prof_nom }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300">
+                    <i class="fas fa-times mr-1"></i>
+                    Absent
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="status-badge status-unjustified">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    À justifier
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex items-center gap-2">
+                    <button onclick="viewDetails({{ loop.index0 }})" class="text-blue-400 hover:text-blue-300 transition-colors" title="Voir détails">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button onclick="justifyAbsence({{ a.id }})" class="text-green-400 hover:text-green-300 transition-colors" title="Justifier">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    <button onclick="contactStudent({{ a.etudiant_id }})" class="text-purple-400 hover:text-purple-300 transition-colors" title="Contacter">
+                      <i class="fas fa-envelope"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center">
+                  <div class="flex flex-col items-center gap-4">
+                    <i class="fas fa-calendar-times text-6xl text-white/20"></i>
+                    <div>
+                      <h3 class="text-lg font-medium text-white/70">Aucune absence enregistrée</h3>
+                      <p class="text-white/50">Les absences apparaîtront ici une fois que les professeurs auront marqué des étudiants comme absents</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="px-6 py-4 border-t border-white/20 bg-white/5">
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="text-sm text-white/70">
+              Affichage de <span id="startItem">1</span> à <span id="endItem">{{ absences|length }}</span> sur <span id="totalItems">{{ absences|length }}</span> résultats
+            </div>
+            <div class="flex items-center gap-2" id="pagination">
+              <!-- Pagination buttons will be generated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Absence Modal -->
+  <div id="absenceModal" class="modal hide fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="glass-effect rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold flex items-center gap-2">
+          <i class="fas fa-calendar-plus text-blue-400"></i>
+          <span id="modalTitle">Nouvelle absence</span>
+        </h3>
+        <button onclick="closeModal()" class="text-white/60 hover:text-white">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <form id="absenceForm" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-white mb-2">
+              <i class="fas fa-user text-blue-400 mr-2"></i>Nom de l'étudiant *
+            </label>
+            <input type="text" id="studentName" required
+                   class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                   placeholder="Nom complet de l'étudiant" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-white mb-2">
+              <i class="fas fa-calendar text-green-400 mr-2"></i>Date *
+            </label>
+            <input type="date" id="absenceDate" required
+                   class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-white mb-2">
+              <i class="fas fa-clock text-purple-400 mr-2"></i>Heure *
+            </label>
+            <input type="time" id="absenceTime" required
+                   class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-white mb-2">
+              <i class="fas fa-comment text-yellow-400 mr-2"></i>Motif *
+            </label>
+            <select id="absenceReason" required
+                    class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+              <option value="">Sélectionner un motif</option>
+              <option value="Maladie">Maladie</option>
+              <option value="Personnel">Personnel</option>
+              <option value="Formation">Formation</option>
+              <option value="Congé">Congé</option>
+              <option value="Urgence familiale">Urgence familiale</option>
+              <option value="Transport">Problème de transport</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-white mb-2">
+            <i class="fas fa-sticky-note text-orange-400 mr-2"></i>Observation
+          </label>
+          <textarea id="absenceObservation" rows="3"
+                    class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all resize-none"
+                    placeholder="Détails supplémentaires (optionnel)"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-white/20">
+          <button type="button" onclick="closeModal()" class="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg transition-all">
+            Annuler
+          </button>
+          <button type="submit" class="btn-primary px-8 py-3 rounded-lg flex items-center gap-2">
+            <i class="fas fa-save"></i>
+            <span id="submitBtnText">Enregistrer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Details Modal -->
+  <div id="detailsModal" class="modal hide fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="glass-effect rounded-2xl p-8 max-w-lg w-full">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold flex items-center gap-2">
+          <i class="fas fa-info-circle text-blue-400"></i>
+          Détails de l'absence
+        </h3>
+        <button onclick="closeDetailsModal()" class="text-white/60 hover:text-white">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div id="detailsContent" class="space-y-4">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeDetailsModal()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal hide fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="glass-effect rounded-2xl p-8 max-w-md w-full">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Confirmer la suppression</h3>
+        <p class="text-white/70 mb-6" id="confirmMessage">Êtes-vous sûr de vouloir supprimer cette absence ?</p>
+
+        <div class="flex justify-center gap-3">
+          <button onclick="closeConfirmModal()" class="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded-lg transition-all">
+            Annuler
+          </button>
+          <button onclick="confirmDelete()" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg transition-all">
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let absencesData = {{ absences|tojson|safe if absences else '[]' }};
+    let filteredData = [...absencesData];
+    let currentPage = 1;
+    let pageSize = 25;
+    let sortColumn = -1;
+    let sortDirection = 'asc';
+    let editingIndex = -1;
+    let deleteIndex = -1;
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      calculateStats();
+      initializeCharts();
+      updateTable();
+      setupEventListeners();
+    });
+
+    function calculateStats() {
+      const today = new Date().toISOString().split('T')[0];
+      const startOfWeek = getStartOfWeek(new Date());
+
+      let todayCount = 0;
+      let weekCount = 0;
+
+      absencesData.forEach(absence => {
+        if (absence.date === today) todayCount++;
+        if (new Date(absence.date) >= startOfWeek) weekCount++;
+      });
+
+      document.getElementById('todayAbsences').textContent = todayCount;
+      document.getElementById('weekAbsences').textContent = weekCount;
+
+      // Calculate absence rate (assuming 100 total students for demo)
+      const totalStudents = 100;
+      const rate = Math.round((absencesData.length / totalStudents) * 100);
+      document.getElementById('absenceRate').textContent = rate + '%';
+    }
+
+    function getStartOfWeek(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(d.setDate(diff));
+    }
+
+    function initializeCharts() {
+      // Motif Chart
+      const motifCtx = document.getElementById('motifChart');
+      if (motifCtx) {
+        const motifCounts = {};
+        absencesData.forEach(absence => {
+          motifCounts[absence.motif] = (motifCounts[absence.motif] || 0) + 1;
+        });
+
+        new Chart(motifCtx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(motifCounts),
+            datasets: [{
+              data: Object.values(motifCounts),
+              backgroundColor: [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(251, 191, 36, 0.8)',
+                'rgba(239, 68, 68, 0.8)',
+                'rgba(168, 85, 247, 0.8)'
+              ],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: 'white' }
+              }
+            }
+          }
+        });
+      }
+
+      // Evolution Chart
+      const evolutionCtx = document.getElementById('evolutionChart');
+      if (evolutionCtx) {
+        const monthlyData = {};
+        absencesData.forEach(absence => {
+          const month = new Date(absence.date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short' });
+          monthlyData[month] = (monthlyData[month] || 0) + 1;
+        });
+
+        new Chart(evolutionCtx, {
+          type: 'line',
+          data: {
+            labels: Object.keys(monthlyData),
+            datasets: [{
+              label: 'Absences',
+              data: Object.values(monthlyData),
+              borderColor: 'rgba(34, 197, 94, 1)',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: { color: 'white' }
+              }
+            },
+            scales: {
+              x: {
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+              },
+              y: {
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function setupEventListeners() {
+      // Search input
+      document.getElementById('searchInput').addEventListener('input', debounce(filterData, 300));
+
+      // Date filter
+      document.getElementById('dateFilter').addEventListener('change', filterData);
+
+      // Motif filter
+      document.getElementById('motifFilter').addEventListener('change', filterData);
+
+      // Page size
+      document.getElementById('pageSize').addEventListener('change', function() {
+        pageSize = parseInt(this.value);
+        currentPage = 1;
+        updateTable();
+      });
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    function filterData() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const dateFilter = document.getElementById('dateFilter').value;
+      const motifFilter = document.getElementById('motifFilter').value;
+
+      filteredData = absencesData.filter(absence => {
+        const matchesSearch = absence.nom.toLowerCase().includes(searchTerm);
+        const matchesDate = !dateFilter || absence.date === dateFilter;
+        const matchesMotif = !motifFilter || absence.motif === motifFilter;
+
+        return matchesSearch && matchesDate && matchesMotif;
+      });
+
+      currentPage = 1;
+      updateTable();
+      updateActiveFilters();
+    }
+
+    function updateActiveFilters() {
+      const container = document.getElementById('activeFilters');
+      container.innerHTML = '';
+
+      const searchTerm = document.getElementById('searchInput').value;
+      const dateFilter = document.getElementById('dateFilter').value;
+      const motifFilter = document.getElementById('motifFilter').value;
+
+      if (searchTerm) {
+        addFilterTag(container, 'Recherche: ' + searchTerm, () => {
+          document.getElementById('searchInput').value = '';
+          filterData();
+        });
+      }
+
+      if (dateFilter) {
+        addFilterTag(container, 'Date: ' + new Date(dateFilter).toLocaleDateString('fr-FR'), () => {
+          document.getElementById('dateFilter').value = '';
+          filterData();
+        });
+      }
+
+      if (motifFilter) {
+        addFilterTag(container, 'Motif: ' + motifFilter, () => {
+          document.getElementById('motifFilter').value = '';
+          filterData();
+        });
+      }
+    }
+
+    function addFilterTag(container, text, removeCallback) {
+      const tag = document.createElement('span');
+      tag.className = 'inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm';
+      tag.innerHTML = `
+        ${text}
+        <button onclick="this.parentElement.remove(); (${removeCallback.toString()})();" class="hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      container.appendChild(tag);
+    }
+
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('dateFilter').value = '';
+      document.getElementById('motifFilter').value = '';
+      filterData();
+      showNotification('Filtres réinitialisés', 'info');
+    }
+
+    function updateTable() {
+      const tbody = document.getElementById('absenceTable');
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageData = filteredData.slice(startIndex, endIndex);
+
+      tbody.innerHTML = '';
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center gap-4">
+                <i class="fas fa-search text-6xl text-white/20"></i>
+                <div>
+                  <h3 class="text-lg font-medium text-white/70">Aucun résultat trouvé</h3>
+                  <p class="text-white/50">Essayez de modifier vos critères de recherche</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        pageData.forEach((absence, index) => {
+          const globalIndex = startIndex + index;
+          const row = document.createElement('tr');
+          row.className = 'table-row hover:bg-white/5 transition-all';
+          row.setAttribute('data-date', absence.date);
+          row.setAttribute('data-motif', absence.motif);
+
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+              ${globalIndex + 1}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  ${absence.nom[0].toUpperCase()}
+                </div>
+                <div>
+                  <div class="text-sm font-medium text-white">${absence.nom}</div>
+                  <div class="text-xs text-white/60">Étudiant</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-white">${absence.date}</div>
+              <div class="text-xs text-white/60">${formatDate(absence.date)}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-white flex items-center gap-2">
+                <i class="fas fa-clock text-blue-400"></i>
+                ${absence.heure}
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300">
+                ${absence.motif}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="status-badge status-pending">
+                <i class="fas fa-clock"></i>
+                En attente
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <div class="flex items-center gap-2">
+                <button onclick="viewDetails(${globalIndex})" class="text-blue-400 hover:text-blue-300 transition-colors" title="Voir détails">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button onclick="editAbsence(${globalIndex})" class="text-yellow-400 hover:text-yellow-300 transition-colors" title="Modifier">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteAbsence(${globalIndex})" class="text-red-400 hover:text-red-300 transition-colors" title="Supprimer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          `;
+
+          tbody.appendChild(row);
+        });
+      }
+
+      updatePagination();
+      updateResultCount();
+    }
+
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', { weekday: 'long' });
+    }
+
+    function updatePagination() {
+      const totalPages = Math.ceil(filteredData.length / pageSize);
+      const pagination = document.getElementById('pagination');
+
+      pagination.innerHTML = '';
+
+      if (totalPages <= 1) return;
+
+      // Previous button
+      const prevBtn = document.createElement('button');
+      prevBtn.className = `px-3 py-2 rounded-lg transition-all ${currentPage === 1 ? 'bg-white/10 text-white/50 cursor-not-allowed' : 'bg-white/20 text-white hover:bg-white/30'}`;
+      prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          updateTable();
+        }
+      };
+      pagination.appendChild(prevBtn);
+
+      // Page numbers
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, currentPage + 2);
+
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `px-3 py-2 rounded-lg transition-all ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`;
+        pageBtn.textContent = i;
+        pageBtn.onclick = () => {
+          currentPage = i;
+          updateTable();
+        };
+        pagination.appendChild(pageBtn);
+      }
+
+      // Next button
+      const nextBtn = document.createElement('button');
+      nextBtn.className = `px-3 py-2 rounded-lg transition-all ${currentPage === totalPages ? 'bg-white/10 text-white/50 cursor-not-allowed' : 'bg-white/20 text-white hover:bg-white/30'}`;
+      nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          updateTable();
+        }
+      };
+      pagination.appendChild(nextBtn);
+    }
+
+    function updateResultCount() {
+      const startItem = (currentPage - 1) * pageSize + 1;
+      const endItem = Math.min(currentPage * pageSize, filteredData.length);
+
+      document.getElementById('startItem').textContent = filteredData.length > 0 ? startItem : 0;
+      document.getElementById('endItem').textContent = endItem;
+      document.getElementById('totalItems').textContent = filteredData.length;
+      document.getElementById('resultCount').textContent = filteredData.length + ' résultat(s)';
+    }

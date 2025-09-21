@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 10px;
+  }
+  .container {
+    background: white;
+    padding: 40px 50px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+  }
+  h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #007BFF;
+    font-weight: 700;
+  }
+  .message {
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-style: italic;
+  }
+  .message.success {
+    color: #28a745;
+  }
+  .message.error {
+    color: #dc3545;
+  }
+  label {
+    font-weight: 600;
+    color: #343a40;
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 15px;
+  }
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.8px solid #ced4da;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.3s;
+  }
+  input[type="email"]:focus,
+  input[type="password"]:focus {
+    border-color: #007BFF;
+    outline: none;
+  }
+  button {
+    width: 100%;
+    background-color: #007BFF;
+    color: white;
+    padding: 14px;
+    margin-top: 25px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.4s ease;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  .text-center {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #6c757d;
+  }
+  .text-center a {
+    color: #007BFF;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .text-center a:hover {
+    text-decoration: underline;
+  }
+  /* Messages flash */
+  .flash {
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .flash.success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+  }
+  .flash.danger {
+    background-color: #f8d7da;
+    color: #842029;
+    border: 1px solid #f5c2c7;
+  }
+</style>
+
+<div class="container">
+  <h2>Connexion à AdsClass</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('login') }}">
+    <label for="email">Email institutionnel (@adsclass.ne)</label>
+    <input
+      type="email"
+      id="email"
+      name="email"
+      placeholder="exemple@adsclass.ne"
+      required
+      pattern="^[a-zA-Z0-9._%+-]+@adsclass\.ne$"
+      title="L’email doit se terminer par @adsclass.ne"
+    />
+
+    <label for="password">Mot de passe</label>
+    <input
+      type="password"
+      id="password"
+      name="password"
+      placeholder="Votre mot de passe"
+      required
+      minlength="6"
+    />
+
+    <button type="submit">Se connecter</button>
+  </form>
+
+  <p class="text-center">
+    Pas encore de compte ? <a href="{{ url_for('register') }}">Créer un compte</a>
+  </p>
+</div>
+{% endblock %}

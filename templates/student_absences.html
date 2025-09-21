@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mes Absences - Adsclass</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .absence-card {
+      transition: all 0.3s ease;
+    }
+    
+    .absence-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .status-justified {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .status-unjustified {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+    
+    .status-pending {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+    
+    .notification.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+  <!-- Enhanced Navbar -->
+  <nav class="glass-effect sticky top-0 z-50 shadow-2xl border-b border-white/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <i class="fas fa-graduation-cap text-white text-xl"></i>
+          </div>
+          <div>
+            <a href="{{ url_for('student_dashboard') }}" class="text-2xl font-bold gradient-text hover:scale-105 transition-transform">
+              Adsclass
+            </a>
+            <p class="text-xs text-gray-600 font-medium">Student Portal</p>
+          </div>
+          </div>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden lg:flex items-center space-x-8">
+          <a href="{{ url_for('student_dashboard') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-home"></i>
+            <span>Accueil</span>
+          </a>
+          <a href="{{ url_for('student_courses') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-book"></i>
+            <span>Cours</span>
+          </a>
+          <a href="{{ url_for('student_grades') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-chart-bar"></i>
+            <span>Notes</span>
+          </a>
+          <a href="{{ url_for('student_absences') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-red-100 text-red-700 font-semibold transition-all">
+            <i class="fas fa-calendar-times"></i>
+            <span>Absences</span>
+            {% if stats.total_absences > 0 %}
+            <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{{ stats.total_absences }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('student_profile') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-user"></i>
+            <span>Profil</span>
+          </a>
+        </div>
+        
+        <!-- User Actions -->
+        <div class="hidden lg:flex items-center space-x-4">
+          <a href="{{ url_for('logout') }}" 
+             class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Déconnexion</span>
+          </a>
+        </div>
+
+        <!-- Mobile menu button -->
+        <button id="btn-menu" class="lg:hidden p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors" aria-label="Toggle menu">
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Enhanced Mobile menu -->
+  <div id="menu-mobile" class="lg:hidden fixed inset-0 z-40 hidden">
+    <div class="fixed inset-0 bg-black bg-opacity-50" onclick="toggleMobileMenu()"></div>
+    <div class="mobile-menu-slide fixed left-0 top-0 h-full w-80 glass-effect shadow-2xl">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <i class="fas fa-graduation-cap text-white"></i>
+            </div>
+            <span class="text-xl font-bold gradient-text">Adsclass</span>
+          </div>
+          <button onclick="toggleMobileMenu()" class="p-2 rounded-lg hover:bg-gray-100">
+            <i class="fas fa-times text-gray-600"></i>
+          </button>
+        </div>
+        
+        <nav class="space-y-3">
+          <a href="{{ url_for('student_dashboard') }}" class="flex items-center space-x-3 p-4 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold">
+            <i class="fas fa-home w-5"></i>
+            <span>Accueil</span>
+          </a>
+          <a href="{{ url_for('student_courses') }}" class="flex items-center space-x-3 p-4 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold">
+            <i class="fas fa-book w-5"></i>
+            <span>Cours</span>
+          </a>
+          <a href="{{ url_for('student_grades') }}" class="flex items-center space-x-3 p-4 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold">
+            <i class="fas fa-chart-bar w-5"></i>
+            <span>Notes</span>
+          </a>
+          <a href="{{ url_for('student_absences') }}" class="flex items-center space-x-3 p-4 rounded-xl bg-red-100 text-red-700 font-semibold">
+            <i class="fas fa-calendar-times w-5"></i>
+            <span>Absences</span>
+            {% if stats.total_absences > 0 %}
+            <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{{ stats.total_absences }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('student_profile') }}" class="flex items-center space-x-3 p-4 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold">
+            <i class="fas fa-user w-5"></i>
+            <span>Profil</span>
+          </a>
+          <hr class="my-4 border-gray-200">
+          <a href="{{ url_for('logout') }}" class="flex items-center space-x-3 p-4 rounded-xl bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors">
+            <i class="fas fa-sign-out-alt w-5"></i>
+            <span>Déconnexion</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+    </div>
+
+  <!-- Enhanced Welcome Header -->
+  <header class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="glass-effect rounded-3xl p-8 shadow-2xl card-hover">
+      <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-8">
+        
+        <!-- Welcome Section -->
+        <div class="flex items-center space-x-6">
+          <div class="w-20 h-20 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <i class="fas fa-calendar-times text-white text-2xl"></i>
+          </div>
+          <div>
+            <p class="text-gray-600 text-lg mb-2 flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+              Mes Absences,
+            </p>
+            <h1 class="text-4xl font-extrabold gradient-text leading-tight">
+              Suivi Personnel
+            </h1>
+            <div class="flex items-center space-x-4 mt-2">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                <i class="fas fa-calendar-times mr-1"></i>
+                {{ stats.total_absences or 0 }} absence{{ 's' if (stats.total_absences or 0) > 1 else '' }}
+              </span>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <i class="fas fa-graduation-cap mr-1"></i>
+                Étudiant Adsclass
+              </span>
+          </div>
+        </div>
+      </div>
+
+        <!-- Action Section -->
+        <div class="flex flex-col sm:flex-row items-center gap-4">
+          <a href="{{ url_for('student_dashboard') }}" 
+             class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-3 group">
+            <i class="fas fa-arrow-left text-xl group-hover:scale-110 transition-transform"></i>
+            <span>Retour Dashboard</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Statistics Cards -->
+  <section class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      
+      <div class="glass-effect rounded-2xl p-6 shadow-lg card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Absences</p>
+            <p class="text-3xl font-bold text-red-600">{{ stats.total_absences or 0 }}</p>
+          </div>
+          <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-calendar-times text-red-600 text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+          <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+          <span class="text-blue-600 font-medium">Toutes les absences</span>
+        </div>
+      </div>
+
+      <div class="glass-effect rounded-2xl p-6 shadow-lg card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Cette semaine</p>
+            <p class="text-3xl font-bold text-orange-600">{{ stats.absences_7j or 0 }}</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-calendar-week text-orange-600 text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+          <i class="fas fa-clock text-orange-500 mr-1"></i>
+          <span class="text-orange-600 font-medium">7 derniers jours</span>
+        </div>
+      </div>
+
+      <div class="glass-effect rounded-2xl p-6 shadow-lg card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Ce mois</p>
+            <p class="text-3xl font-bold text-purple-600">{{ stats.absences_30j or 0 }}</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+          <i class="fas fa-chart-line text-purple-500 mr-1"></i>
+          <span class="text-purple-600 font-medium">30 derniers jours</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Absences List -->
+  <main class="flex-grow px-4 sm:px-6 lg:px-8 pb-12">
+    <div class="max-w-7xl mx-auto">
+      
+      <!-- Absences Header -->
+      <div class="glass-effect rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-xl mb-4">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+          <div class="flex items-center space-x-3 lg:space-x-4">
+            <div class="w-10 h-10 lg:w-14 lg:h-14 bg-gradient-to-r from-red-500 to-pink-600 rounded-lg lg:rounded-xl flex items-center justify-center shadow-md">
+              <i class="fas fa-calendar-times text-white text-sm lg:text-xl"></i>
+            </div>
+            <div>
+              <h2 class="text-lg lg:text-2xl font-bold gradient-text mb-1">Historique des Absences</h2>
+              <p class="text-gray-600 text-xs lg:text-base">Détail de toutes vos absences</p>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Absences Container -->
+      <div class="glass-effect rounded-xl lg:rounded-2xl p-3 lg:p-6 shadow-xl">
+        {% if absences %}
+          <div class="space-y-4">
+            {% for absence in absences %}
+            <div class="absence-card bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                
+                <!-- Course Info -->
+                <div class="flex items-center space-x-4">
+                  <div class="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-book text-white text-lg"></i>
+                  </div>
+          <div>
+                    <h3 class="font-semibold text-gray-800 text-lg">{{ absence.nom_cours }}</h3>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600">
+                      <span class="flex items-center">
+                        <i class="fas fa-calendar mr-2"></i>
+                        {{ absence.date_cours }}
+                      </span>
+                      <span class="flex items-center">
+                        <i class="fas fa-clock mr-2"></i>
+                        {{ absence.heure_debut }} - {{ absence.heure_fin }}
+                      </span>
+                      <span class="flex items-center">
+                        <i class="fas fa-door-open mr-2"></i>
+                        {{ absence.salle or 'Salle non définie' }}
+                      </span>
+          </div>
+        </div>
+      </div>
+                
+                <!-- Professor Info -->
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-tie text-white"></i>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-medium text-gray-800">{{ absence.prof_prenom }} {{ absence.prof_nom }}</p>
+                    <p class="text-sm text-gray-600">Professeur</p>
+        </div>
+      </div>
+
+      <!-- Status -->
+                <div class="flex items-center space-x-3">
+                  <span class="px-4 py-2 rounded-full text-sm font-semibold status-unjustified">
+                    <i class="fas fa-times mr-2"></i>
+                    Absent
+                  </span>
+                  <span class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    À justifier
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Comment Section -->
+              {% if absence.commentaire %}
+              <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-start space-x-3">
+                  <i class="fas fa-comment text-gray-500 mt-1"></i>
+          <div>
+                    <p class="text-sm font-medium text-gray-700">Commentaire du professeur:</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ absence.commentaire }}</p>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              
+              <!-- Actions -->
+              <div class="mt-4 flex items-center justify-between">
+                <div class="text-xs text-gray-500">
+                  Enregistré le {{ absence.created_at.strftime('%d/%m/%Y à %H:%M') if absence.created_at else 'Date inconnue' }}
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button onclick="justifyAbsence('{{ absence.id }}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-check mr-2"></i>
+                    Justifier
+                  </button>
+                  <button onclick="contactProfessor('{{ absence.professeur_id }}')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-envelope mr-2"></i>
+                    Contacter
+                  </button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-16">
+            <div class="w-24 h-24 bg-gradient-to-r from-green-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <i class="fas fa-check-circle text-4xl text-green-500"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-3">Aucune absence</h3>
+            <p class="text-gray-600 mb-6">Félicitations ! Vous n'avez aucune absence enregistrée.</p>
+            <div class="bg-green-50 rounded-lg p-4 max-w-md mx-auto">
+              <p class="text-green-700 text-sm">
+                <i class="fas fa-lightbulb mr-2"></i>
+                Continuez ainsi ! Une assiduité parfaite est la clé de la réussite.
+            </p>
+          </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      const menuMobile = document.getElementById('menu-mobile');
+      const slideMenu = menuMobile.querySelector('.mobile-menu-slide');
+      
+      if (menuMobile.classList.contains('hidden')) {
+        menuMobile.classList.remove('hidden');
+        setTimeout(() => slideMenu.classList.add('active'), 10);
+      } else {
+        slideMenu.classList.remove('active');
+        setTimeout(() => menuMobile.classList.add('hidden'), 300);
+      }
+    }
+
+    document.getElementById('btn-menu').addEventListener('click', toggleMobileMenu);
+
+    // Justify absence
+    function justifyAbsence(absenceId) {
+      const reason = prompt('Veuillez indiquer la raison de votre absence:');
+      if (reason && reason.trim()) {
+        // Here you would typically send this to the server
+        showNotification('Justification envoyée avec succès!', 'success');
+        // In a real app, you would make an AJAX call to save the justification
+      }
+    }
+
+    // Contact professor
+    function contactProfessor(professorId) {
+      showNotification('Fonctionnalité de contact en cours de développement', 'info');
+    }
+
+    // Show notification
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification glass-effect rounded-lg p-4 text-white shadow-lg`;
+      
+      const iconClass = type === 'success' ? 'fa-check-circle text-green-400' : 
+                       type === 'error' ? 'fa-exclamation-circle text-red-400' : 
+                       'fa-info-circle text-blue-400';
+      
+      notification.innerHTML = `
+        <div class="flex items-center gap-3">
+          <i class="fas ${iconClass}"></i>
+          <span>${message}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-white/60 hover:text-white">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      setTimeout(() => notification.classList.add('show'), 100);
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Document - {{ course.nom_cours }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .prof-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: #3b82f6;
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        #browseButton {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="glass-effect rounded-3xl p-8 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-upload text-green-600 mr-3"></i>
+                        Upload Document
+                    </h1>
+                    <p class="text-gray-600 text-lg">{{ course.nom_cours }}</p>
+                    <div class="flex items-center mt-4 space-x-6">
+                        <div class="flex items-center text-green-600">
+                            <i class="fas fa-book mr-2"></i>
+                            <span class="text-sm font-medium">{{ course.filiere }}</span>
+                        </div>
+                        <div class="flex items-center text-blue-600">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span class="text-sm">{{ course.salle }}</span>
+                        </div>
+                        <div class="flex items-center text-purple-600">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span class="text-sm">{{ course.heure_debut }} - {{ course.heure_fin }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="prof-badge text-white px-6 py-3 rounded-xl mb-3">
+                        <i class="fas fa-user-tie mr-2"></i>
+                        <span class="font-semibold">Prof. {{ prenom }}</span>
+                    </div>
+                    <div class="space-x-2">
+                        <a href="{{ url_for('professeur_etudiants_cours', course_id=course.id) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all">
+                            <i class="fas fa-arrow-left mr-2"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire d'upload -->
+        <div class="glass-effect rounded-3xl p-8">
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Zone d'upload -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                            <i class="fas fa-file-upload text-blue-600 mr-3"></i>
+                            Sélectionner le fichier
+                        </h2>
+                        
+                        <div class="upload-zone rounded-2xl p-8 text-center" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                            <div class="mb-4">
+                                <i class="fas fa-cloud-upload-alt text-6xl text-gray-400"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Glissez-déposez votre fichier ici</h3>
+                            <p class="text-gray-500 mb-4">ou cliquez n'importe où dans cette zone</p>
+                            <input type="file" name="document" id="fileInput" style="display: none;" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.jpg,.jpeg,.png,.gif,.bmp,.svg,.webp,.tiff,.xls,.xlsx,.csv,.zip,.rar,.7z,.tar,.gz,.py,.js,.html,.css,.json,.xml,.sql,.mp3,.mp4,.avi,.mov,.wav,.flv,.mkv,.epub,.mobi,.azw,.djvu" required>
+                            <button type="button" id="browseButton" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all">
+                                <i class="fas fa-folder-open mr-2"></i>Parcourir les fichiers
+                            </button>
+                            <div class="mt-4 text-sm text-gray-500">
+                                <strong>Formats acceptés:</strong><br>
+                                📄 <strong>Documents:</strong> PDF, DOC, DOCX, PPT, PPTX, TXT, RTF, ODT, ODS, ODP<br>
+                                🖼️ <strong>Images:</strong> JPG, PNG, GIF, BMP, SVG, WEBP, TIFF<br>
+                                📊 <strong>Tableurs:</strong> XLS, XLSX, CSV<br>
+                                📦 <strong>Archives:</strong> ZIP, RAR, 7Z, TAR, GZ<br>
+                                💻 <strong>Code:</strong> PY, JS, HTML, CSS, JSON, XML, SQL<br>
+                                🎵 <strong>Média:</strong> MP3, MP4, AVI, MOV, WAV, FLV, MKV<br>
+                                📚 <strong>E-books:</strong> EPUB, MOBI, AZW, DJVU<br>
+                                <br>
+                                <strong>Taille maximale:</strong> 10MB
+                            </div>
+                        </div>
+
+                        <!-- Aperçu du fichier sélectionné -->
+                        <div id="filePreview" class="hidden mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <i class="fas fa-file text-blue-600 text-2xl mr-3"></i>
+                                    <div>
+                                        <p class="font-semibold text-gray-800" id="fileName"></p>
+                                        <p class="text-sm text-gray-500" id="fileSize"></p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="removeFile()" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations du document -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                            <i class="fas fa-info-circle text-purple-600 mr-3"></i>
+                            Informations du document
+                        </h2>
+
+                        <div class="space-y-6">
+                            <!-- Titre -->
+                            <div>
+                                <label for="titre" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-heading mr-2"></i>Titre du document
+                                </label>
+                                <input type="text" name="titre" id="titre" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Ex: Cours 1 - Introduction aux bases de données">
+                            </div>
+
+                            <!-- Description -->
+                            <div>
+                                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-align-left mr-2"></i>Description (optionnelle)
+                                </label>
+                                <textarea name="description" id="description" rows="4"
+                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Décrivez le contenu du document, les objectifs, ou toute information utile pour les étudiants..."></textarea>
+                            </div>
+
+                            <!-- Type de document -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-tags mr-2"></i>Type de document
+                                </label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="type_doc" value="cours" class="sr-only peer">
+                                        <div class="p-3 border border-gray-300 rounded-lg text-center peer-checked:bg-blue-100 peer-checked:border-blue-500 transition-all">
+                                            <i class="fas fa-book text-blue-600"></i>
+                                            <p class="text-sm font-medium mt-1">Cours</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="type_doc" value="exercice" class="sr-only peer">
+                                        <div class="p-3 border border-gray-300 rounded-lg text-center peer-checked:bg-green-100 peer-checked:border-green-500 transition-all">
+                                            <i class="fas fa-pencil-alt text-green-600"></i>
+                                            <p class="text-sm font-medium mt-1">Exercice</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="type_doc" value="correction" class="sr-only peer">
+                                        <div class="p-3 border border-gray-300 rounded-lg text-center peer-checked:bg-purple-100 peer-checked:border-purple-500 transition-all">
+                                            <i class="fas fa-check-circle text-purple-600"></i>
+                                            <p class="text-sm font-medium mt-1">Correction</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="type_doc" value="ressource" class="sr-only peer">
+                                        <div class="p-3 border border-gray-300 rounded-lg text-center peer-checked:bg-orange-100 peer-checked:border-orange-500 transition-all">
+                                            <i class="fas fa-link text-orange-600"></i>
+                                            <p class="text-sm font-medium mt-1">Ressource</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Boutons d'action -->
+                            <div class="flex space-x-4 pt-4">
+                                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition-all font-semibold">
+                                    <i class="fas fa-upload mr-2"></i>Uploader le document
+                                </button>
+                                <a href="{{ url_for('professeur_etudiants_cours', course_id=course.id) }}" 
+                                   class="bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-lg transition-all">
+                                    <i class="fas fa-times mr-2"></i>Annuler
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Messages Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="fixed top-4 right-4 z-50">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} mb-2 px-6 py-4 rounded-lg shadow-lg
+                                    {% if category == 'success' %}bg-green-500 text-white{% endif %}
+                                    {% if category == 'error' %}bg-red-500 text-white{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const browseButton = document.getElementById('browseButton');
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const titreInput = document.getElementById('titre');
+
+        // Fonction pour ouvrir l'explorateur de fichiers
+        function openFileExplorer() {
+            fileInput.click();
+        }
+
+        // Event listeners pour ouvrir l'explorateur
+        browseButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openFileExplorer();
+        });
+
+        uploadZone.addEventListener('click', function(e) {
+            // Ne pas ouvrir si on clique sur le bouton (déjà géré)
+            if (e.target !== browseButton && !browseButton.contains(e.target)) {
+                openFileExplorer();
+            }
+        });
+
+        // Drag and drop functionality
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                filePreview.classList.remove('hidden');
+                
+                // Auto-fill title if empty
+                if (!titreInput.value) {
+                    titreInput.value = file.name.replace(/\.[^/.]+$/, "");
+                }
+            }
+        }
+
+        function removeFile() {
+            fileInput.value = '';
+            filePreview.classList.add('hidden');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Auto-hide flash messages
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

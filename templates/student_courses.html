@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mes Cours - Adsclass</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- AOS Animation Library -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .floating-animation {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-12px) scale(1.02);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .course-card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .course-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+    
+    .course-card:hover::before {
+      left: 100%;
+    }
+    
+    .course-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .course-card:hover::after {
+      opacity: 1;
+    }
+    
+    .stats-icon {
+      transition: all 0.3s ease;
+    }
+    
+    .course-card:hover .stats-icon {
+      transform: scale(1.2) rotate(5deg);
+    }
+    
+    .search-container {
+      position: relative;
+    }
+    
+    .search-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      padding: 2px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 1rem;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+    }
+    
+    .filter-animation {
+      animation: filterPulse 0.3s ease-in-out;
+    }
+    
+    @keyframes filterPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .no-results {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .course-progress {
+      background: linear-gradient(90deg, #e5e7eb 0%, #e5e7eb 100%);
+      height: 6px;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .course-progress::after {
+      content: '';
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      width: var(--progress, 0%);
+      border-radius: 3px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    
+    .course-progress::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .course-grade {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      font-weight: 700;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .course-status {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-active {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    
+    .status-pending {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+    
+    .status-completed {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    
+    .course-difficulty {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .difficulty-easy { color: #10b981; }
+    .difficulty-medium { color: #f59e0b; }
+    .difficulty-hard { color: #ef4444; }
+    
+    .course-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .stat-item:hover {
+      background: rgba(255, 255, 255, 0.8);
+      transform: translateY(-2px);
+    }
+    
+    .course-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    
+    .btn-primary {
+      flex: 1;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-secondary {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.8);
+      color: #374151;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+    }
+    
+    .course-badge {
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .badge-new { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .badge-popular { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .badge-featured { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    
+    .course-timeline {
+      position: relative;
+      padding-left: 1.5rem;
+      margin: 1rem 0;
+    }
+    
+    .course-timeline::before {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+    }
+    
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1rem;
+      padding-left: 1rem;
+    }
+    
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -1.5rem;
+      top: 0.5rem;
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px #3b82f6;
+    }
+    
+    .dark-mode {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    .dark-mode .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .dark-mode .course-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- Enhanced Navigation -->
+  <nav class="glass-effect sticky top-0 z-50 shadow-2xl border-b border-white/30" data-aos="fade-down">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center floating-animation shadow-lg">
+            <i class="fas fa-graduation-cap text-white text-xl"></i>
+          </div>
+          <div>
+            <a href="{{ url_for('student_dashboard') }}" class="text-2xl font-bold gradient-text hover:scale-105 transition-transform">
+              Adsclass
+            </a>
+            <p class="text-xs text-gray-600 font-medium">Student Portal</p>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="hidden lg:flex items-center space-x-8">
+          <a href="{{ url_for('student_dashboard') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-home"></i>
+            <span>Accueil</span>
+          </a>
+          <a href="{{ url_for('student_courses') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold transition-all">
+            <i class="fas fa-book"></i>
+            <span>Cours</span>
+          </a>
+          <a href="{{ url_for('student_grades') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-chart-bar"></i>
+            <span>Notes</span>
+          </a>
+          <a href="{{ url_for('student_absences') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-calendar-times"></i>
+            <span>Absences</span>
+          </a>
+        </div>
+
+        <!-- User Actions -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button id="dark-mode-toggle" class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors" title="Mode sombre">
+            <i class="fas fa-moon text-lg"></i>
+          </button>
+          
+          <!-- Notifications -->
+          <div class="relative">
+            <button id="notification-btn" class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors relative">
+              <i class="fas fa-bell text-lg"></i>
+              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
+            </button>
+            
+            <!-- Notification Dropdown -->
+            <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 glass-effect rounded-2xl shadow-2xl z-50">
+              <div class="p-4 border-b border-gray-200">
+                <h3 class="font-semibold text-gray-800">Notifications</h3>
+          </div>
+              <div class="max-h-64 overflow-y-auto">
+                <div class="p-3 hover:bg-gray-50 border-b border-gray-100">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-800">Nouveau cours disponible</p>
+                      <p class="text-xs text-gray-600">Mathématiques - Chapitre 5</p>
+                      <p class="text-xs text-gray-500">Il y a 1 heure</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3 hover:bg-gray-50 border-b border-gray-100">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-800">Devoir à rendre</p>
+                      <p class="text-xs text-gray-600">Physique - Exercices 3-5</p>
+                      <p class="text-xs text-gray-500">Dans 2 jours</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3 hover:bg-gray-50">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-800">Note publiée</p>
+                      <p class="text-xs text-gray-600">Chimie - Contrôle 1</p>
+                      <p class="text-xs text-gray-500">Hier</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="p-3 border-t border-gray-200">
+                <a href="#" class="text-blue-600 text-sm font-medium hover:text-blue-800">Voir toutes les notifications</a>
+              </div>
+            </div>
+          </div>
+          
+          <a href="{{ url_for('logout') }}" 
+             class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="hidden sm:inline">Déconnexion</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Enhanced Header -->
+  <header class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="glass-effect rounded-3xl p-8 shadow-2xl" data-aos="fade-up">
+      <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-8">
+        
+        <!-- Title Section -->
+        <div class="flex items-center space-x-6">
+          <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg floating-animation">
+            <i class="fas fa-book-open text-white text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-4xl font-extrabold gradient-text leading-tight">
+              📚 Mes Cours
+            </h1>
+            <p class="text-gray-600 text-lg mt-2">
+              Découvrez vos matières et suivez votre progression
+            </p>
+            <div class="flex items-center space-x-4 mt-3">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <i class="fas fa-check-circle mr-1"></i>
+                {{ cours|length }} cours actifs
+              </span>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <i class="fas fa-chart-line mr-1"></i>
+                Progression: 75%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="flex flex-col sm:flex-row items-center gap-4">
+          <div class="search-container relative">
+            <input 
+              type="search" 
+              id="searchInput" 
+              placeholder="🔍 Rechercher un cours..." 
+              class="w-full sm:w-80 px-6 py-4 rounded-2xl border-2 border-transparent bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-500 transition-all duration-300 placeholder-gray-400 text-gray-700"
+              onkeyup="filterCourses()"
+              autocomplete="off"
+            />
+            <button class="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-blue-600 transition-colors">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+          
+          <div class="flex items-center space-x-3">
+            <!-- Filter Dropdown -->
+            <div class="relative">
+              <button id="filter-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-semibold transition-colors flex items-center space-x-2">
+                <i class="fas fa-filter"></i>
+                <span>Filtrer</span>
+                <i class="fas fa-chevron-down text-xs"></i>
+              </button>
+              
+              <div id="filter-dropdown" class="hidden absolute right-0 mt-2 w-64 glass-effect rounded-2xl shadow-2xl z-50">
+                <div class="p-4">
+                  <h3 class="font-semibold text-gray-800 mb-3">Filtrer par</h3>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="text-sm font-medium text-gray-700">Statut</label>
+                      <select class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option>Tous les cours</option>
+                        <option>Actifs</option>
+                        <option>Terminés</option>
+                        <option>En attente</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-700">Difficulté</label>
+                      <select class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option>Toutes les difficultés</option>
+                        <option>Facile</option>
+                        <option>Moyen</option>
+                        <option>Difficile</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-700">Progression</label>
+                      <select class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option>Toutes les progressions</option>
+                        <option>0-25%</option>
+                        <option>25-50%</option>
+                        <option>50-75%</option>
+                        <option>75-100%</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="flex justify-end space-x-2 mt-4">
+                    <button class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800">Réinitialiser</button>
+                    <button class="px-4 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">Appliquer</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <button onclick="toggleView()" id="viewToggle" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-semibold transition-colors flex items-center space-x-2">
+              <i class="fas fa-th-large"></i>
+              <span>Grille</span>
+            </button>
+            <button onclick="sortCourses()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-3 rounded-xl font-semibold transition-colors flex items-center space-x-2">
+              <i class="fas fa-sort-alpha-down"></i>
+              <span>Trier</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Filière Info -->
+  <div class="max-w-7xl mx-auto mt-6 px-4 sm:px-6 lg:px-8">
+    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-graduation-cap text-blue-600"></i>
+          </div>
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Filière actuelle</p>
+            <p class="text-xl font-bold text-blue-600">{{ filiere }}</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-6 text-sm text-gray-600">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-book text-blue-500"></i>
+            <span><span id="totalCourses">{{ cours|length }}</span> cours</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-chart-line text-green-500"></i>
+            <span>Progression: 75%</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-clock text-orange-500"></i>
+            <span>Semestre 1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% set couleurs = [
+    'from-blue-100 to-blue-50 border-blue-200',
+    'from-green-100 to-green-50 border-green-200',
+    'from-yellow-100 to-yellow-50 border-yellow-200',
+    'from-purple-100 to-purple-50 border-purple-200',
+    'from-pink-100 to-pink-50 border-pink-200',
+    'from-indigo-100 to-indigo-50 border-indigo-200',
+    'from-cyan-100 to-cyan-50 border-cyan-200',
+    'from-orange-100 to-orange-50 border-orange-200'
+  ] %}
+
+  {% set icons = [
+    'fas fa-calculator',
+    'fas fa-flask',
+    'fas fa-code',
+    'fas fa-language',
+    'fas fa-chart-bar',
+    'fas fa-globe',
+    'fas fa-paint-brush',
+    'fas fa-music'
+  ] %}
+
+  <!-- Enhanced Courses Grid -->
+  {% if cours %}
+    <main class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8 pb-12">
+      <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {% for c in cours %}
+          {% set couleur = couleurs[loop.index0 % couleurs|length] %}
+          {% set icon = icons[loop.index0 % icons|length] %}
+          {% set progress = (loop.index0 * 15 + 45) % 100 %}
+          {% set difficulty = ['easy', 'medium', 'hard'][loop.index0 % 3] %}
+          {% set badge = ['new', 'popular', 'featured'][loop.index0 % 3] %}
+          
+          {# Calcul du statut basé sur la progression et les dates #}
+          {% if progress >= 100 %}
+            {% set status = 'completed' %}
+          {% elif progress > 0 %}
+            {% set status = 'active' %}
+          {% else %}
+            {% set status = 'pending' %}
+          {% endif %}
+          
+          <div class="course-card rounded-2xl shadow-xl p-4 card-hover relative overflow-hidden group" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+            
+            <!-- Course Badge -->
+            <div class="course-badge badge-{{ badge }}">
+              {% if badge == 'new' %}N{% elif badge == 'popular' %}H{% else %}F{% endif %}
+            </div>
+
+            <!-- Course Status -->
+            <div class="course-status status-{{ status }}">
+              {% if status == 'active' %}Actif{% elif status == 'pending' %}En attente{% else %}Terminé{% endif %}
+            </div>
+
+            <!-- Course Header -->
+            <div class="mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <i class="{{ icon }} text-lg text-white"></i>
+              </div>
+            </div>
+
+            <!-- Course Title & Info -->
+            <div class="mb-3">
+              <h2 class="text-lg font-bold text-gray-800 course-name mb-1 leading-tight">{{ c }}</h2>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-500">{{ filiere }}</span>
+                <div class="course-difficulty difficulty-{{ difficulty }}">
+                  <i class="fas fa-circle text-xs"></i>
+                  {% if difficulty == 'easy' %}Facile{% elif difficulty == 'medium' %}Moyen{% else %}Difficile{% endif %}
+                </div>
+              </div>
+              </div>
+              
+            <!-- Progress Section -->
+            <div class="mb-3">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-xs text-gray-600">Progression</span>
+                <span class="text-xs font-bold text-gray-800">{{ progress }}%</span>
+                </div>
+              <div class="course-progress" style="--progress: {{ progress }}%"></div>
+              </div>
+              
+            <!-- Simple Stats -->
+            <div class="flex justify-center space-x-4 mb-3">
+              <div class="text-center">
+                <p class="text-sm font-bold text-gray-800">{{ (loop.index0 * 2) % 5 }}</p>
+                <p class="text-xs text-gray-500">Devoirs</p>
+                </div>
+              <div class="text-center">
+                {% if notes[c] %}
+                  {% set grade_values = [notes[c].cc1, notes[c].cc2, notes[c].participation, notes[c].examen] %}
+                  {% set valid_grades = grade_values | select('number') | list %}
+                  <p class="text-sm font-bold text-gray-800">{{ valid_grades|length }}</p>
+                {% else %}
+                  <p class="text-sm font-bold text-gray-800">0</p>
+                {% endif %}
+                <p class="text-xs text-gray-500">Notes</p>
+              </div>
+              <div class="text-center">
+                <p class="text-sm font-bold text-gray-800">{{ (loop.index0 * 3 + 2) % 8 }}</p>
+                <p class="text-xs text-gray-500">Docs</p>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex space-x-2">
+              <button class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-3 rounded-lg transition-colors flex items-center justify-center space-x-1 text-sm" onclick="viewCourse('{{ c }}')">
+                <i class="fas fa-eye text-xs"></i>
+                <span>Voir</span>
+              </button>
+              <button class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors flex items-center justify-center space-x-1 text-sm" onclick="studyCourse('{{ c }}')">
+                <i class="fas fa-play text-xs"></i>
+                <span>Étudier</span>
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <!-- Results Counter & Analytics -->
+      <div class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Results Counter -->
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Cours affichés</h3>
+        <p class="text-gray-600" id="resultsCounter">
+              <span class="font-bold text-blue-600 text-2xl" id="visibleCount">{{ cours|length }}</span> sur <span class="font-bold text-gray-800">{{ cours|length }}</span>
+            </p>
+          </div>
+        </div>
+        
+        <!-- Progress Overview -->
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Progression globale</h3>
+            <div class="w-20 h-20 mx-auto mb-3 relative">
+              <canvas id="progressChart" width="80" height="80"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-lg font-bold text-gray-800">75%</span>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600">Moyenne de progression</p>
+          </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Statistiques</h3>
+            <div class="space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Cours terminés</span>
+                <span class="font-semibold text-green-600">{{ (cours|length * 0.3)|round|int }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">En cours</span>
+                <span class="font-semibold text-blue-600">{{ (cours|length * 0.5)|round|int }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">À commencer</span>
+                <span class="font-semibold text-orange-600">{{ (cours|length * 0.2)|round|int }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  {% else %}
+    <div class="max-w-7xl mx-auto mt-16 px-4 sm:px-6 lg:px-8">
+      <div class="text-center no-results">
+        <div class="w-32 h-32 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-8">
+          <i class="fas fa-book-open text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Aucun cours trouvé</h3>
+        <p class="text-gray-600 mb-8">Il semble qu'aucun cours ne soit disponible dans votre emploi du temps pour le moment.</p>
+        <a href="{{ url_for('student_dashboard') }}" 
+           class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center space-x-3">
+          <i class="fas fa-arrow-left"></i>
+          <span>Retour au tableau de bord</span>
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Enhanced JavaScript -->
+  <script>
+    // Global state management
+    let currentView = 'grid';
+    let sortOrder = 'asc';
+    let currentFilters = {
+      status: 'all',
+      difficulty: 'all',
+      progress: 'all'
+    };
+    let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+    // Initialize AOS animations
+    AOS.init({
+      duration: 800,
+      easing: 'ease-in-out',
+      once: true,
+      offset: 100
+    });
+
+    // Dark mode functionality
+    function toggleDarkMode() {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle('dark-mode', isDarkMode);
+      localStorage.setItem('darkMode', isDarkMode);
+      
+      const toggleBtn = document.getElementById('dark-mode-toggle');
+      const icon = toggleBtn.querySelector('i');
+      icon.className = isDarkMode ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
+    }
+
+    // Enhanced search with debouncing and advanced filtering
+    let searchTimeout;
+    function filterCourses() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const input = document.getElementById('searchInput');
+        const filter = input.value.toLowerCase().trim();
+        const courses = document.querySelectorAll('.course-card');
+        let visibleCount = 0;
+
+        courses.forEach((course, index) => {
+          const courseName = course.querySelector('.course-name').textContent.toLowerCase();
+          const courseStatus = course.querySelector('.course-status').textContent.toLowerCase();
+          const courseDifficulty = course.querySelector('.course-difficulty').textContent.toLowerCase();
+          const progress = parseInt(course.querySelector('.course-progress').style.getPropertyValue('--progress'));
+          
+          const matchesSearch = courseName.includes(filter);
+          const matchesStatus = currentFilters.status === 'all' || courseStatus.includes(currentFilters.status);
+          const matchesDifficulty = currentFilters.difficulty === 'all' || courseDifficulty.includes(currentFilters.difficulty);
+          const matchesProgress = currentFilters.progress === 'all' || 
+            (currentFilters.progress === '0-25' && progress >= 0 && progress <= 25) ||
+            (currentFilters.progress === '25-50' && progress > 25 && progress <= 50) ||
+            (currentFilters.progress === '50-75' && progress > 50 && progress <= 75) ||
+            (currentFilters.progress === '75-100' && progress > 75 && progress <= 100);
+          
+          const isVisible = matchesSearch && matchesStatus && matchesDifficulty && matchesProgress;
+          
+          if (isVisible) {
+            course.style.display = '';
+            course.classList.add('filter-animation');
+            visibleCount++;
+            setTimeout(() => course.classList.remove('filter-animation'), 300);
+          } else {
+            course.style.display = 'none';
+          }
+        });
+
+        updateResultsCounter(visibleCount);
+        showNoResultsMessage(visibleCount === 0 && (filter !== '' || Object.values(currentFilters).some(f => f !== 'all')));
+      }, 300);
+    }
+
+    // Advanced view toggle with smooth transitions
+    function toggleView() {
+      const container = document.getElementById('coursesContainer');
+      const toggleBtn = document.getElementById('viewToggle');
+      
+      if (currentView === 'grid') {
+        container.style.transition = 'all 0.5s ease';
+        container.className = 'space-y-6 max-w-4xl mx-auto';
+        toggleBtn.innerHTML = '<i class="fas fa-th-large"></i><span>Grille</span>';
+        currentView = 'list';
+        
+        document.querySelectorAll('.course-card').forEach((card, index) => {
+          setTimeout(() => {
+            card.style.transition = 'all 0.3s ease';
+          card.className = card.className.replace('rounded-3xl', 'rounded-2xl');
+          card.style.display = card.style.display === 'none' ? 'none' : 'flex';
+            card.style.alignItems = 'center';
+            card.style.padding = '1.5rem';
+          }, index * 50);
+        });
+      } else {
+        container.style.transition = 'all 0.5s ease';
+        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8';
+        toggleBtn.innerHTML = '<i class="fas fa-list"></i><span>Liste</span>';
+        currentView = 'grid';
+        
+        document.querySelectorAll('.course-card').forEach((card, index) => {
+          setTimeout(() => {
+            card.style.transition = 'all 0.3s ease';
+          card.className = card.className.replace('rounded-2xl', 'rounded-3xl');
+          card.style.display = card.style.display === 'none' ? 'none' : 'block';
+            card.style.alignItems = 'unset';
+            card.style.padding = '2rem';
+          }, index * 50);
+        });
+      }
+    }
+
+    // Enhanced sorting with multiple criteria
+    function sortCourses() {
+      const container = document.getElementById('coursesContainer');
+      const courses = Array.from(container.children);
+      
+      courses.sort((a, b) => {
+        const nameA = a.querySelector('.course-name').textContent;
+        const nameB = b.querySelector('.course-name').textContent;
+        const progressA = parseInt(a.querySelector('.course-progress').style.getPropertyValue('--progress'));
+        const progressB = parseInt(b.querySelector('.course-progress').style.getPropertyValue('--progress'));
+        
+        if (sortOrder === 'name') {
+          return nameA.localeCompare(nameB);
+        } else if (sortOrder === 'progress') {
+          return progressB - progressA;
+        } else {
+          return nameA.localeCompare(nameB);
+        }
+      });
+      
+      container.innerHTML = '';
+      courses.forEach((course, index) => {
+        setTimeout(() => {
+          course.style.animation = 'fadeIn 0.5s ease-in-out';
+          container.appendChild(course);
+        }, index * 50);
+      });
+      
+      sortOrder = sortOrder === 'name' ? 'progress' : 'name';
+    }
+
+    // Course action functions
+    function viewCourse(courseName) {
+      showNotification(`Ouverture du cours: ${courseName}`, 'info');
+      // Add course viewing logic here
+    }
+
+    function studyCourse(courseName) {
+      showNotification(`Démarrage de l'étude: ${courseName}`, 'success');
+      // Add course studying logic here
+    }
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-4 z-50 p-4 rounded-xl shadow-lg transition-all duration-300 transform translate-x-full`;
+      
+      const colors = {
+        info: 'bg-blue-500 text-white',
+        success: 'bg-green-500 text-white',
+        warning: 'bg-yellow-500 text-white',
+        error: 'bg-red-500 text-white'
+      };
+      
+      notification.className += ` ${colors[type]}`;
+      notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'}-circle"></i>
+          <span>${message}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.remove('translate-x-full');
+      }, 100);
+      
+      setTimeout(() => {
+        notification.classList.add('translate-x-full');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    // Dropdown functionality
+    function toggleDropdown(dropdownId) {
+      const dropdown = document.getElementById(dropdownId);
+      const allDropdowns = document.querySelectorAll('[id$="-dropdown"]');
+      
+      allDropdowns.forEach(dd => {
+        if (dd.id !== dropdownId) {
+          dd.classList.add('hidden');
+        }
+      });
+      
+      dropdown.classList.toggle('hidden');
+    }
+
+    // Update results counter with animation
+    function updateResultsCounter(visibleCount) {
+      const counter = document.getElementById('visibleCount');
+      if (counter) {
+        counter.style.transition = 'all 0.3s ease';
+        counter.textContent = visibleCount;
+        counter.parentElement.style.color = visibleCount === 0 ? '#ef4444' : '#2563eb';
+        
+        // Add pulse animation
+        counter.classList.add('animate-pulse');
+        setTimeout(() => counter.classList.remove('animate-pulse'), 600);
+      }
+    }
+
+    // Show/hide no results message with enhanced design
+    function showNoResultsMessage(show) {
+      let noResultsDiv = document.getElementById('noResultsMessage');
+      
+      if (show && !noResultsDiv) {
+        noResultsDiv = document.createElement('div');
+        noResultsDiv.id = 'noResultsMessage';
+        noResultsDiv.className = 'text-center mt-16 no-results';
+        noResultsDiv.innerHTML = `
+          <div class="w-32 h-32 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-8">
+            <i class="fas fa-search text-4xl text-gray-400"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-800 mb-4">Aucun résultat trouvé</h3>
+          <p class="text-gray-600 mb-6">Essayez avec d'autres mots-clés ou modifiez vos filtres</p>
+          <button onclick="clearFilters()" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
+            Réinitialiser les filtres
+          </button>
+        `;
+        document.querySelector('main').appendChild(noResultsDiv);
+      } else if (!show && noResultsDiv) {
+        noResultsDiv.remove();
+      }
+    }
+
+    // Clear all filters
+    function clearFilters() {
+      currentFilters = { status: 'all', difficulty: 'all', progress: 'all' };
+      document.getElementById('searchInput').value = '';
+      filterCourses();
+      showNoResultsMessage(false);
+    }
+
+    // Initialize progress charts
+    function initProgressCharts() {
+      const charts = document.querySelectorAll('[id^="progressChart"]');
+      charts.forEach(chart => {
+        const ctx = chart.getContext('2d');
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            datasets: [{
+              data: [75, 25],
+              backgroundColor: ['#3b82f6', '#e5e7eb'],
+              borderWidth: 0,
+              cutout: '70%'
+            }]
+          },
+          options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+          case 'f':
+            e.preventDefault();
+            document.getElementById('searchInput').focus();
+            break;
+          case 'g':
+            e.preventDefault();
+            toggleView();
+            break;
+          case 's':
+            e.preventDefault();
+            sortCourses();
+            break;
+          case 'd':
+            e.preventDefault();
+            toggleDarkMode();
+            break;
+        }
+      }
+    });
+
+    // Calculate course status based on real data
+    function calculateCourseStatus(courseName, progress) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      // Simulate course schedule data (in real app, this would come from the backend)
+      const courseSchedules = {
+        'Business English': { days: [1, 3], startHour: 9, endHour: 11, startDate: new Date('2024-01-15'), endDate: new Date('2024-06-15') },
+        'Mathématiques': { days: [2, 4], startHour: 14, endHour: 16, startDate: new Date('2024-01-15'), endDate: new Date('2024-06-15') },
+        'Physique': { days: [1, 5], startHour: 10, endHour: 12, startDate: new Date('2024-01-15'), endDate: new Date('2024-06-15') },
+        'Chimie': { days: [3], startHour: 8, endHour: 10, startDate: new Date('2024-01-15'), endDate: new Date('2024-06-15') },
+        'Informatique': { days: [2, 4], startHour: 16, endHour: 18, startDate: new Date('2024-01-15'), endDate: new Date('2024-06-15') }
+      };
+      
+      const schedule = courseSchedules[courseName];
+      if (!schedule) return 'pending';
+      
+      // Check if course has ended
+      if (now > schedule.endDate) {
+        return 'completed';
+      }
+      
+      // Check if course hasn't started yet
+      if (now < schedule.startDate) {
+        return 'pending';
+      }
+      
+      // Check if it's a course day and time
+      const isCourseDay = schedule.days.includes(currentDay);
+      const isCourseTime = currentHour >= schedule.startHour && currentHour < schedule.endHour;
+      
+      if (isCourseDay && isCourseTime) {
+        return 'active';
+      }
+      
+      // Check if course is in progress based on progress percentage
+      if (progress >= 100) {
+        return 'completed';
+      } else if (progress > 0) {
+        return 'active';
+      } else {
+        return 'pending';
+      }
+    }
+    
+    // Update course statuses dynamically
+    function updateCourseStatuses() {
+      const courseCards = document.querySelectorAll('.course-card');
+      courseCards.forEach(card => {
+        const courseName = card.querySelector('.course-name').textContent.trim();
+        const progressElement = card.querySelector('.course-progress');
+        const progress = parseInt(progressElement.style.getPropertyValue('--progress')) || 0;
+        
+        const status = calculateCourseStatus(courseName, progress);
+        const statusElement = card.querySelector('.course-status');
+        
+        if (statusElement) {
+          // Remove all status classes
+          statusElement.classList.remove('status-active', 'status-pending', 'status-completed');
+          statusElement.classList.add(`status-${status}`);
+          
+          // Update status text
+          const statusTexts = {
+            'active': 'Actif',
+            'pending': 'En attente',
+            'completed': 'Terminé'
+          };
+          statusElement.textContent = statusTexts[status];
+        }
+      });
+    }
+    
+    // Initialize everything when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize dark mode
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        const toggleBtn = document.getElementById('dark-mode-toggle');
+        const icon = toggleBtn.querySelector('i');
+        icon.className = 'fas fa-sun text-lg';
+      }
+      
+      // Initialize progress charts
+      initProgressCharts();
+      
+      // Initialize course cards with stagger animation
+      const cards = document.querySelectorAll('.course-card');
+      cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+      
+      // Update course statuses
+      updateCourseStatuses();
+      
+      // Update statuses every minute
+      setInterval(updateCourseStatuses, 60000);
+      
+      // Add event listeners
+      document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
+      document.getElementById('notification-btn').addEventListener('click', () => toggleDropdown('notification-dropdown'));
+      document.getElementById('filter-btn').addEventListener('click', () => toggleDropdown('filter-dropdown'));
+      
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('[id$="-dropdown"]') && !e.target.closest('[id$="-btn"]')) {
+          document.querySelectorAll('[id$="-dropdown"]').forEach(dropdown => {
+            dropdown.classList.add('hidden');
+          });
+        }
+      });
+    });
+
+    // Search input focus effects
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('focus', () => {
+      searchInput.parentElement.style.transform = 'scale(1.02)';
+      searchInput.parentElement.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)';
+    });
+    
+    searchInput.addEventListener('blur', () => {
+      searchInput.parentElement.style.transform = 'scale(1)';
+      searchInput.parentElement.style.boxShadow = 'none';
+    });
+  </script>
+
+</body>
+</html>

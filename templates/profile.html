@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mon Profil - AdsClass</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .floating-animation {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .profile-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .info-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .info-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .upload-overlay {
+      background: linear-gradient(45deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9));
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+  
+  <!-- Enhanced Navigation -->
+  <nav class="glass-effect sticky top-0 z-50 shadow-2xl border-b border-white/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center floating-animation shadow-lg">
+            <i class="fas fa-graduation-cap text-white text-xl"></i>
+          </div>
+          <div>
+            <a href="{{ url_for('student_dashboard') }}" class="text-2xl font-bold gradient-text hover:scale-105 transition-transform">
+              AdsClass
+            </a>
+            <p class="text-xs text-gray-600 font-medium">Student Portal</p>
+          </div>
+        </div>
+        
+        <!-- Navigation Links -->
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="{{ url_for('student_dashboard') }}" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors font-medium">
+            <i class="fas fa-home"></i>
+            <span>Tableau de bord</span>
+          </a>
+          <a href="{{ url_for('student_profile') }}" class="flex items-center space-x-2 text-blue-600 font-semibold">
+            <i class="fas fa-user-circle"></i>
+            <span>Mon Profil</span>
+          </a>
+        </div>
+        
+        <!-- User Menu -->
+        <div class="flex items-center space-x-4">
+          <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <span class="text-sm font-bold text-white">{{ prenom[0] }}{{ nom[0] }}</span>
+          </div>
+          <a href="{{ url_for('logout') }}" class="text-gray-600 hover:text-red-600 transition-colors">
+            <i class="fas fa-sign-out-alt text-lg"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold gradient-text mb-4">
+        <i class="fas fa-user-circle mr-3"></i>
+        Mon Profil Étudiant
+      </h1>
+      <p class="text-gray-600 text-lg">
+        Gérez vos informations personnelles et académiques
+      </p>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="profile-card rounded-3xl shadow-2xl p-8 mb-8">
+      <div class="flex flex-col lg:flex-row items-center lg:items-start gap-8">
+        
+        <!-- Photo Section -->
+        <div class="relative group">
+          <div class="relative w-48 h-48">
+            <label for="photoUpload" class="cursor-pointer block">
+              <img id="profilePreview"
+                   src="{% if photo_filename %}{{ url_for('static', filename='uploads/' + photo_filename) }}{% else %}https://via.placeholder.com/200/667eea/ffffff?text={{ prenom[0] }}{{ nom[0] }}{% endif %}"
+                   alt="Photo de profil"
+                   class="rounded-3xl w-full h-full object-cover border-4 border-white shadow-2xl group-hover:scale-105 transition-all duration-300" />
+              
+              <!-- Upload Overlay -->
+              <div class="absolute inset-0 upload-overlay rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                <div class="text-center text-white">
+                  <i class="fas fa-camera text-3xl mb-2"></i>
+                  <p class="font-semibold">Changer la photo</p>
+                </div>
+              </div>
+            </label>
+            <input type="file" id="photoUpload" accept="image/*" />
+            
+            <!-- Upload Status -->
+            <div id="uploadStatus" class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 hidden">
+              <div class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                <i class="fas fa-check mr-1"></i>
+                Photo mise à jour
+              </div>
+            </div>
+          </div>
+          
+          <!-- Photo Actions -->
+          <div class="mt-4 flex justify-center space-x-2">
+            <button onclick="document.getElementById('photoUpload').click()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl">
+              <i class="fas fa-upload mr-2"></i>
+              Télécharger
+            </button>
+            <button onclick="removePhoto()" 
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl">
+              <i class="fas fa-trash mr-2"></i>
+              Supprimer
+            </button>
+          </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="flex-1 space-y-6">
+          
+          <!-- Name & Status -->
+          <div class="text-center lg:text-left">
+            <h2 class="text-4xl font-extrabold gradient-text mb-2">
+              {{ prenom }} {{ nom }}
+            </h2>
+            <div class="flex flex-wrap justify-center lg:justify-start gap-3 mb-4">
+              <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                <i class="fas fa-graduation-cap mr-2"></i>
+                Étudiant AdsClass
+              </span>
+              <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                <i class="fas fa-check-circle mr-2"></i>
+                Compte Actif
+              </span>
+            </div>
+          </div>
+
+          <!-- Information Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Email -->
+            <div class="info-card rounded-2xl p-6 shadow-lg">
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-envelope text-white text-lg"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Email</p>
+                  <p class="text-lg font-bold text-gray-800 font-mono">{{ email }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filière -->
+            <div class="info-card rounded-2xl p-6 shadow-lg">
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-graduation-cap text-white text-lg"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Filière</p>
+                  <p class="text-lg font-bold text-gray-800">{{ filiere }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Date d'inscription -->
+            <div class="info-card rounded-2xl p-6 shadow-lg">
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-calendar-alt text-white text-lg"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Inscription</p>
+                  <p class="text-lg font-bold text-gray-800">28 Juin 2025</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- ID Étudiant -->
+            <div class="info-card rounded-2xl p-6 shadow-lg">
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-id-card text-white text-lg"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">ID Étudiant</p>
+                  <p class="text-lg font-bold text-gray-800 font-mono">#{{ email.split('@')[0].upper() }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      
+      <!-- Courses Stats -->
+      <div class="stat-card rounded-2xl p-6 text-white shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-white/80 text-sm font-medium">Cours Suivis</p>
+            <p class="text-3xl font-bold">12</p>
+          </div>
+          <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <i class="fas fa-book text-2xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Stats -->
+      <div class="stat-card rounded-2xl p-6 text-white shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-white/80 text-sm font-medium">Présence</p>
+            <p class="text-3xl font-bold">94%</p>
+          </div>
+          <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <i class="fas fa-chart-line text-2xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average Grade -->
+      <div class="stat-card rounded-2xl p-6 text-white shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-white/80 text-sm font-medium">Moyenne</p>
+            <p class="text-3xl font-bold">16.2</p>
+          </div>
+          <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <i class="fas fa-star text-2xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap justify-center gap-4">
+      <a href="{{ url_for('student_dashboard') }}"
+         class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Retour au tableau de bord
+      </a>
+      
+      <button onclick="editProfile()" 
+              class="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-edit mr-2"></i>
+        Modifier le profil
+      </button>
+      
+      <button onclick="downloadProfile()" 
+              class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-download mr-2"></i>
+        Télécharger PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Enhanced JavaScript -->
+  <script>
+    // Photo upload and preview
+    const fileInput = document.getElementById('photoUpload');
+    const preview = document.getElementById('profilePreview');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          showNotification('Veuillez sélectionner une image valide', 'error');
+          return;
+        }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          showNotification('La taille de l\'image ne doit pas dépasser 5MB', 'error');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+          showUploadStatus();
+          
+          // Here you would typically upload to server
+          // uploadPhotoToServer(file);
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Show upload status
+    function showUploadStatus() {
+      uploadStatus.classList.remove('hidden');
+      setTimeout(() => {
+        uploadStatus.classList.add('hidden');
+      }, 3000);
+    }
+
+    // Remove photo
+    function removePhoto() {
+      if (confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
+        preview.src = 'https://via.placeholder.com/200/667eea/ffffff?text={{ prenom[0] }}{{ nom[0] }}';
+        showNotification('Photo de profil supprimée', 'success');
+      }
+    }
+
+    // Edit profile (placeholder)
+    function editProfile() {
+      showNotification('Fonctionnalité d\'édition en cours de développement', 'info');
+    }
+
+    // Download profile PDF (placeholder)
+    function downloadProfile() {
+      showNotification('Génération du PDF en cours...', 'info');
+      // Here you would generate and download PDF
+    }
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        info: 'bg-blue-500',
+        warning: 'bg-yellow-500'
+      };
+      
+      notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-xl shadow-2xl z-50 transform translate-x-full transition-transform duration-300`;
+      notification.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'}-circle"></i>
+          <span class="font-medium">${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Animate in
+      setTimeout(() => {
+        notification.classList.remove('translate-x-full');
+      }, 100);
+      
+      // Animate out and remove
+      setTimeout(() => {
+        notification.classList.add('translate-x-full');
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 300);
+      }, 4000);
+    }
+
+    // Add smooth scrolling and animations
+    document.addEventListener('DOMContentLoaded', function() {
+      // Animate cards on scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }
+        });
+      }, observerOptions);
+
+      // Observe all cards
+      document.querySelectorAll('.info-card, .stat-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
+      });
+
+      // Add ripple effect to buttons
+      document.querySelectorAll('button, a').forEach(element => {
+        element.addEventListener('click', function(e) {
+          const ripple = document.createElement('span');
+          const rect = this.getBoundingClientRect();
+          const size = Math.max(rect.width, rect.height);
+          const x = e.clientX - rect.left - size / 2;
+          const y = e.clientY - rect.top - size / 2;
+          
+          ripple.style.width = ripple.style.height = size + 'px';
+          ripple.style.left = x + 'px';
+          ripple.style.top = y + 'px';
+          ripple.classList.add('ripple');
+          
+          this.appendChild(ripple);
+          
+          setTimeout(() => {
+            ripple.remove();
+          }, 600);
+        });
+      });
+    });
+
+    // Add CSS for ripple effect
+    const style = document.createElement('style');
+    style.textContent = `
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.6);
+        transform: scale(0);
+        animation: ripple-animation 0.6s linear;
+        pointer-events: none;
+      }
+      
+      @keyframes ripple-animation {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+
+</body>
+</html>

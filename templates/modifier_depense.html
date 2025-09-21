@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modifier Dépense - AdsClass Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+    }
+
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .input-focus {
+      transition: all 0.3s ease;
+    }
+
+    .input-focus:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .amount-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ef4444;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .category-materiel { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .category-personnel { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .category-maintenance { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    .category-autre { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+  </style>
+</head>
+
+<body class="min-h-screen text-white font-sans">
+  <!-- Notification Toast -->
+  <div id="notification" class="notification glass-effect rounded-lg p-4 text-white shadow-lg">
+    <div class="flex items-center gap-3">
+      <i id="notificationIcon" class="fas fa-check-circle text-green-400"></i>
+      <span id="notificationText">Action réalisée avec succès</span>
+      <button onclick="hideNotification()" class="ml-auto text-white/60 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="px-4 py-8">
+    <!-- Header Section -->
+    <div class="max-w-4xl mx-auto mb-8">
+      <div class="glass-effect rounded-2xl p-6 fade-in">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              <i class="fas fa-edit mr-3"></i>Modifier la Dépense
+            </h1>
+            <p class="text-white/70">Modification des informations de la dépense</p>
+            <div class="flex items-center gap-2 mt-2 text-sm text-white/60">
+              <i class="fas fa-hashtag"></i>
+              <span>ID: #{{ depense.id if depense.id else 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <a href="{{ url_for('admin_depenses') }}" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+              <i class="fas fa-arrow-left"></i>Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="max-w-4xl mx-auto mb-8">
+      <div class="glass-effect rounded-xl p-4 fade-in">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-white/70">Progression du formulaire</span>
+          <span class="text-sm text-white/70" id="progressText">0%</span>
+        </div>
+        <div class="w-full bg-white/20 rounded-full h-2">
+          <div class="progress-bar h-2 rounded-full" id="progressBar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Expense Info -->
+    <div class="max-w-4xl mx-auto mb-8">
+      <div class="glass-effect rounded-xl p-6 fade-in">
+        <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-info-circle text-blue-400"></i>
+          Informations actuelles
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white/10 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-calendar text-blue-400"></i>
+              <span class="text-white/70 text-sm">Date actuelle</span>
+            </div>
+            <div class="text-white font-semibold">{{ depense.date }}</div>
+          </div>
+          <div class="bg-white/10 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-money-bill-wave text-red-400"></i>
+              <span class="text-white/70 text-sm">Montant actuel</span>
+            </div>
+            <div class="amount-display">{{ "{:,.0f}".format(depense.montant|abs).replace(",", " ") }} FCFA</div>
+          </div>
+          <div class="bg-white/10 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-tags text-green-400"></i>
+              <span class="text-white/70 text-sm">Catégorie</span>
+            </div>
+            <span class="category-badge category-autre">
+              <i class="fas fa-tag"></i>
+              Général
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="max-w-4xl mx-auto">
+      <form method="POST" id="expenseForm" class="glass-effect rounded-2xl p-8 fade-in">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Left Column -->
+          <div class="space-y-6">
+            <!-- Date Field -->
+            <div class="space-y-2">
+              <label for="date" class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-calendar text-blue-400"></i>
+                Date de la dépense *
+              </label>
+              <input type="date" name="date" id="date" required value="{{ depense.date }}"
+                     class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition-all"
+                     onchange="updateProgress(); checkChanges()" />
+              <p class="text-xs text-white/60">Date à laquelle la dépense a été effectuée</p>
+            </div>
+
+            <!-- Description Field -->
+            <div class="space-y-2">
+              <label for="description" class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-file-text text-purple-400"></i>
+                Description de la dépense *
+              </label>
+              <input type="text" name="description" id="description" required value="{{ depense.description }}"
+                     class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition-all"
+                     placeholder="Ex: Achat matériel informatique"
+                     oninput="updateProgress(); checkChanges()" />
+              <p class="text-xs text-white/60">Nature et détails de la dépense</p>
+            </div>
+
+            <!-- Category Selection -->
+            <div class="space-y-2">
+              <label class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-tags text-green-400"></i>
+                Catégorie
+              </label>
+              <select id="categorySelect"
+                      class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-red-400 transition-all"
+                      onchange="updateProgress(); checkChanges()">
+                <option value="Matériel">Matériel</option>
+                <option value="Personnel">Personnel</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Formation">Formation</option>
+                <option value="Autre" selected>Autre</option>
+              </select>
+              <p class="text-xs text-white/60">Catégorisation pour les rapports</p>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="space-y-6">
+            <!-- Amount Field -->
+            <div class="space-y-2">
+              <label for="montant" class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-money-bill-wave text-yellow-400"></i>
+                Montant (FCFA) *
+              </label>
+              <div class="relative">
+                <input type="number" name="montant" id="montant" required min="0.01" step="0.01"
+                       value="{{ '%.2f' % depense.montant|abs }}"
+                       class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition-all"
+                       placeholder="10000"
+                       oninput="formatAmount(this); updateProgress(); checkChanges()" />
+                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60">
+                  FCFA
+                </div>
+              </div>
+              <div class="flex justify-between items-center">
+                <p class="text-xs text-white/60">Montant en francs CFA</p>
+                <div class="amount-display" id="amountDisplay">{{ "{:,.0f}".format(depense.montant|abs).replace(",", " ") }} FCFA</div>
+              </div>
+            </div>
+
+            <!-- Comparison -->
+            <div class="glass-effect rounded-xl p-4 border border-white/30">
+              <h4 class="text-sm font-semibold mb-3 flex items-center gap-2">
+                <i class="fas fa-balance-scale text-blue-400"></i>
+                Comparaison
+              </h4>
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-white/70 text-sm">Montant original:</span>
+                  <span class="amount-display text-white/80">{{ "{:,.0f}".format(depense.montant|abs).replace(",", " ") }} FCFA</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-white/70 text-sm">Nouveau montant:</span>
+                  <span class="amount-display text-red-400" id="newAmountDisplay">{{ "{:,.0f}".format(depense.montant|abs).replace(",", " ") }} FCFA</span>
+                </div>
+                <hr class="border-white/20">
+                <div class="flex justify-between items-center font-semibold">
+                  <span class="text-white">Différence:</span>
+                  <span id="differenceDisplay" class="amount-display">0 FCFA</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Amount Buttons -->
+            <div class="space-y-2">
+              <label class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-bolt text-yellow-400"></i>
+                Montants rapides
+              </label>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="setQuickAmount(10000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  10,000
+                </button>
+                <button type="button" onclick="setQuickAmount(25000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  25,000
+                </button>
+                <button type="button" onclick="setQuickAmount(50000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  50,000
+                </button>
+                <button type="button" onclick="setQuickAmount(100000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  100,000
+                </button>
+                <button type="button" onclick="setQuickAmount(250000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  250,000
+                </button>
+                <button type="button" onclick="setQuickAmount(500000)" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded text-sm transition-all">
+                  500,000
+                </button>
+              </div>
+            </div>
+
+            <!-- Notes Field -->
+            <div class="space-y-2">
+              <label class="block text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-sticky-note text-orange-400"></i>
+                Notes de modification
+              </label>
+              <textarea id="modificationNotes" rows="3"
+                        class="input-focus w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition-all resize-none"
+                        placeholder="Raison de la modification (optionnel)..."
+                        onchange="updateProgress(); checkChanges()"></textarea>
+              <p class="text-xs text-white/60">Justification de la modification</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-8 pt-6 border-t border-white/20">
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+              <a href="{{ url_for('admin_depenses') }}"
+                 class="text-white/70 hover:text-white transition-colors flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i>
+                Retour aux dépenses
+              </a>
+              <div class="text-sm text-white/60" id="changeStatus">
+                Aucune modification détectée
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="resetForm()"
+                      class="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2">
+                <i class="fas fa-undo"></i>
+                Réinitialiser
+              </button>
+
+              <button type="button" onclick="previewChanges()"
+                      class="btn-primary px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2">
+                <i class="fas fa-eye"></i>
+                Aperçu
+              </button>
+
+              <button type="submit" id="submitBtn" disabled
+                      class="btn-danger px-8 py-3 rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-save"></i>
+                <span id="submitText">Enregistrer les modifications</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="modal hide fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="glass-effect rounded-2xl p-8 max-w-2xl w-full">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold flex items-center gap-2">
+          <i class="fas fa-eye text-blue-400"></i>
+          Aperçu des modifications
+        </h3>
+        <button onclick="closePreview()" class="text-white/60 hover:text-white">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="space-y-6" id="previewContent">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closePreview()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all">
+          Fermer
+        </button>
+        <button onclick="confirmChanges()" class="btn-danger px-6 py-2 rounded-lg">
+          Confirmer et enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Original values for comparison
+    const originalData = {
+      date: '',
+      description: '',
+      montant: 0,
+      category: 'Autre'
+    };
+
+    // Initialize original data from form
+    function initializeOriginalData() {
+      originalData.date = document.getElementById('date').value;
+      originalData.description = document.getElementById('description').value;
+      originalData.montant = parseFloat(document.getElementById('montant').value) || 0;
+      originalData.category = document.getElementById('categorySelect').value;
+    }
+
+    // Initialize form
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeOriginalData();
+      updateProgress();
+      formatAmount(document.getElementById('montant'));
+      detectCategory();
+    });
+
+    function updateProgress() {
+      const date = document.getElementById('date').value;
+      const description = document.getElementById('description').value;
+      const montant = document.getElementById('montant').value;
+
+      let progress = 0;
+      let total = 3; // Required fields: date, description, montant
+
+      if (date) progress++;
+      if (description.trim()) progress++;
+      if (montant && parseFloat(montant) > 0) progress++;
+
+      const percentage = Math.round((progress / total) * 100);
+
+      document.getElementById('progressBar').style.width = percentage + '%';
+      document.getElementById('progressText').textContent = percentage + '%';
+    }
+
+    function formatAmount(input) {
+      const value = input.value;
+      if (value) {
+        const formatted = formatNumber(value) + ' FCFA';
+        document.getElementById('amountDisplay').textContent = formatted;
+        document.getElementById('newAmountDisplay').textContent = formatted;
+
+        // Calculate difference
+        const difference = parseFloat(value) - originalData.montant;
+        const diffElement = document.getElementById('differenceDisplay');
+
+        if (difference > 0) {
+          diffElement.textContent = '+' + formatNumber(Math.abs(difference)) + ' FCFA';
+          diffElement.className = 'amount-display text-red-400';
+        } else if (difference < 0) {
+          diffElement.textContent = '-' + formatNumber(Math.abs(difference)) + ' FCFA';
+          diffElement.className = 'amount-display text-green-400';
+        } else {
+          diffElement.textContent = '0 FCFA';
+          diffElement.className = 'amount-display text-white/60';
+        }
+      } else {
+        document.getElementById('amountDisplay').textContent = '0 FCFA';
+        document.getElementById('newAmountDisplay').textContent = '0 FCFA';
+        document.getElementById('differenceDisplay').textContent = '0 FCFA';
+      }
+    }
+
+    function formatNumber(num) {
+      return parseInt(num).toLocaleString('fr-FR');
+    }
+
+    function setQuickAmount(amount) {
+      const montantInput = document.getElementById('montant');
+      montantInput.value = amount;
+      formatAmount(montantInput);
+      updateProgress();
+      checkChanges();
+    }
+
+    function detectCategory() {
+      const description = document.getElementById('description').value.toLowerCase();
+      const categorySelect = document.getElementById('categorySelect');
+
+      if (description.includes('matériel') || description.includes('équipement') || description.includes('ordinateur')) {
+        categorySelect.value = 'Matériel';
+      } else if (description.includes('salaire') || description.includes('personnel') || description.includes('employé')) {
+        categorySelect.value = 'Personnel';
+      } else if (description.includes('maintenance') || description.includes('réparation') || description.includes('entretien')) {
+        categorySelect.value = 'Maintenance';
+      } else if (description.includes('formation') || description.includes('cours') || description.includes('stage')) {
+        categorySelect.value = 'Formation';
+      } else {
+        categorySelect.value = 'Autre';
+      }
+    }
+
+    function checkChanges() {
+      const currentData = {
+        date: document.getElementById('date').value,
+        description: document.getElementById('description').value.trim(),
+        montant: parseFloat(document.getElementById('montant').value) || 0,
+        category: document.getElementById('categorySelect').value
+      };
+
+      const hasChanges =
+        currentData.date !== originalData.date ||
+        currentData.description !== originalData.description ||
+        currentData.montant !== originalData.montant ||
+        currentData.category !== originalData.category;
+
+      const submitBtn = document.getElementById('submitBtn');
+      const changeStatus = document.getElementById('changeStatus');
+
+      if (hasChanges) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        changeStatus.textContent = 'Modifications détectées';
+        changeStatus.className = 'text-sm text-yellow-400';
+      } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        changeStatus.textContent = 'Aucune modification détectée';
+        changeStatus.className = 'text-sm text-white/60';
+      }
+
+      // Auto-detect category when description changes
+      if (currentData.description !== originalData.description) {
+        detectCategory();
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('date').value = originalData.date;
+      document.getElementById('description').value = originalData.description;
+      document.getElementById('montant').value = originalData.montant.toFixed(2);
+      document.getElementById('categorySelect').value = originalData.category;
+      document.getElementById('modificationNotes').value = '';
+
+      formatAmount(document.getElementById('montant'));
+      updateProgress();
+      checkChanges();
+
+      showNotification('Formulaire réinitialisé', 'info');
+    }
+
+    function previewChanges() {
+      const currentData = {
+        date: document.getElementById('date').value,
+        description: document.getElementById('description').value.trim(),
+        montant: parseFloat(document.getElementById('montant').value) || 0,
+        category: document.getElementById('categorySelect').value,
+        notes: document.getElementById('modificationNotes').value.trim()
+      };
+
+      const previewContent = document.getElementById('previewContent');
+      previewContent.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-lg font-semibold mb-4 text-blue-400">Valeurs actuelles</h4>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Date:</span>
+                <span class="font-medium">${originalData.date}</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Description:</span>
+                <span class="font-medium max-w-xs truncate">${originalData.description}</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Montant:</span>
+                <span class="font-medium amount-display">${formatNumber(originalData.montant)} FCFA</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Catégorie:</span>
+                <span class="font-medium">${originalData.category}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-lg font-semibold mb-4 text-green-400">Nouvelles valeurs</h4>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Date:</span>
+                <span class="font-medium ${currentData.date !== originalData.date ? 'text-yellow-400' : ''}">${currentData.date}</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Description:</span>
+                <span class="font-medium max-w-xs truncate ${currentData.description !== originalData.description ? 'text-yellow-400' : ''}">${currentData.description}</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Montant:</span>
+                <span class="font-medium amount-display ${currentData.montant !== originalData.montant ? 'text-yellow-400' : ''}">${formatNumber(currentData.montant)} FCFA</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span class="text-white/70">Catégorie:</span>
+                <span class="font-medium ${currentData.category !== originalData.category ? 'text-yellow-400' : ''}">${currentData.category}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${currentData.notes ? `
+        <div class="mt-6 p-4 bg-white/10 rounded-lg">
+          <h4 class="text-sm font-semibold mb-2 text-orange-400">Notes de modification:</h4>
+          <p class="text-white/80">${currentData.notes}</p>
+        </div>
+        ` : ''}
+
+        <div class="mt-6 p-4 bg-blue-500/20 rounded-lg border border-blue-500/30">
+          <h4 class="text-sm font-semibold mb-2 text-blue-400">Résumé des changements:</h4>
+          <div class="text-sm text-white/80">
+            ${currentData.date !== originalData.date ? '• Date modifiée<br>' : ''}
+            ${currentData.description !== originalData.description ? '• Description modifiée<br>' : ''}
+            ${currentData.montant !== originalData.montant ? `• Montant modifié (${currentData.montant > originalData.montant ? '+' : ''}${formatNumber(currentData.montant - originalData.montant)} FCFA)<br>` : ''}
+            ${currentData.category !== originalData.category ? '• Catégorie modifiée<br>' : ''}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('previewModal').classList.remove('hide');
+      document.getElementById('previewModal').classList.add('show');
+    }
+
+    function closePreview() {
+      document.getElementById('previewModal').classList.remove('show');
+      document.getElementById('previewModal').classList.add('hide');
+    }
+
+    function confirmChanges() {
+      closePreview();
+      document.getElementById('expenseForm').submit();
+    }
+
+    // Notification functions
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      const icon = document.getElementById('notificationIcon');
+      const text = document.getElementById('notificationText');
+
+      if (type === 'success') {
+        icon.className = 'fas fa-check-circle text-green-400';
+      } else if (type === 'error') {
+        icon.className = 'fas fa-exclamation-circle text-red-400';
+      } else if (type === 'info') {
+        icon.className = 'fas fa-info-circle text-blue-400';
+      }
+
+      text.textContent = message;
+      notification.classList.add('show');
+
+      setTimeout(() => {
+        hideNotification();
+      }, 3000);
+    }
+
+    function hideNotification() {
+      document.getElementById('notification').classList.remove('show');
+    }
+
+    // Form submission handling
+    document.getElementById('expenseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitText');
+
+      // Show loading state
+      submitBtn.disabled = true;
+      submitText.textContent = 'Enregistrement...';
+
+      // Add loading spinner
+      const spinner = document.createElement('div');
+      spinner.className = 'loading-spinner ml-2';
+      spinner.innerHTML = '<div class="border-2 border-white/30 border-t-white rounded-full w-4 h-4 animate-spin"></div>';
+      submitBtn.appendChild(spinner);
+
+      // Simulate processing time (remove this in production)
+      setTimeout(() => {
+        // Submit the form
+        this.submit();
+      }, 1000);
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Ctrl/Cmd + Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!document.getElementById('submitBtn').disabled) {
+          document.getElementById('expenseForm').submit();
+        }
+      }
+
+      // Escape to close modal
+      if (e.key === 'Escape') {
+        closePreview();
+      }
+
+      // Ctrl/Cmd + R to reset
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        resetForm();
+      }
+    });
+
+    // Auto-save to localStorage (optional)
+    function autoSave() {
+      const formData = {
+        date: document.getElementById('date').value,
+        description: document.getElementById('description').value,
+        montant: document.getElementById('montant').value,
+        category: document.getElementById('categorySelect').value,
+        notes: document.getElementById('modificationNotes').value
+      };
+
+      localStorage.setItem('expenseEditForm', JSON.stringify(formData));
+    }
+
+    // Auto-save on input changes
+    document.getElementById('date').addEventListener('change', autoSave);
+    document.getElementById('description').addEventListener('input', autoSave);
+    document.getElementById('montant').addEventListener('input', autoSave);
+    document.getElementById('categorySelect').addEventListener('change', autoSave);
+    document.getElementById('modificationNotes').addEventListener('input', autoSave);
+
+    // Clear auto-saved data on successful submission
+    window.addEventListener('beforeunload', function() {
+      localStorage.removeItem('expenseEditForm');
+    });
+  </script>
+</body>
+</html>

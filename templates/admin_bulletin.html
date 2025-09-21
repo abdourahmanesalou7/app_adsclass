@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletin de Notes - {{ etudiant.prenom }} {{ etudiant.nom }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Styles pour l'impression */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white !important;
+                color: black !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-page {
+                page-break-after: always;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            
+            .print-page:last-child {
+                page-break-after: avoid;
+            }
+            
+            .bulletin-header {
+                border-bottom: 3px solid #1e40af !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .grade-table {
+                border-collapse: collapse !important;
+                width: 100% !important;
+            }
+            
+            .grade-table th,
+            .grade-table td {
+                border: 1px solid #374151 !important;
+                padding: 8px !important;
+                text-align: center !important;
+            }
+            
+            .grade-table th {
+                background-color: #f3f4f6 !important;
+                font-weight: bold !important;
+            }
+            
+            .stats-grid {
+                border: 2px solid #1e40af !important;
+                background-color: #f8fafc !important;
+            }
+        }
+        
+        /* Styles pour l'écran */
+        .bulletin-container {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .print-page {
+            background: white;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            margin: 0 auto;
+            max-width: 210mm;
+            min-height: 297mm;
+            padding: 30px;
+            position: relative;
+        }
+        
+        .bulletin-header {
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .school-logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            border: 2px solid #1e40af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .school-info {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .school-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .school-details {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        
+        .student-info {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .student-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        
+        .student-id {
+            background: #1e40af;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .student-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .detail-icon {
+            width: 20px;
+            height: 20px;
+            background: #1e40af;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .grade-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .grade-table th {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .grade-table td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .grade-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        .grade-table tr:hover {
+            background-color: #f0f9ff;
+        }
+        
+        .course-name {
+            text-align: left !important;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .grade-cell {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .grade-excellent { color: #059669; }
+        .grade-good { color: #1d4ed8; }
+        .grade-average { color: #d97706; }
+        .grade-poor { color: #dc2626; }
+        
+        .validation-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .validation-valid {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .validation-failed {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 2px solid #1e40af;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        
+        .mention-section {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .mention-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .mention-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .mention-grade {
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0.9;
+        }
+        
+        .signatures {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-top: 50px;
+        }
+        
+        .signature-box {
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-bottom: 2px solid #374151;
+            height: 50px;
+            margin-bottom: 10px;
+        }
+        
+        .signature-label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        
+        .print-actions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .print-btn {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #6b7280, #9ca3af);
+        }
+        
+        .back-btn:hover {
+            background: linear-gradient(135deg, #4b5563, #6b7280);
+        }
+    </style>
+</head>
+<body>
+    <!-- Actions d'impression -->
+    <div class="print-actions no-print">
+        <button onclick="window.print()" class="print-btn">
+            <i class="fas fa-print mr-2"></i>Imprimer
+        </button>
+        <a href="{{ url_for('admin_grades') }}" class="print-btn back-btn">
+            <i class="fas fa-arrow-left mr-2"></i>Retour
+        </a>
+    </div>
+
+    <div class="bulletin-container">
+        <div class="print-page">
+            <!-- En-tête du bulletin -->
+            <div class="bulletin-header">
+                <div class="logo-section">
+                    <div class="school-logo">
+                        <img src="{{ url_for('static', filename='adsclass_logo.png') }}" alt="AdsClass" style="width: 100%; height: 100%; object-fit: contain; padding: 6px;" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-graduation-cap text-blue-700 text-3xl\'></i>'">
+                    </div>
+                    <div class="school-info">
+                        <div class="school-name">{{ etablissement.nom }}</div>
+                        <div class="school-details">
+                            {{ etablissement.adresse }}<br>
+                            Tél: {{ etablissement.telephone }} | Email: {{ etablissement.email }}<br>
+                            Site: {{ etablissement.site_web }}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-600">
+                            <strong>Année Scolaire:</strong><br>
+                            {{ etablissement.annee_scolaire }}<br>
+                            <strong>{{ etablissement.semestre }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations de l'étudiant -->
+            <div class="student-info">
+                <div class="student-header">
+                    <div class="student-name">{{ etudiant.prenom }} {{ etudiant.nom }}</div>
+                    <div class="student-id">ID: {{ etudiant.id }}</div>
+                </div>
+                <div class="student-details">
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <strong>Filière:</strong> {{ etudiant.filiere }}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div>
+                            <strong>Niveau:</strong> {{ etudiant.niveau }}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div>
+                            <strong>Email:</strong> {{ etudiant.email }}
+                        </div>
+                    </div>
+                    {% if etudiant.telephone %}
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div>
+                            <strong>Téléphone:</strong> {{ etudiant.telephone }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tableau des notes -->
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-chart-bar mr-2 text-blue-600"></i>
+                    Bulletin de Notes
+                </h3>
+                
+                <table class="grade-table">
+                    <thead>
+                        <tr>
+                            <th>Matière</th>
+                            <th>CC1</th>
+                            <th>CC2</th>
+                            <th>Participation</th>
+                            <th>Examen</th>
+                            <th>Moyenne</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for note in notes %}
+                        <tr>
+                            <td class="course-name">{{ note.nom_cours }}</td>
+                            <td class="grade-cell">{{ note.CC1 }}</td>
+                            <td class="grade-cell">{{ note.CC2 }}</td>
+                            <td class="grade-cell">{{ note.Participation }}</td>
+                            <td class="grade-cell">{{ note.Examen }}</td>
+                            <td class="grade-cell 
+                                {% if note.moyenne_cours >= 16 %}grade-excellent
+                                {% elif note.moyenne_cours >= 14 %}grade-good
+                                {% elif note.moyenne_cours >= 10 %}grade-average
+                                {% else %}grade-poor{% endif %}">
+                                {{ note.moyenne_cours }}
+                            </td>
+                            <td>
+                                <span class="validation-badge 
+                                    {% if note.valide %}validation-valid{% else %}validation-failed{% endif %}">
+                                    {% if note.valide %}Validé{% else %}Échoué{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Statistiques supprimées -->
+
+            <!-- Mention -->
+            <div class="mention-section">
+                <div class="mention-title">Moyenne Générale</div>
+                <div class="mention-value">{{ stats.moyenne_generale }}/20</div>
+                <div class="mention-grade">{{ stats.mention }}</div>
+            </div>
+
+            <!-- Signatures -->
+            <div class="signatures">
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Le Directeur des Études</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Le Directeur</div>
+                </div>
+            </div>
+
+            <!-- Date d'émission -->
+            <div class="text-center mt-8 text-sm text-gray-600">
+                <p>Bulletin généré le {{ generation_date }}</p>
+                <p class="mt-2">
+                    <i class="fas fa-shield-alt mr-1"></i>
+                    Document officiel - ADS CLASS
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fonction pour l'impression
+        function printBulletin() {
+            window.print();
+        }
+        
+        // Auto-print si demandé
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('print') === 'true') {
+            setTimeout(() => {
+                window.print();
+            }, 1000);
+        }
+        
+        // Ajouter la date actuelle
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+            const dateElements = document.querySelectorAll('.date-generated');
+            dateElements.forEach(el => {
+                el.textContent = dateStr;
+            });
+        });
+    </script>
+</body>
+</html>

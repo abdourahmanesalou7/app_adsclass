@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mes Notes - Adsclass</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .floating-animation {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .course-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .course-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .course-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+    
+    .course-card:hover::before {
+      left: 100%;
+    }
+    
+    .grade-row {
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .grade-row:hover {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      transform: translateX(4px);
+    }
+    
+    .grade-cell {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .grade-value {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    
+    .badge {
+      font-weight: 700;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .badge:hover {
+      transform: scale(1.05);
+    }
+    
+    .badge.valid {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .badge.invalid {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+    
+    .badge.pending {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .progress-bar {
+      background: linear-gradient(90deg, #e5e7eb 0%, #e5e7eb 100%);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.8s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+    .grade-excellent { background: linear-gradient(135deg, #10b981, #059669); }
+    .grade-good { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .grade-average { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .grade-poor { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+    
+    .grade-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .trend-up { color: #10b981; }
+    .trend-down { color: #ef4444; }
+    .trend-stable { color: #6b7280; }
+    
+    .filter-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      padding: 0.25rem;
+      gap: 0.25rem;
+    }
+    
+    .filter-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .filter-tab.active {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    
+    .filter-tab:not(.active):hover {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .grade-detail-modal {
+      backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- Enhanced Navigation -->
+  <nav class="glass-effect sticky top-0 z-50 shadow-2xl border-b border-white/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center floating-animation shadow-lg">
+            <i class="fas fa-graduation-cap text-white text-xl"></i>
+          </div>
+          <div>
+            <a href="{{ url_for('student_dashboard') }}" class="text-2xl font-bold gradient-text hover:scale-105 transition-transform">
+              Adsclass
+            </a>
+            <p class="text-xs text-gray-600 font-medium">Student Portal</p>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="hidden lg:flex items-center space-x-8">
+          <a href="{{ url_for('student_dashboard') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-home"></i>
+            <span>Accueil</span>
+          </a>
+          <a href="{{ url_for('student_courses') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all">
+            <i class="fas fa-book"></i>
+            <span>Cours</span>
+          </a>
+          <a href="{{ url_for('student_grades') }}" 
+             class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold transition-all">
+            <i class="fas fa-chart-bar"></i>
+            <span>Notes</span>
+          </a>
+        </div>
+
+        <!-- User Actions -->
+        <div class="flex items-center space-x-4">
+          <div class="relative">
+            <button class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors relative">
+              <i class="fas fa-bell text-lg"></i>
+              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">2</span>
+            </button>
+          </div>
+          <a href="{{ url_for('logout') }}" 
+             class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="hidden sm:inline">Déconnexion</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Enhanced Header with Statistics -->
+  <header class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div class="glass-effect rounded-3xl p-8 shadow-2xl">
+      <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-8">
+        
+        <!-- Title Section -->
+        <div class="flex items-center space-x-6">
+          <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg floating-animation">
+            <i class="fas fa-chart-line text-white text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-4xl font-extrabold gradient-text leading-tight">
+              📊 Mes Notes
+            </h1>
+            <p class="text-gray-600 text-lg mt-2">
+              Suivez vos performances académiques en temps réel
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="stats-card rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-book text-blue-600"></i>
+            </div>
+            <p class="text-2xl font-bold text-gray-800" id="totalCourses">{{ cours|length if cours else 0 }}</p>
+            <p class="text-xs text-gray-600 font-medium">Matières</p>
+          </div>
+          
+          <div class="stats-card rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-check-circle text-green-600"></i>
+            </div>
+            <p class="text-2xl font-bold text-gray-800" id="validatedCourses">0</p>
+            <p class="text-xs text-gray-600 font-medium">Validées</p>
+          </div>
+          
+          <div class="stats-card rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-star text-yellow-600"></i>
+            </div>
+            <p class="text-2xl font-bold text-gray-800" id="averageGrade">--</p>
+            <p class="text-xs text-gray-600 font-medium">Moyenne</p>
+          </div>
+          
+          <div class="stats-card rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-trophy text-purple-600"></i>
+            </div>
+            <p class="text-2xl font-bold text-gray-800" id="bestGrade">--</p>
+            <p class="text-xs text-gray-600 font-medium">Meilleure</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- Filter Tabs -->
+  <div class="max-w-7xl mx-auto mt-6 px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-center">
+      <div class="filter-tabs">
+        <div class="filter-tab active" onclick="filterGrades('all')">
+          <i class="fas fa-list mr-2"></i>Toutes
+        </div>
+        <div class="filter-tab" onclick="filterGrades('validated')">
+          <i class="fas fa-check mr-2"></i>Validées
+        </div>
+        <div class="filter-tab" onclick="filterGrades('pending')">
+          <i class="fas fa-clock mr-2"></i>En attente
+        </div>
+        <div class="filter-tab" onclick="filterGrades('failed')">
+          <i class="fas fa-times mr-2"></i>Échouées
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if cours %}
+    <!-- Enhanced Grades Display -->
+    <main class="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8 pb-12">
+      <div class="space-y-8" id="gradesContainer">
+        {% for c in cours %}
+          <div class="course-card glass-effect rounded-3xl p-8 shadow-2xl fade-in" data-course="{{ c }}">
+            
+            <!-- Course Header -->
+            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8">
+              <div class="flex items-center space-x-4">
+                <div class="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <i class="fas fa-book text-white text-xl"></i>
+                </div>
+                <div>
+                  <h2 class="text-2xl font-bold text-gray-900">{{ c }}</h2>
+                  <p class="text-gray-600 font-medium">Semestre 1 • 2024</p>
+                </div>
+              </div>
+              
+              {% if notes and c in notes and notes[c] %}
+                {% set n = notes[c] %}
+                {% set moyenne = n['Moyenne Finale'] if 'Moyenne Finale' in n else None %}
+                {% set validation = 'Validé' if moyenne is not none and moyenne >= 10 else 'Non validé' %}
+                
+                <div class="flex items-center space-x-4">
+                  <!-- Grade Trend -->
+                  <div class="grade-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+2.5</span>
+                  </div>
+                  
+                  <!-- Validation Badge -->
+                  <span class="badge {{ 'valid' if validation == 'Validé' else 'invalid' if moyenne is not none else 'pending' }}">
+                    <i class="fas fa-{{ 'check' if validation == 'Validé' else 'times' if moyenne is not none else 'clock' }}"></i>
+                    {{ validation if moyenne is not none else 'En attente' }}
+                  </span>
+                  
+                  <!-- Actions -->
+                  <button onclick="showGradeDetails('{{ c }}')" class="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                    <i class="fas fa-info-circle text-gray-600"></i>
+                  </button>
+                </div>
+              {% endif %}
+            </div>
+
+            {% if notes and c in notes and notes[c] %}
+              {% set n = notes[c] %}
+              {% set moyenne = n['Moyenne Finale'] if 'Moyenne Finale' in n else None %}
+              
+              <!-- Enhanced Grades Table -->
+              <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden mb-8">
+                <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-8 py-6 border-b border-gray-200">
+                  <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                      <i class="fas fa-chart-bar text-white"></i>
+                    </div>
+                    Détail des Évaluations
+                  </h3>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <thead>
+                      <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="text-left py-6 px-8 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                          <i class="fas fa-clipboard-list mr-3 text-blue-500"></i>Évaluation
+                        </th>
+                        <th class="text-center py-6 px-8 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                          <i class="fas fa-star mr-3 text-amber-500"></i>Note Obtenue
+                        </th>
+                        <th class="text-center py-6 px-8 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                          <i class="fas fa-percentage mr-3 text-purple-500"></i>Coefficient
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                      {% set grades = [
+                        ('CC1', 'CC1' in n and n.CC1, '25%', 'fas fa-edit'),
+                        ('CC2', 'CC2' in n and n.CC2, '25%', 'fas fa-edit'),
+                        ('Participation', 'Participation' in n and n.Participation, '10%', 'fas fa-comments'),
+                        ('Examen', 'Examen' in n and n.Examen, '40%', 'fas fa-graduation-cap')
+                      ] %}
+                      
+                      {% for grade_name, grade_value, coeff, icon in grades %}
+                        {% if grade_value is not none %}
+                        <tr class="hover:bg-gray-50 transition-colors duration-200">
+                          <td class="py-6 px-8">
+                            <div class="flex items-center space-x-4">
+                              <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <i class="{{ icon }} text-white text-lg"></i>
+                              </div>
+                              <div>
+                                <p class="font-bold text-gray-800 text-lg">{{ grade_name }}</p>
+                                <p class="text-sm text-gray-500">{{ coeff }} du total</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="py-6 px-8 text-center">
+                            <div class="bg-gray-50 rounded-2xl py-4 px-6">
+                              <span class="text-3xl font-bold text-gray-800">
+                                {{ "%.2f"|format(grade_value) }}
+                                </span>
+                              <span class="text-gray-500 text-lg ml-2">/20</span>
+                              </div>
+                          </td>
+                          <td class="py-6 px-8 text-center">
+                            <span class="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg">
+                              {{ coeff }}
+                            </span>
+                          </td>
+                        </tr>
+                        {% endif %}
+                      {% endfor %}
+                      
+                      
+                      <!-- Final Average Row -->
+                      <tr class="bg-gradient-to-r from-indigo-50 to-blue-50 border-t-4 border-indigo-200">
+                        <td class="py-8 px-8">
+                          <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+                              <i class="fas fa-trophy text-white text-2xl"></i>
+                            </div>
+                            <div>
+                              <p class="font-bold text-2xl text-gray-800">Moyenne Finale</p>
+                              <p class="text-gray-600 font-medium">Résultat global du cours</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="py-8 px-8 text-center">
+                          {% if moyenne is not none %}
+                            <div class="bg-gradient-to-r from-indigo-100 to-blue-100 rounded-3xl py-6 px-8 shadow-lg">
+                              <span class="text-4xl font-bold text-gray-800">
+                                {{ "%.2f"|format(moyenne) }}
+                              </span>
+                              <span class="text-gray-600 text-xl ml-2">/20</span>
+                            </div>
+                          {% else %}
+                            <div class="bg-gray-100 rounded-3xl py-6 px-8">
+                              <span class="text-gray-400 font-medium text-2xl">N/A</span>
+                            </div>
+                          {% endif %}
+                        </td>
+                        <td class="py-8 px-8 text-center">
+                          <span class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-2xl text-lg font-bold shadow-xl">
+                            100%
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <!-- Enhanced Course Recommendations -->
+              <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-amber-50 to-orange-50 px-8 py-6 border-b border-amber-200">
+                  <h4 class="text-xl font-bold text-gray-800 flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mr-4">
+                      <i class="fas fa-lightbulb text-white"></i>
+                </div>
+                    Analyse et Recommandations
+                  </h4>
+                </div>
+                <div class="p-8">
+                    {% if moyenne is not none %}
+                      {% if moyenne >= 16 %}
+                      <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+                        <div class="flex items-start space-x-4">
+                          <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-star text-white text-xl"></i>
+                          </div>
+                          <div>
+                            <h5 class="font-bold text-green-800 text-lg mb-2">Performance Exceptionnelle</h5>
+                            <p class="text-green-700 font-medium">Félicitations ! Votre moyenne de {{ "%.2f"|format(moyenne) }}/20 témoigne d'un excellent travail.</p>
+                            <p class="text-green-600 text-sm mt-2">Continuez sur cette lancée remarquable et maintenez ce niveau d'excellence.</p>
+                          </div>
+                          </div>
+                        </div>
+                      {% elif moyenne >= 14 %}
+                      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+                        <div class="flex items-start space-x-4">
+                          <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-thumbs-up text-white text-xl"></i>
+                          </div>
+                          <div>
+                            <h5 class="font-bold text-blue-800 text-lg mb-2">Très Bon Niveau</h5>
+                            <p class="text-blue-700 font-medium">Avec une moyenne de {{ "%.2f"|format(moyenne) }}/20, vous démontrez une solide maîtrise.</p>
+                            <p class="text-blue-600 text-sm mt-2">Quelques efforts supplémentaires vous permettront d'atteindre l'excellence.</p>
+                          </div>
+                          </div>
+                        </div>
+                      {% elif moyenne >= 10 %}
+                      <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-6">
+                        <div class="flex items-start space-x-4">
+                          <div class="w-12 h-12 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-chart-line text-white text-xl"></i>
+                          </div>
+                          <div>
+                            <h5 class="font-bold text-amber-800 text-lg mb-2">Résultat Satisfaisant</h5>
+                            <p class="text-amber-700 font-medium">Votre moyenne de {{ "%.2f"|format(moyenne) }}/20 montre une compréhension correcte.</p>
+                            <p class="text-amber-600 text-sm mt-2">Identifiez vos points faibles et concentrez vos efforts pour progresser davantage.</p>
+                          </div>
+                          </div>
+                        </div>
+                      {% else %}
+                      <div class="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl p-6">
+                        <div class="flex items-start space-x-4">
+                          <div class="w-12 h-12 bg-gradient-to-r from-red-500 to-rose-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                          </div>
+                          <div>
+                            <h5 class="font-bold text-red-800 text-lg mb-2">Attention Requise</h5>
+                            <p class="text-red-700 font-medium">Avec une moyenne de {{ "%.2f"|format(moyenne) }}/20, des efforts importants sont nécessaires.</p>
+                            <p class="text-red-600 text-sm mt-2">Consultez votre professeur pour établir un plan d'amélioration personnalisé.</p>
+                          </div>
+                          </div>
+                        </div>
+                      {% endif %}
+                    {% else %}
+                    <div class="bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-6">
+                      <div class="flex items-start space-x-4">
+                        <div class="w-12 h-12 bg-gradient-to-r from-gray-500 to-slate-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <i class="fas fa-clock text-white text-xl"></i>
+                        </div>
+                        <div>
+                          <h5 class="font-bold text-gray-800 text-lg mb-2">Évaluation en Cours</h5>
+                          <p class="text-gray-700 font-medium">Les évaluations pour ce cours sont encore en cours de traitement.</p>
+                          <p class="text-gray-600 text-sm mt-2">Les notes seront disponibles prochainement. Restez attentif aux notifications.</p>
+                        </div>
+                        </div>
+                      </div>
+                    {% endif %}
+                </div>
+              </div>
+              
+            {% else %}
+              <!-- No Grades Available -->
+              <div class="text-center py-16">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <i class="fas fa-clipboard-list text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Aucune note disponible</h3>
+                <p class="text-gray-600 mb-6">Les évaluations pour ce cours n'ont pas encore été publiées.</p>
+                <button class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
+                  <i class="fas fa-bell mr-2"></i>
+                  Recevoir une notification
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </main>
+  {% else %}
+    <!-- No Courses Available -->
+    <div class="max-w-7xl mx-auto mt-16 px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <div class="w-32 h-32 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-8">
+          <i class="fas fa-graduation-cap text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Aucun cours trouvé</h3>
+        <p class="text-gray-600 mb-8">Il semble qu'aucun cours ne soit disponible dans votre emploi du temps pour le moment.</p>
+        <a href="{{ url_for('student_dashboard') }}" 
+           class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center space-x-3">
+          <i class="fas fa-arrow-left"></i>
+          <span>Retour au tableau de bord</span>
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Enhanced JavaScript -->
+  <script>
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      calculateStats();
+      initializeCharts();
+      animateElements();
+    });
+
+    // Calculate and display statistics
+    function calculateStats() {
+      const courses = document.querySelectorAll('[data-course]');
+      let totalCourses = courses.length;
+      let validatedCourses = 0;
+      let totalGrades = 0;
+      let gradeCount = 0;
+      let bestGrade = 0;
+
+      courses.forEach(course => {
+        const badge = course.querySelector('.badge');
+        if (badge && badge.textContent.includes('Validé')) {
+          validatedCourses++;
+        }
+
+        const finalGrade = course.querySelector('.grade-value');
+        if (finalGrade) {
+          const grade = parseFloat(finalGrade.textContent);
+          if (!isNaN(grade)) {
+            totalGrades += grade;
+            gradeCount++;
+            bestGrade = Math.max(bestGrade, grade);
+          }
+        }
+      });
+
+      // Update stats display
+      document.getElementById('totalCourses').textContent = totalCourses;
+      document.getElementById('validatedCourses').textContent = validatedCourses;
+      
+      if (gradeCount > 0) {
+        const average = (totalGrades / gradeCount).toFixed(1);
+        document.getElementById('averageGrade').textContent = average;
+        document.getElementById('bestGrade').textContent = bestGrade.toFixed(1);
+      }
+    }
+
+    // Initialize charts for each course
+    function initializeCharts() {
+      const courses = document.querySelectorAll('[data-course]');
+      
+      courses.forEach((course, index) => {
+        const canvas = document.getElementById(`chart-${index}`);
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        
+        // Get grades data
+        const gradeRows = course.querySelectorAll('.grade-row');
+        const labels = [];
+        const data = [];
+        const colors = [];
+
+        gradeRows.forEach(row => {
+          const nameCell = row.querySelector('td:first-child');
+          const gradeCell = row.querySelector('.grade-value');
+          
+          if (nameCell && gradeCell && !nameCell.textContent.includes('Moyenne')) {
+            const name = nameCell.textContent.trim();
+            const grade = parseFloat(gradeCell.textContent);
+            
+            if (!isNaN(grade)) {
+              labels.push(name);
+              data.push(grade);
+              
+              if (grade >= 16) colors.push('#10b981');
+              else if (grade >= 14) colors.push('#3b82f6');
+              else if (grade >= 10) colors.push('#f59e0b');
+              else colors.push('#ef4444');
+            }
+          }
+        });
+
+        if (data.length > 0) {
+          new Chart(ctx, {
+            type: 'radar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Notes',
+                data: data,
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: colors,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false
+                }
+              },
+              scales: {
+                r: {
+                  beginAtZero: true,
+                  max: 20,
+                  ticks: {
+                    stepSize: 5,
+                    font: {
+                      size: 10
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // Filter grades by status
+    function filterGrades(filter) {
+      const courses = document.querySelectorAll('[data-course]');
+      const tabs = document.querySelectorAll('.filter-tab');
+      
+      // Update active tab
+      tabs.forEach(tab => tab.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      courses.forEach(course => {
+        const badge = course.querySelector('.badge');
+        let show = true;
+        
+        if (filter === 'validated' && (!badge || !badge.textContent.includes('Validé'))) {
+          show = false;
+        } else if (filter === 'pending' && (!badge || !badge.textContent.includes('attente'))) {
+          show = false;
+        } else if (filter === 'failed' && (!badge || !badge.textContent.includes('Non validé'))) {
+          show = false;
+        }
+        
+        course.style.display = show ? 'block' : 'none';
+      });
+    }
+
+    // Show grade details modal
+    function showGradeDetails(courseName) {
+      // Implementation for detailed grade modal
+      console.log('Showing details for:', courseName);
+    }
+
+    // Animate elements on scroll
+    function animateElements() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('fade-in');
+          }
+        });
+      });
+
+      document.querySelectorAll('.course-card').forEach(card => {
+        observer.observe(card);
+      });
+    }
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+          case '1':
+            e.preventDefault();
+            filterGrades('all');
+            break;
+          case '2':
+            e.preventDefault();
+            filterGrades('validated');
+            break;
+          case '3':
+            e.preventDefault();
+            filterGrades('pending');
+            break;
+          case '4':
+            e.preventDefault();
+            filterGrades('failed');
+            break;
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>

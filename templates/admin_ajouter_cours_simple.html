@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajouter un Cours - Simple</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .day-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .day-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .day-card.selected {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .time-slot {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .time-slot:hover {
+            background-color: #eff6ff;
+            border-color: #3b82f6;
+        }
+        
+        .time-slot.selected {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header Ultra-Simple -->
+        <div class="glass-effect rounded-3xl p-8 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-plus-circle text-green-600 mr-3"></i>
+                        Ajouter un Cours
+                    </h1>
+                    <p class="text-gray-600 text-lg">Interface ultra-simple en 3 étapes</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin_dashboard') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl transition-all">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" id="courseForm">
+            <!-- Étape 1: Informations de base -->
+            <div class="glass-effect rounded-3xl p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <span class="bg-blue-600 text-white w-8 h-8 rounded-full inline-flex items-center justify-center mr-3">1</span>
+                    Informations du Cours
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nom du cours -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-book text-blue-600 mr-2"></i>Nom du cours
+                        </label>
+                        <input type="text" name="nom_cours" required
+                               placeholder="Ex: Introduction à Python"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                    </div>
+
+                    <!-- Filière -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-graduation-cap text-green-600 mr-2"></i>Filière
+                        </label>
+                        <select name="filiere" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                            <option value="">Choisir une filière</option>
+                            <option value="IA">Intelligence Artificielle</option>
+                            <option value="CCA">CCA</option>
+                            <option value="Marketing Digital">Marketing Digital</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Transport Logistique">Transport Logistique</option>
+                        </select>
+                    </div>
+                    <!-- Niveau -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-layer-group text-orange-600 mr-2"></i>Niveau
+                        </label>
+                        <select name="niveau" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                            <option value="">Choisir un niveau</option>
+                            <option value="Licence 1">Licence 1</option>
+                            <option value="Licence 2">Licence 2</option>
+                            <option value="Licence 3">Licence 3</option>
+                            <option value="Master 1">Master 1</option>
+                            <option value="Master 2">Master 2</option>
+                        </select>
+                    </div>
+
+                    <!-- Professeur -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-user-tie text-purple-600 mr-2"></i>Professeur
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="professeur_nom"
+                                   placeholder="Ex: Albert Diompy, Marie Dupont..."
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <i class="fas fa-edit text-gray-400"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Saisissez directement le nom du professeur</p>
+                    </div>
+
+                    <!-- Salle -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-door-open text-indigo-600 mr-2"></i>Salle
+                        </label>
+                        <input type="text" name="salle" 
+                               placeholder="Ex: Salle A1, Lab Info..."
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Étape 2: Choisir la date -->
+            <div class="glass-effect rounded-3xl p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <span class="bg-green-600 text-white w-8 h-8 rounded-full inline-flex items-center justify-center mr-3">2</span>
+                    Choisir la Date du Cours
+                </h2>
+
+                <!-- Sélection rapide : 7 prochains jours -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">📅 Prochains jours disponibles</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3" id="quickDaysContainer">
+                        <!-- Les cartes seront générées par JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Sélection personnalisée -->
+                <div class="border-t pt-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">🗓️ Choisir une date spécifique</h3>
+                    <div class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date personnalisée</label>
+                            <input type="date" id="customDate"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                        </div>
+                        <button type="button" id="useCustomDate"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all">
+                            <i class="fas fa-check mr-2"></i>Utiliser cette date
+                        </button>
+                    </div>
+                </div>
+
+                <input type="hidden" name="date_cours" id="selectedDate">
+                <input type="hidden" name="jour_semaine" id="selectedDay">
+            </div>
+
+            <!-- Étape 3: Choisir l'horaire -->
+            <div class="glass-effect rounded-3xl p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <span class="bg-purple-600 text-white w-8 h-8 rounded-full inline-flex items-center justify-center mr-3">3</span>
+                    Choisir l'Horaire
+                </h2>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Créneaux du matin -->
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" data-start="08:00" data-end="10:00">
+                        <i class="fas fa-sun text-2xl text-yellow-500 mb-2"></i>
+                        <p class="font-semibold">08:00 - 10:00</p>
+                        <p class="text-sm text-gray-600">Matin</p>
+                    </div>
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" data-start="10:00" data-end="12:00">
+                        <i class="fas fa-sun text-2xl text-yellow-500 mb-2"></i>
+                        <p class="font-semibold">10:00 - 12:00</p>
+                        <p class="text-sm text-gray-600">Matin</p>
+                    </div>
+                    
+                    <!-- Créneaux de l'après-midi -->
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" data-start="14:00" data-end="16:00">
+                        <i class="fas fa-cloud-sun text-2xl text-orange-500 mb-2"></i>
+                        <p class="font-semibold">14:00 - 16:00</p>
+                        <p class="text-sm text-gray-600">Après-midi</p>
+                    </div>
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" data-start="16:00" data-end="18:00">
+                        <i class="fas fa-cloud-sun text-2xl text-orange-500 mb-2"></i>
+                        <p class="font-semibold">16:00 - 18:00</p>
+                        <p class="text-sm text-gray-600">Après-midi</p>
+                    </div>
+                    
+                    <!-- Créneaux du soir -->
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" data-start="18:00" data-end="20:00">
+                        <i class="fas fa-moon text-2xl text-blue-500 mb-2"></i>
+                        <p class="font-semibold">18:00 - 20:00</p>
+                        <p class="text-sm text-gray-600">Soir</p>
+                    </div>
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" data-start="20:00" data-end="22:00">
+                        <i class="fas fa-moon text-2xl text-blue-500 mb-2"></i>
+                        <p class="font-semibold">20:00 - 22:00</p>
+                        <p class="text-sm text-gray-600">Soir</p>
+                    </div>
+
+                    <!-- Créneau personnalisé -->
+                    <div class="time-slot bg-white border-2 border-gray-200 rounded-xl p-4 text-center" id="customTime">
+                        <i class="fas fa-clock text-2xl text-gray-500 mb-2"></i>
+                        <p class="font-semibold">Personnalisé</p>
+                        <p class="text-sm text-gray-600">Autre horaire</p>
+                    </div>
+                </div>
+
+                <!-- Horaire personnalisé -->
+                <div id="customTimeInputs" class="hidden mt-6 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Heure de début</label>
+                        <input type="time" id="customStart" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Heure de fin</label>
+                        <input type="time" id="customEnd" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <input type="hidden" name="heure_debut" id="selectedStartTime">
+                <input type="hidden" name="heure_fin" id="selectedEndTime">
+            </div>
+
+            <!-- Bouton de création -->
+            <div class="glass-effect rounded-3xl p-8">
+                <div class="text-center">
+                    <button type="submit" id="createButton" disabled 
+                            class="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-12 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 text-xl shadow-lg">
+                        <i class="fas fa-magic mr-3"></i>
+                        Créer le Cours
+                    </button>
+                    <p class="text-gray-600 mt-4">Remplissez toutes les étapes pour activer le bouton</p>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let selectedDate = null;
+        let selectedDay = null;
+        let selectedTime = null;
+
+        // Générer les 7 prochains jours
+        function generateQuickDays() {
+            const container = document.getElementById('quickDaysContainer');
+            const today = new Date();
+            const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+            const colors = ['blue', 'green', 'purple', 'orange', 'red', 'indigo', 'pink'];
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+
+                const dayName = daysOfWeek[date.getDay()];
+                const dateStr = date.toISOString().split('T')[0];
+                const displayDate = date.toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short'
+                });
+
+                const isToday = i === 0;
+                const color = colors[i % colors.length];
+
+                const card = document.createElement('div');
+                card.className = `day-card bg-white border-2 border-gray-200 rounded-xl p-3 text-center cursor-pointer transition-all`;
+                card.dataset.date = dateStr;
+                card.dataset.day = dayName;
+
+                card.innerHTML = `
+                    <i class="fas fa-calendar-day text-xl text-${color}-600 mb-1"></i>
+                    <p class="font-semibold text-sm">${dayName}</p>
+                    <p class="text-xs text-gray-600">${displayDate}</p>
+                    ${isToday ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full mt-1 inline-block">Aujourd\'hui</span>' : ''}
+                `;
+
+                card.addEventListener('click', function() {
+                    selectDate(dateStr, dayName, this);
+                });
+
+                container.appendChild(card);
+            }
+        }
+
+        // Fonction pour sélectionner une date
+        function selectDate(dateStr, dayName, cardElement) {
+            // Désélectionner toutes les cartes
+            document.querySelectorAll('.day-card').forEach(c => c.classList.remove('selected'));
+
+            // Sélectionner la carte cliquée
+            if (cardElement) {
+                cardElement.classList.add('selected');
+            }
+
+            selectedDate = dateStr;
+            selectedDay = dayName;
+
+            document.getElementById('selectedDate').value = dateStr;
+            document.getElementById('selectedDay').value = dayName;
+
+            checkFormCompletion();
+        }
+
+        // Gestion de la date personnalisée
+        document.getElementById('useCustomDate').addEventListener('click', function() {
+            const customDateInput = document.getElementById('customDate');
+            const customDateValue = customDateInput.value;
+
+            if (customDateValue) {
+                const date = new Date(customDateValue);
+                const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                const dayName = daysOfWeek[date.getDay()];
+
+                selectDate(customDateValue, dayName, null);
+
+                // Feedback visuel
+                this.innerHTML = '<i class="fas fa-check mr-2"></i>Date sélectionnée';
+                this.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                this.classList.add('bg-green-600');
+
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-check mr-2"></i>Utiliser cette date';
+                    this.classList.remove('bg-green-600');
+                    this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }, 2000);
+            }
+        });
+
+        // Initialiser les jours rapides
+        generateQuickDays();
+
+        // Gestion de la sélection de l'horaire
+        document.querySelectorAll('.time-slot:not(#customTime)').forEach(slot => {
+            slot.addEventListener('click', function() {
+                // Désélectionner tous les créneaux
+                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                
+                // Sélectionner le créneau cliqué
+                this.classList.add('selected');
+                selectedTime = {
+                    start: this.dataset.start,
+                    end: this.dataset.end
+                };
+                
+                document.getElementById('selectedStartTime').value = selectedTime.start;
+                document.getElementById('selectedEndTime').value = selectedTime.end;
+                
+                // Masquer les inputs personnalisés
+                document.getElementById('customTimeInputs').classList.add('hidden');
+                
+                checkFormCompletion();
+            });
+        });
+
+        // Gestion du créneau personnalisé
+        document.getElementById('customTime').addEventListener('click', function() {
+            // Désélectionner tous les créneaux
+            document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+            
+            // Sélectionner le créneau personnalisé
+            this.classList.add('selected');
+            
+            // Afficher les inputs personnalisés
+            document.getElementById('customTimeInputs').classList.remove('hidden');
+        });
+
+        // Gestion des horaires personnalisés
+        document.getElementById('customStart').addEventListener('change', updateCustomTime);
+        document.getElementById('customEnd').addEventListener('change', updateCustomTime);
+
+        function updateCustomTime() {
+            const start = document.getElementById('customStart').value;
+            const end = document.getElementById('customEnd').value;
+            
+            if (start && end) {
+                selectedTime = { start, end };
+                document.getElementById('selectedStartTime').value = start;
+                document.getElementById('selectedEndTime').value = end;
+                checkFormCompletion();
+            }
+        }
+
+        // Vérifier si le formulaire est complet
+        function checkFormCompletion() {
+            const nomCours = document.querySelector('input[name="nom_cours"]').value;
+            const filiere = document.querySelector('select[name="filiere"]').value;
+
+            if (nomCours && filiere && selectedDate && selectedTime) {
+                document.getElementById('createButton').disabled = false;
+                document.getElementById('createButton').classList.remove('cursor-not-allowed');
+            } else {
+                document.getElementById('createButton').disabled = true;
+                document.getElementById('createButton').classList.add('cursor-not-allowed');
+            }
+        }
+
+        // Écouter les changements dans les champs obligatoires
+        document.querySelector('input[name="nom_cours"]').addEventListener('input', checkFormCompletion);
+        document.querySelector('select[name="filiere"]').addEventListener('change', checkFormCompletion);
+
+        // Générer automatiquement les dates start et end avant soumission
+        document.getElementById('courseForm').addEventListener('submit', function(e) {
+            if (selectedDate && selectedTime) {
+                // Utiliser la date sélectionnée avec gestion du fuseau horaire local
+                const [year, month, day] = selectedDate.split('-');
+
+                // Créer les dates avec les heures en heure locale
+                const [startHour, startMinute] = selectedTime.start.split(':');
+                const [endHour, endMinute] = selectedTime.end.split(':');
+
+                // Format datetime-local (YYYY-MM-DDTHH:MM)
+                const startDateTimeLocal = `${selectedDate}T${selectedTime.start}`;
+                const endDateTimeLocal = `${selectedDate}T${selectedTime.end}`;
+
+                // Ajouter les champs cachés pour les dates complètes
+                const startInput = document.createElement('input');
+                startInput.type = 'hidden';
+                startInput.name = 'start';
+                startInput.value = startDateTimeLocal;
+                this.appendChild(startInput);
+
+                const endInput = document.createElement('input');
+                endInput.type = 'hidden';
+                endInput.name = 'end';
+                endInput.value = endDateTimeLocal;
+                this.appendChild(endInput);
+
+                console.log('Date sélectionnée:', selectedDate);
+                console.log('Heure début:', selectedTime.start);
+                console.log('Heure fin:', selectedTime.end);
+                console.log('Start datetime:', startDateTimeLocal);
+                console.log('End datetime:', endDateTimeLocal);
+            }
+        });
+    </script>
+</body>
+</html>

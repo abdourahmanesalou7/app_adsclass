@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+  <div class="max-w-7xl mx-auto px-6">
+    
+    <!-- Header Section -->
+    <div class="mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div class="mb-6 lg:mb-0">
+          <h1 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">
+            Bienvenue, <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Professeur</span>
+          </h1>
+          <p class="text-gray-600 text-lg">{{ session.get('prenom', '') }} {{ session.get('nom', '') }}</p>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="flex flex-wrap gap-4">
+          <button class="glass-effect px-6 py-3 rounded-xl text-blue-600 font-semibold hover:bg-blue-50 transition-all">
+            <i class="fas fa-plus mr-2"></i>
+            Nouvelle note
+          </button>
+          <button class="glass-effect px-6 py-3 rounded-xl text-green-600 font-semibold hover:bg-green-50 transition-all">
+            <i class="fas fa-user-check mr-2"></i>
+            Présences
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="glass-effect rounded-2xl p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Mes cours</p>
+            <p class="text-3xl font-bold text-gray-900">{{ cours|length }}</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-book text-blue-600"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="glass-effect rounded-2xl p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Total étudiants</p>
+            <p class="text-3xl font-bold text-gray-900">
+              {% set total_etudiants = 0 %}
+              {% for cours_item in cours %}
+                {% set total_etudiants = total_etudiants + (cours_etudiants[cours_item.id]|length if cours_etudiants[cours_item.id] else 0) %}
+              {% endfor %}
+              {{ total_etudiants }}
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-users text-green-600"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="glass-effect rounded-2xl p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Filières</p>
+            <p class="text-3xl font-bold text-gray-900">
+              {{ cours|map(attribute='filiere')|unique|list|length }}
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-graduation-cap text-purple-600"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Courses Section -->
+    {% if cours %}
+      <div class="space-y-8">
+        {% for cours_item in cours %}
+        <div class="glass-effect rounded-2xl overflow-hidden shadow-lg">
+          <!-- Course Header -->
+          <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-2xl font-bold text-white mb-2">{{ cours_item.nom_cours }}</h2>
+                <div class="flex items-center space-x-4 text-blue-100">
+                  <span class="flex items-center">
+                    <i class="fas fa-graduation-cap mr-2"></i>
+                    Filière: {{ cours_item.filiere }}
+                  </span>
+                  <span class="flex items-center">
+                    <i class="fas fa-users mr-2"></i>
+                    {{ cours_etudiants[cours_item.id]|length if cours_etudiants[cours_item.id] else 0 }} étudiants
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Course Actions -->
+              <div class="flex space-x-3">
+                <button class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-white font-medium transition-all">
+                  <i class="fas fa-chart-bar mr-2"></i>
+                  Notes
+                </button>
+                <button class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-white font-medium transition-all">
+                  <i class="fas fa-calendar-check mr-2"></i>
+                  Absences
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Students Table -->
+          <div class="p-8">
+            {% if cours_etudiants[cours_item.id] %}
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left py-4 px-6 font-semibold text-gray-700">#</th>
+                    <th class="text-left py-4 px-6 font-semibold text-gray-700">Étudiant</th>
+                    <th class="text-left py-4 px-6 font-semibold text-gray-700">Email</th>
+                    <th class="text-center py-4 px-6 font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  {% for etu in cours_etudiants[cours_item.id] %}
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="py-4 px-6 text-gray-600">{{ loop.index }}</td>
+                    <td class="py-4 px-6">
+                      <div class="flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                          <span class="text-white font-semibold text-sm">{{ etu.prenom[0] }}{{ etu.nom[0] }}</span>
+                        </div>
+                        <div>
+                          <p class="font-semibold text-gray-900">{{ etu.prenom }} {{ etu.nom }}</p>
+                          <p class="text-sm text-gray-500">{{ etu.filiere }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="py-4 px-6 text-gray-600">{{ etu.email }}</td>
+                    <td class="py-4 px-6 text-center">
+                      <div class="flex justify-center space-x-2">
+                        <button class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Voir les notes">
+                          <i class="fas fa-chart-line"></i>
+                        </button>
+                        <button class="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors" title="Marquer présent">
+                          <i class="fas fa-check"></i>
+                        </button>
+                        <button class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Marquer absent">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+              <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-users text-gray-400 text-xl"></i>
+              </div>
+              <p class="text-gray-500">Aucun étudiant inscrit à ce cours</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Empty State -->
+      <div class="glass-effect rounded-2xl p-12 text-center">
+        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <i class="fas fa-book-open text-gray-400 text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-3">Aucun cours assigné</h3>
+        <p class="text-gray-600 mb-6">Vous n'avez pas encore de cours assignés. Contactez l'administration pour plus d'informations.</p>
+        <button class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all">
+          <i class="fas fa-envelope mr-2"></i>
+          Contacter l'admin
+        </button>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,681 @@
+{% extends 'base.html' %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des Notes - AdsClass Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .floating-animation {
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .slide-down {
+      animation: slideDown 0.3s ease-out;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .student-row {
+      transition: all 0.3s ease;
+    }
+    .student-row:hover {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      transform: translateX(4px);
+    }
+    .notes-table {
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+
+  <!-- Enhanced Header -->
+  <header class="glass-effect sticky top-0 z-50 shadow-2xl border-b border-white/30 mb-8">
+    <div class="max-w-7xl mx-auto px-6 py-5">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center floating-animation shadow-lg">
+            <i class="fas fa-graduation-cap text-white text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">
+              Gestion des <span class="gradient-text">Notes</span>
+            </h1>
+            <p class="text-sm text-gray-600">Liste des étudiants par filière et niveau</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="hidden md:flex items-center space-x-2 text-sm text-gray-600 bg-white/60 px-4 py-2 rounded-xl">
+            <i class="fas fa-users text-indigo-600"></i>
+            <span>{{ groupes|length }} filières</span>
+          </div>
+          <a href="{{ url_for('admin_stats') }}" 
+             class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2">
+            <i class="fas fa-chart-bar"></i>
+            <span>Statistiques</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 pb-12">
+
+    <!-- Enhanced Search Section -->
+    <div class="glass-effect rounded-3xl p-8 mb-12 shadow-xl">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <i class="fas fa-search text-white"></i>
+          </div>
+          <h2 class="text-xl font-bold text-gray-800">Recherche avancée</h2>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button onclick="exportData()" 
+                  class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-download"></i>
+            <span>Exporter</span>
+          </button>
+          <button onclick="printAllBulletins()" 
+                  class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-print"></i>
+            <span>Imprimer Tous</span>
+          </button>
+          <button onclick="toggleFilters()" 
+                  class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-filter"></i>
+            <span>Filtres</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2">
+          <input
+            type="search"
+            id="searchInput"
+            onkeyup="filterStudents()"
+            placeholder="🔍 Rechercher par nom, prénom, email, filière ou niveau..."
+            class="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl shadow-sm
+                   focus:outline-none focus:ring-4 focus:ring-indigo-400/30 focus:border-indigo-500
+                   transition-all duration-300 placeholder-gray-400 text-gray-700 text-lg
+                   bg-white/80 backdrop-blur-sm"
+            autocomplete="off"
+            aria-label="Recherche étudiants"
+            spellcheck="false"
+            autofocus
+          />
+        </div>
+        <div class="flex items-center space-x-3">
+          <select id="filiereFilter" onchange="filterStudents()" 
+                  class="flex-1 px-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-400/30 focus:border-indigo-500 transition-all duration-300 bg-white/80">
+            <option value="">Toutes les filières</option>
+            {% for (filiere, niveau), etudiants in groupes.items() %}
+              <option value="{{ filiere | lower }}">{{ filiere }}</option>
+            {% endfor %}
+          </select>
+          <button onclick="clearFilters()" 
+                  class="px-4 py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl transition-colors duration-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Advanced Filters (Hidden by default) -->
+      <div id="advancedFilters" class="hidden mt-6 p-6 bg-white/60 rounded-2xl border border-gray-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
+            <select id="niveauFilter" onchange="filterStudents()" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+              <option value="">Tous les niveaux</option>
+              {% for (filiere, niveau), etudiants in groupes.items() %}
+                <option value="{{ niveau | lower }}">{{ niveau }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Statut des notes</label>
+            <select id="statusFilter" onchange="filterStudents()" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+              <option value="">Tous les statuts</option>
+              <option value="avec-notes">Avec notes</option>
+              <option value="sans-notes">Sans notes</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tri par</label>
+            <select id="sortFilter" onchange="sortStudents()" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+              <option value="nom">Nom (A-Z)</option>
+              <option value="nom-desc">Nom (Z-A)</option>
+              <option value="filiere">Filière</option>
+              <option value="niveau">Niveau</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div id="resultsSummary" class="mb-8 flex items-center justify-between bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-200">
+      <div class="flex items-center space-x-4">
+        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-info-circle text-blue-600"></i>
+        </div>
+        <span id="summaryText" class="text-gray-700 font-medium">Chargement...</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="collapseAll()" class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded-lg hover:bg-gray-100 transition-colors">
+          <i class="fas fa-compress-alt mr-1"></i>Réduire tout
+        </button>
+        <button onclick="expandAll()" class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded-lg hover:bg-gray-100 transition-colors">
+          <i class="fas fa-expand-alt mr-1"></i>Développer tout
+        </button>
+      </div>
+    </div>
+
+    <!-- Enhanced Student Groups -->
+    {% for (filiere, niveau), etudiants in groupes.items() %}
+    <section
+      class="mb-12 glass-effect rounded-3xl shadow-xl overflow-hidden card-hover student-group"
+      data-filiere="{{ filiere | lower }}"
+      data-niveau="{{ niveau | lower }}"
+    >
+      <!-- Group Header -->
+      <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-8">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+              <i class="fas fa-layer-group text-white text-xl"></i>
+            </div>
+            <div>
+              <h2 class="text-3xl font-bold">{{ filiere }}</h2>
+              <p class="text-indigo-100 text-lg">{{ niveau }}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-3">
+              <p class="text-2xl font-bold">{{ etudiants|length }}</p>
+              <p class="text-indigo-100 text-sm">étudiant{{ etudiants|length > 1 and 's' or '' }}</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Students Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-gray-800">
+          <thead class="bg-gradient-to-r from-gray-50 to-indigo-50 border-b-2 border-indigo-200">
+            <tr>
+              <th class="px-6 py-4 text-left text-sm font-bold tracking-wide text-gray-700 uppercase">#</th>
+              <th class="px-6 py-4 text-left text-sm font-bold tracking-wide text-gray-700 uppercase">
+                <i class="fas fa-user mr-2"></i>Nom
+              </th>
+              <th class="px-6 py-4 text-left text-sm font-bold tracking-wide text-gray-700 uppercase">
+                <i class="fas fa-user-tag mr-2"></i>Prénom
+              </th>
+              <th class="px-6 py-4 text-left text-sm font-bold tracking-wide text-gray-700 uppercase">
+                <i class="fas fa-envelope mr-2"></i>Email
+              </th>
+              <th class="px-6 py-4 text-left text-sm font-bold tracking-wide text-gray-700 uppercase">
+                <i class="fas fa-chart-bar mr-2"></i>Moyenne
+              </th>
+              <th class="px-6 py-4 text-center text-sm font-bold tracking-wide text-gray-700 uppercase">
+                <i class="fas fa-cogs mr-2"></i>Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for etu in etudiants %}
+            {% set moyenne_generale = 0 %}
+            {% set nb_notes = 0 %}
+            {% if notes_par_etudiant[etu.id] is defined %}
+              {% for note in notes_par_etudiant[etu.id] %}
+                {% set moyenne_cours = ((note.CC1 + note.CC2 + note.Participation + note.Examen) / 4) %}
+                {% set moyenne_generale = moyenne_generale + moyenne_cours %}
+                {% set nb_notes = nb_notes + 1 %}
+              {% endfor %}
+              {% if nb_notes > 0 %}
+                {% set moyenne_generale = (moyenne_generale / nb_notes) | round(2) %}
+              {% endif %}
+            {% endif %}
+
+            <tr
+              class="student-row bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer group"
+              data-nom="{{ etu.nom | lower }}"
+              data-prenom="{{ etu.prenom | lower }}"
+              data-email="{{ etu.email | lower }}"
+              data-filiere="{{ filiere | lower }}"
+              data-niveau="{{ niveau | lower }}"
+              data-has-notes="{% if notes_par_etudiant[etu.id] is defined %}true{% else %}false{% endif %}"
+              onclick="toggleHistorique('historique-{{ etu.id }}')"
+              title="Cliquer pour afficher/masquer l'historique des notes"
+            >
+              <td class="px-6 py-4">
+                <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  {{ loop.index }}
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+                    {{ etu.nom[0] }}
+                  </div>
+                  <span class="font-bold text-gray-900">{{ etu.nom }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-semibold text-gray-800">{{ etu.prenom }}</td>
+              <td class="px-6 py-4">
+                <div class="flex items-center space-x-2">
+                  <i class="fas fa-envelope text-gray-400"></i>
+                  <span class="text-gray-600 truncate max-w-xs" title="{{ etu.email }}">{{ etu.email }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                {% if moyenne_generale > 0 %}
+                  <div class="flex items-center space-x-2">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm
+                                {% if moyenne_generale >= 16 %}bg-green-100 text-green-800
+                                {% elif moyenne_generale >= 14 %}bg-blue-100 text-blue-800
+                                {% elif moyenne_generale >= 10 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                      {{ moyenne_generale }}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      {% if moyenne_generale >= 16 %}Excellent
+                      {% elif moyenne_generale >= 14 %}Très bien
+                      {% elif moyenne_generale >= 10 %}Bien
+                      {% else %}À améliorer{% endif %}
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-gray-400 italic">Aucune note</span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-center space-x-2">
+                  <a
+                    href="{{ url_for('saisir_notes', etudiant_id=etu.id) }}"
+                    class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group-hover:scale-105"
+                    onclick="event.stopPropagation()"
+                    aria-label="Saisir notes pour {{ etu.nom }} {{ etu.prenom }}"
+                  >
+                    <i class="fas fa-plus"></i>
+                    <span>Notes</span>
+                  </a>
+                  <button
+                    type="button"
+                    class="bg-white border-2 border-indigo-500 text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2 group-hover:scale-105"
+                    onclick="event.stopPropagation(); toggleHistorique('historique-{{ etu.id }}')"
+                    aria-expanded="false"
+                    aria-controls="historique-{{ etu.id }}"
+                  >
+                    <i class="fas fa-eye"></i>
+                    <span>Voir</span>
+                  </button>
+                  {% if notes_par_etudiant[etu.id] is defined and notes_par_etudiant[etu.id]|length > 0 %}
+                  <a
+                    href="{{ url_for('admin_bulletin', etudiant_id=etu.id) }}"
+                    class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group-hover:scale-105"
+                    onclick="event.stopPropagation()"
+                    aria-label="Générer bulletin pour {{ etu.nom }} {{ etu.prenom }}"
+                    target="_blank"
+                  >
+                    <i class="fas fa-file-alt"></i>
+                    <span>Bulletin</span>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Enhanced Notes History -->
+            {% if notes_par_etudiant[etu.id] is defined %}
+            <tr
+              id="historique-{{ etu.id }}"
+              class="bg-gradient-to-r from-indigo-50 to-purple-50 hidden slide-down"
+              aria-live="polite"
+            >
+              <td colspan="6" class="p-8">
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-indigo-200">
+                  <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                          <i class="fas fa-chart-line text-white"></i>
+                        </div>
+                        <div>
+                          <h3 class="text-xl font-bold">Historique des notes</h3>
+                          <p class="text-indigo-100">{{ etu.prenom }} {{ etu.nom }}</p>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <p class="text-2xl font-bold">{{ notes_par_etudiant[etu.id]|length }}</p>
+                        <p class="text-indigo-100 text-sm">matière{{ notes_par_etudiant[etu.id]|length > 1 and 's' or '' }}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-gradient-to-r from-gray-50 to-indigo-50">
+                        <tr class="border-b-2 border-indigo-200">
+                          <th class="px-6 py-4 text-left font-bold text-gray-700">
+                            <i class="fas fa-book mr-2 text-indigo-600"></i>Cours
+                          </th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">CC1</th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">CC2</th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">Participation</th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">Examen</th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">
+                            <i class="fas fa-calculator mr-2 text-indigo-600"></i>Moyenne
+                          </th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">
+                            <i class="fas fa-check-circle mr-2 text-green-600"></i>Validation
+                          </th>
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100">
+                        {% for note in notes_par_etudiant[etu.id] %}
+                        {% set moyenne = ((note.CC1 + note.CC2 + note.Participation + note.Examen) / 4) | round(2) %}
+                        <tr class="hover:bg-indigo-50/50 transition-colors duration-200">
+                          <td class="px-6 py-4">
+                            <div class="flex items-center space-x-3">
+                              <div class="w-8 h-8 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-book text-white text-xs"></i>
+                              </div>
+                              <span class="font-semibold text-gray-800">{{ note.nom_cours }}</span>
+                            </div>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-800 font-bold">
+                              {{ note.CC1 }}
+                            </span>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-800 font-bold">
+                              {{ note.CC2 }}
+                            </span>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-100 text-green-800 font-bold">
+                              {{ note.Participation }}
+                            </span>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-800 font-bold">
+                              {{ note.Examen }}
+                            </span>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full font-bold text-lg
+                                        {% if moyenne >= 16 %}bg-green-100 text-green-800
+                                        {% elif moyenne >= 14 %}bg-blue-100 text-blue-800
+                                        {% elif moyenne >= 10 %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                              {{ moyenne }}
+                            </div>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            {% if moyenne >= 10 %}
+                              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-800 font-bold shadow-sm">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Validé</span>
+                              </div>
+                            {% else %}
+                              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-100 text-red-700 font-bold shadow-sm">
+                                <i class="fas fa-times-circle"></i>
+                                <span>Non Validé</span>
+                              </div>
+                            {% endif %}
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <a href="{{ url_for('modifier_note', note_id=note['id']) }}"
+                               class="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 justify-center"
+                               aria-label="Modifier note {{ note.nom_cours }}">
+                              <i class="fas fa-edit"></i>
+                              <span>Modifier</span>
+                            </a>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
+
+    <!-- No Results Message -->
+    <div id="noResults" class="hidden text-center py-16">
+      <div class="glass-effect rounded-3xl p-12 max-w-md mx-auto">
+        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <i class="fas fa-search text-gray-400 text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Aucun résultat trouvé</h3>
+        <p class="text-gray-600 mb-6">Essayez de modifier vos critères de recherche</p>
+        <button onclick="clearFilters()" 
+                class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200">
+          Effacer les filtres
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let allStudentRows = [];
+    let allGroups = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      allStudentRows = Array.from(document.querySelectorAll('.student-row'));
+      allGroups = Array.from(document.querySelectorAll('.student-group'));
+      updateResultsSummary();
+    });
+
+    function toggleHistorique(id) {
+      const row = document.getElementById(id);
+      const isHidden = row.classList.contains('hidden');
+      
+      if (isHidden) {
+        row.classList.remove('hidden');
+        row.classList.add('slide-down');
+        const btn = document.querySelector(`[aria-controls="${id}"]`);
+        if(btn) {
+          btn.setAttribute('aria-expanded', 'true');
+          btn.innerHTML = '<i class="fas fa-eye-slash"></i><span>Masquer</span>';
+        }
+      } else {
+        row.classList.add('hidden');
+        row.classList.remove('slide-down');
+        const btn = document.querySelector(`[aria-controls="${id}"]`);
+        if(btn) {
+          btn.setAttribute('aria-expanded', 'false');
+          btn.innerHTML = '<i class="fas fa-eye"></i><span>Voir</span>';
+        }
+      }
+    }
+
+    function filterStudents() {
+      const searchInput = document.getElementById('searchInput').value.toLowerCase().trim();
+      const filiereFilter = document.getElementById('filiereFilter').value.toLowerCase();
+      const niveauFilter = document.getElementById('niveauFilter')?.value.toLowerCase() || '';
+      const statusFilter = document.getElementById('statusFilter')?.value || '';
+
+      let visibleCount = 0;
+      let visibleGroups = 0;
+
+      allStudentRows.forEach(row => {
+        const nom = row.getAttribute('data-nom');
+        const prenom = row.getAttribute('data-prenom');
+        const email = row.getAttribute('data-email');
+        const filiere = row.getAttribute('data-filiere');
+        const niveau = row.getAttribute('data-niveau');
+        const hasNotes = row.getAttribute('data-has-notes') === 'true';
+
+        // Search filter
+        const searchMatch = !searchInput || [nom, prenom, email, filiere, niveau].some(field => 
+          field && field.includes(searchInput)
+        );
+
+        // Filiere filter
+        const filiereMatch = !filiereFilter || filiere === filiereFilter;
+
+        // Niveau filter
+        const niveauMatch = !niveauFilter || niveau === niveauFilter;
+
+        // Status filter
+        let statusMatch = true;
+        if (statusFilter === 'avec-notes') statusMatch = hasNotes;
+        if (statusFilter === 'sans-notes') statusMatch = !hasNotes;
+
+        const isVisible = searchMatch && filiereMatch && niveauMatch && statusMatch;
+        
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
+      });
+
+      // Show/hide groups
+      allGroups.forEach(group => {
+        const visibleRows = group.querySelectorAll('.student-row:not([style*="display: none"])');
+        const isGroupVisible = visibleRows.length > 0;
+        group.style.display = isGroupVisible ? '' : 'none';
+        if (isGroupVisible) visibleGroups++;
+      });
+
+      // Show/hide no results message
+      const noResults = document.getElementById('noResults');
+      if (visibleCount === 0) {
+        noResults.classList.remove('hidden');
+      } else {
+        noResults.classList.add('hidden');
+      }
+
+      updateResultsSummary(visibleCount, visibleGroups);
+    }
+
+    function updateResultsSummary(visibleCount = null, visibleGroups = null) {
+      const summaryText = document.getElementById('summaryText');
+      const totalStudents = visibleCount !== null ? visibleCount : allStudentRows.length;
+      const totalGroups = visibleGroups !== null ? visibleGroups : allGroups.length;
+      
+      summaryText.textContent = `${totalStudents} étudiant${totalStudents > 1 ? 's' : ''} dans ${totalGroups} filière${totalGroups > 1 ? 's' : ''}`;
+    }
+
+    function clearFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filiereFilter').value = '';
+      if (document.getElementById('niveauFilter')) document.getElementById('niveauFilter').value = '';
+      if (document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
+      filterStudents();
+    }
+
+    function toggleFilters() {
+      const filters = document.getElementById('advancedFilters');
+      filters.classList.toggle('hidden');
+    }
+
+    function collapseAll() {
+      document.querySelectorAll('[id^="historique-"]').forEach(row => {
+        if (!row.classList.contains('hidden')) {
+          row.classList.add('hidden');
+          const btn = document.querySelector(`[aria-controls="${row.id}"]`);
+          if(btn) {
+            btn.setAttribute('aria-expanded', 'false');
+            btn.innerHTML = '<i class="fas fa-eye"></i><span>Voir</span>';
+          }
+        }
+      });
+    }
+
+    function expandAll() {
+      document.querySelectorAll('[id^="historique-"]').forEach(row => {
+        if (row.classList.contains('hidden') && row.closest('.student-row:not([style*="display: none"])')) {
+          row.classList.remove('hidden');
+          row.classList.add('slide-down');
+          const btn = document.querySelector(`[aria-controls="${row.id}"]`);
+          if(btn) {
+            btn.setAttribute('aria-expanded', 'true');
+            btn.innerHTML = '<i class="fas fa-eye-slash"></i><span>Masquer</span>';
+          }
+        }
+      });
+    }
+
+    function sortStudents() {
+      const sortBy = document.getElementById('sortFilter').value;
+      // Implementation for sorting would go here
+      console.log('Sorting by:', sortBy);
+    }
+
+    function exportData() {
+      // Implementation for data export would go here
+      alert('Fonctionnalité d\'export en cours de développement');
+    }
+
+    function printAllBulletins() {
+      const studentsWithGrades = document.querySelectorAll('a[href*="/admin/bulletin/"]');
+      
+      if (studentsWithGrades.length === 0) {
+        alert('Aucun étudiant avec des notes trouvé pour l\'impression.');
+        return;
+      }
+      
+      const confirmMessage = `Voulez-vous imprimer les bulletins de ${studentsWithGrades.length} étudiant(s) ?`;
+      
+      if (confirm(confirmMessage)) {
+        // Ouvrir tous les bulletins dans de nouveaux onglets
+        studentsWithGrades.forEach((link, index) => {
+          setTimeout(() => {
+            const newWindow = window.open(link.href + '?print=true', '_blank');
+            if (newWindow) {
+              newWindow.focus();
+            }
+          }, index * 1000); // Délai d'1 seconde entre chaque ouverture
+        });
+        
+        alert(`Impression lancée pour ${studentsWithGrades.length} bulletin(s). Les bulletins s'ouvriront automatiquement.`);
+      }
+    }
+  </script>
+
+</body>
+{% endblock %}
