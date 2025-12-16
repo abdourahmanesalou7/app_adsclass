@@ -99,6 +99,16 @@
           </div>
           <h2 class="text-xl font-bold text-gray-800">Recherche avancée</h2>
         </div>
+        {% if semestre_exists %}
+        <div class="flex items-center gap-3 bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-2 rounded-xl border-2 border-indigo-200">
+          <i class="fas fa-calendar-alt text-indigo-600"></i>
+          <label class="text-sm font-semibold text-gray-700">Semestre:</label>
+          <select id="semestre-filter" onchange="filtrerParSemestre()" class="px-3 py-1 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-sm">
+            <option value="1">Semestre 1</option>
+            <option value="2">Semestre 2</option>
+          </select>
+        </div>
+        {% endif %}
         <div class="flex items-center space-x-4">
           <button onclick="exportData()" 
                   class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
@@ -344,16 +354,43 @@
                     <span>Voir</span>
                   </button>
                   {% if notes_par_etudiant[etu.id] is defined and notes_par_etudiant[etu.id]|length > 0 %}
-                  <a
-                    href="{{ url_for('admin_bulletin', etudiant_id=etu.id) }}"
-                    class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group-hover:scale-105"
-                    onclick="event.stopPropagation()"
-                    aria-label="Générer bulletin pour {{ etu.nom }} {{ etu.prenom }}"
-                    target="_blank"
-                  >
-                    <i class="fas fa-file-alt"></i>
-                    <span>Bulletin</span>
-                  </a>
+                  <div class="flex items-center gap-2">
+                    {% if semestre_exists %}
+                    <a
+                      href="{{ url_for('admin_bulletin', etudiant_id=etu.id, semestre=1) }}"
+                      class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center space-x-1 group-hover:scale-105 text-xs"
+                      onclick="event.stopPropagation()"
+                      aria-label="Bulletin Semestre 1"
+                      target="_blank"
+                      title="Bulletin Semestre 1"
+                    >
+                      <i class="fas fa-file-alt"></i>
+                      <span>S1</span>
+                    </a>
+                    <a
+                      href="{{ url_for('admin_bulletin', etudiant_id=etu.id, semestre=2) }}"
+                      class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-3 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center space-x-1 group-hover:scale-105 text-xs"
+                      onclick="event.stopPropagation()"
+                      aria-label="Bulletin Semestre 2"
+                      target="_blank"
+                      title="Bulletin Semestre 2"
+                    >
+                      <i class="fas fa-file-alt"></i>
+                      <span>S2</span>
+                    </a>
+                    {% else %}
+                    <a
+                      href="{{ url_for('admin_bulletin', etudiant_id=etu.id) }}"
+                      class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group-hover:scale-105"
+                      onclick="event.stopPropagation()"
+                      aria-label="Générer bulletin pour {{ etu.nom }} {{ etu.prenom }}"
+                      target="_blank"
+                    >
+                      <i class="fas fa-file-alt"></i>
+                      <span>Bulletin</span>
+                    </a>
+                    {% endif %}
+                  </div>
                   {% endif %}
                 </div>
               </td>
@@ -403,6 +440,11 @@
                           <th class="px-6 py-4 text-center font-bold text-gray-700">
                             <i class="fas fa-check-circle mr-2 text-green-600"></i>Validation
                           </th>
+                          {% if visible_exists %}
+                          <th class="px-6 py-4 text-center font-bold text-gray-700">
+                            <i class="fas fa-eye mr-2 text-blue-600"></i>Visible
+                          </th>
+                          {% endif %}
                           <th class="px-6 py-4 text-center font-bold text-gray-700">Actions</th>
                         </tr>
                       </thead>
@@ -460,6 +502,15 @@
                               </div>
                             {% endif %}
                           </td>
+                          {% if visible_exists %}
+                          <td class="px-6 py-4 text-center">
+                            <button onclick="toggleNoteVisible({{ note.id }}, this)" 
+                                    class="toggle-visible-btn px-4 py-2 rounded-lg font-semibold transition-all duration-200 {% if note.visible == 1 %}bg-green-100 text-green-800 hover:bg-green-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                              <i class="fas {% if note.visible == 1 %}fa-eye{% else %}fa-eye-slash{% endif %} mr-2"></i>
+                              {% if note.visible == 1 %}Visible{% else %}Masquée{% endif %}
+                            </button>
+                          </td>
+                          {% endif %}
                           <td class="px-6 py-4 text-center">
                             <a href="{{ url_for('modifier_note', note_id=note['id']) }}"
                                class="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 justify-center"
@@ -651,7 +702,24 @@
       alert('Fonctionnalité d\'export en cours de développement');
     }
 
+    function filtrerParSemestre() {
+      const semestre = document.getElementById('semestre-filter').value;
+      const links = document.querySelectorAll('a[href*="/admin/bulletin/"]');
+      links.forEach(link => {
+        if (semestre === 'all') {
+          // Afficher tous les liens
+          link.style.display = '';
+        } else {
+          // Mettre à jour les liens avec le semestre sélectionné
+          const href = link.getAttribute('href');
+          const newHref = href.split('?')[0] + '?semestre=' + semestre;
+          link.setAttribute('href', newHref);
+        }
+      });
+    }
+    
     function printAllBulletins() {
+      const semestre = document.getElementById('semestre-filter') ? document.getElementById('semestre-filter').value : '1';
       const studentsWithGrades = document.querySelectorAll('a[href*="/admin/bulletin/"]');
       
       if (studentsWithGrades.length === 0) {
@@ -659,21 +727,51 @@
         return;
       }
       
-      const confirmMessage = `Voulez-vous imprimer les bulletins de ${studentsWithGrades.length} étudiant(s) ?`;
+      const confirmMessage = `Voulez-vous imprimer les bulletins du Semestre ${semestre} pour ${studentsWithGrades.length} étudiant(s) ?`;
       
       if (confirm(confirmMessage)) {
-        // Ouvrir tous les bulletins dans de nouveaux onglets
+        // Ouvrir tous les bulletins dans de nouveaux onglets avec le semestre sélectionné
         studentsWithGrades.forEach((link, index) => {
           setTimeout(() => {
-            const newWindow = window.open(link.href + '?print=true', '_blank');
+            const href = link.getAttribute('href');
+            const newHref = href.split('?')[0] + '?semestre=' + semestre + '&print=true';
+            const newWindow = window.open(newHref, '_blank');
             if (newWindow) {
               newWindow.focus();
             }
           }, index * 1000); // Délai d'1 seconde entre chaque ouverture
         });
         
-        alert(`Impression lancée pour ${studentsWithGrades.length} bulletin(s). Les bulletins s'ouvriront automatiquement.`);
+        alert(`Impression lancée pour ${studentsWithGrades.length} bulletin(s) du Semestre ${semestre}. Les bulletins s'ouvriront automatiquement.`);
       }
+    }
+    
+    function toggleNoteVisible(noteId, button) {
+      fetch(`/admin/notes/${noteId}/toggle_visible`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mettre à jour l'apparence du bouton
+          if (data.visible == 1) {
+            button.className = 'toggle-visible-btn px-4 py-2 rounded-lg font-semibold transition-all duration-200 bg-green-100 text-green-800 hover:bg-green-200';
+            button.innerHTML = '<i class="fas fa-eye mr-2"></i>Visible';
+          } else {
+            button.className = 'toggle-visible-btn px-4 py-2 rounded-lg font-semibold transition-all duration-200 bg-gray-100 text-gray-600 hover:bg-gray-200';
+            button.innerHTML = '<i class="fas fa-eye-slash mr-2"></i>Masquée';
+          }
+        } else {
+          alert('Erreur lors de la modification de la visibilité: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la modification de la visibilité');
+      });
     }
   </script>
 

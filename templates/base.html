@@ -276,7 +276,7 @@
                                 </div>
                                 
                                 {% if session.get('role') != 'admin' %}
-                                    <a href="{{ url_for('profile') }}" class="flex items-center space-x-3 px-4 py-3 hover:bg-gray-100 transition-colors">
+                                    <a href="{{ url_for('student_profile') }}" class="flex items-center space-x-3 px-4 py-3 hover:bg-gray-100 transition-colors">
                                         <i class="fas fa-user text-gray-600"></i>
                                         <span class="text-gray-800">Mon Profil</span>
                                     </a>
@@ -415,11 +415,8 @@
         <i class="fas fa-money-bill mr-3"></i>Paiements
       </a>
     {% elif session.get('role') == 'professeur' %}
-      <a href="{{ url_for('prof_dashboard') }}" class="block py-2 text-gray-700 hover:text-blue-600">
+      <a href="{{ url_for('professeur_emploi_temps') }}" class="block py-2 text-gray-700 hover:text-blue-600">
         <i class="fas fa-home mr-3"></i>Dashboard
-      </a>
-      <a href="{{ url_for('prof_notes') }}" class="block py-2 text-gray-700 hover:text-blue-600">
-        <i class="fas fa-clipboard mr-3"></i>Gestion Notes
       </a>
     {% elif session.get('role') == 'etudiant' %}
       <a href="{{ url_for('student_dashboard') }}" class="block py-2 text-gray-700 hover:text-blue-600">

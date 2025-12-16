@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module - {{ course.nom_cours }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            scroll-behavior: smooth;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .nav-tab {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 3px solid transparent;
+            position: relative;
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav-tab:not(.active):hover {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            transform: translateY(-2px);
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-present {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .badge-absent {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .badge-retard {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .badge-excuse {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+        }
+        
+        .readonly-badge {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen">
+    <!-- Navigation Sticky -->
+    <nav class="bg-white shadow-lg border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('student_courses') }}" 
+                       class="w-11 h-11 bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl flex items-center justify-center hover:shadow-xl transition-all transform hover:scale-105">
+                        <i class="fas fa-arrow-left text-white text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">{{ course.nom_cours }}</h1>
+                        <p class="text-sm text-gray-600 flex items-center">
+                            <i class="fas fa-graduation-cap text-blue-600 mr-1.5"></i>
+                            {{ course.filiere }} • 
+                            <i class="fas fa-calendar-day text-purple-600 mx-1.5"></i>
+                            {{ course.jour_semaine }} {{ course.heure_debut }}-{{ course.heure_fin }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right hidden md:block">
+                        <p class="text-sm font-semibold text-gray-900">{{ prenom }} {{ nom }}</p>
+                        <p class="text-xs text-gray-500">Étudiant</p>
+                    </div>
+                    <a href="{{ url_for('student_dashboard') }}" 
+                       class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-xl transition-all text-sm font-semibold flex items-center shadow-lg transform hover:scale-105">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- En-tête du module -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-6 border border-gray-100">
+            <div class="flex items-center justify-between flex-wrap gap-6">
+                <div class="flex items-center space-x-5">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                        <i class="fas fa-book text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-1">{{ course.nom_cours }}</h2>
+                        <div class="flex items-center space-x-5 flex-wrap mt-3">
+                            <div class="flex items-center text-gray-700 bg-blue-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-graduation-cap text-blue-600 mr-2"></i>
+                                <span class="font-semibold">{{ course.filiere }}</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 bg-indigo-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-door-open text-indigo-600 mr-2"></i>
+                                <span>{{ course.salle or 'Non définie' }}</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 bg-purple-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-clock text-purple-600 mr-2"></i>
+                                <span class="font-medium">{{ course.heure_debut }} - {{ course.heure_fin }}</span>
+                            </div>
+                            {% if course.prof_nom %}
+                            <div class="flex items-center text-gray-700 bg-green-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-chalkboard-teacher text-green-600 mr-2"></i>
+                                <span class="font-medium">{{ course.prof_prenom }} {{ course.prof_nom }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="readonly-badge">
+                    <i class="fas fa-lock mr-1"></i>Mode Lecture
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglets de navigation -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-6 border border-gray-100">
+            <div class="flex flex-wrap border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <button onclick="showTab('general')" class="nav-tab active px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-users mr-2.5"></i>Présences
+                </button>
+                <button onclick="showTab('lectures')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-book-open mr-2.5"></i>Lectures
+                </button>
+                <button onclick="showTab('exams')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-file-alt mr-2.5"></i>Exams
+                </button>
+                <button onclick="showTab('ressources')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-folder-open mr-2.5"></i>Ressources
+                </button>
+                <button onclick="showTab('assignments')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-tasks mr-2.5"></i>Assignments
+                </button>
+                <button onclick="showTab('gradebook')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-table mr-2.5"></i>Notes
+                </button>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="p-8">
+                <!-- ONGLET 1: GENERAL (Présences) -->
+                <div id="general-content" class="tab-content active">
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-calendar-check text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-bold text-gray-900">Mes Présences</h3>
+                            <p class="text-gray-600 mt-1">Historique de vos présences pour ce module</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead class="table-header text-white">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left font-bold text-sm uppercase">Date</th>
+                                        <th class="px-6 py-4 text-center font-bold text-sm uppercase">Statut</th>
+                                        <th class="px-6 py-4 text-left font-bold text-sm uppercase">Commentaire</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    {% if presences %}
+                                        {% for presence in presences %}
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 font-medium text-gray-900">{{ presence.date_cours }}</td>
+                                            <td class="px-6 py-4 text-center">
+                                                {% if presence.statut == 'present' %}
+                                                    <span class="badge-status badge-present">Présent</span>
+                                                {% elif presence.statut == 'absent' %}
+                                                    <span class="badge-status badge-absent">Absent</span>
+                                                {% elif presence.statut == 'retard' %}
+                                                    <span class="badge-status badge-retard">Retard</span>
+                                                {% elif presence.statut == 'excuse' %}
+                                                    <span class="badge-status badge-excuse">Excusé</span>
+                                                {% else %}
+                                                    <span class="badge-status" style="background: #6b7280; color: white;">Non spécifié</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-600">{{ presence.commentaire or '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="3" class="px-6 py-12 text-center text-gray-500">
+                                                <i class="fas fa-calendar-times text-4xl mb-4 text-gray-300"></i>
+                                                <p class="text-lg">Aucune présence enregistrée</p>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ONGLET 2: LECTURES -->
+                <div id="lectures-content" class="tab-content">
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-book-open text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-bold text-gray-900">Contenus de Cours</h3>
+                            <p class="text-gray-600 mt-1">Séances et contenus pédagogiques</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        {% if lectures %}
+                            {% for lecture in lectures %}
+                            <div class="bg-white rounded-2xl shadow-lg border-l-4 border-blue-500 p-7 card-hover">
+                                <div class="flex items-center mb-4">
+                                    <h4 class="text-2xl font-bold text-gray-900 mr-4">{{ lecture.titre }}</h4>
+                                    {% if lecture.date_seance %}
+                                    <span class="bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full text-xs font-bold">
+                                        <i class="fas fa-calendar mr-1"></i>{{ lecture.date_seance }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if lecture.description %}
+                                <p class="text-gray-700 mb-4 text-lg">{{ lecture.description }}</p>
+                                {% endif %}
+                                {% if lecture.contenu %}
+                                <div class="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-5 border border-gray-200">
+                                    <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">{{ lecture.contenu }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                                <div class="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-book-open text-5xl text-gray-400"></i>
+                                </div>
+                                <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucune séance disponible</h4>
+                                <p class="text-gray-500">Le professeur n'a pas encore ajouté de séances</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 3: EXAMS -->
+                <div id="exams-content" class="tab-content">
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-file-alt text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-bold text-gray-900">Examens</h3>
+                            <p class="text-gray-600 mt-1">Examens, partiels et contrôles programmés</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% if exams %}
+                            {% for exam in exams %}
+                            <div class="bg-white rounded-2xl shadow-lg border-l-4 border-purple-500 p-6 card-hover">
+                                <div class="mb-4">
+                                    <span class="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 px-4 py-2 rounded-xl text-xs font-bold uppercase">{{ exam.type_examen }}</span>
+                                </div>
+                                <h4 class="text-xl font-bold text-gray-900 mb-3">{{ exam.titre }}</h4>
+                                {% if exam.date_examen %}
+                                <p class="text-gray-700 mb-2 flex items-center text-sm font-medium">
+                                    <i class="fas fa-calendar mr-2 text-purple-600"></i>{{ exam.date_examen }}
+                                </p>
+                                {% endif %}
+                                <p class="text-gray-700 mb-3 flex items-center text-sm font-medium">
+                                    <i class="fas fa-weight mr-2 text-purple-600"></i>Coefficient: <span class="font-bold ml-1">{{ exam.coefficient }}</span>
+                                </p>
+                                {% if exam.description %}
+                                <p class="text-gray-600 text-sm mt-4 bg-gray-50 p-3 rounded-lg">{{ exam.description }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-span-full text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                                <div class="w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-file-alt text-5xl text-gray-400"></i>
+                                </div>
+                                <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucun examen programmé</h4>
+                                <p class="text-gray-500">Aucun examen n'a été créé pour ce module</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 4: RESSOURCES -->
+                <div id="ressources-content" class="tab-content">
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-folder-open text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-bold text-gray-900">Ressources et Documents</h3>
+                            <p class="text-gray-600 mt-1">Documents partagés par le professeur</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% if documents %}
+                            {% for doc in documents %}
+                            <div class="bg-white rounded-2xl shadow-lg border-l-4 border-green-500 p-6 card-hover">
+                                <div class="mb-4">
+                                    <h4 class="text-xl font-bold text-gray-900 mb-3">{{ doc.titre }}</h4>
+                                    {% if doc.description %}
+                                    <p class="text-gray-600 text-sm mb-3">{{ doc.description }}</p>
+                                    {% endif %}
+                                    <div class="space-y-2">
+                                        <p class="text-gray-500 text-xs flex items-center">
+                                            <i class="fas fa-file mr-2 text-green-600"></i>{{ doc.nom_fichier }}
+                                        </p>
+                                        <p class="text-gray-500 text-xs flex items-center">
+                                            <i class="fas fa-calendar mr-2 text-green-600"></i>
+                                            {% if doc.date_upload %}
+                                                {{ doc.date_upload.strftime('%d/%m/%Y') if doc.date_upload else '' }}
+                                            {% else %}
+                                                Date inconnue
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <a href="/uploads/{{ doc.chemin_fichier }}" target="_blank" 
+                                   class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-xl transition-all text-center text-sm font-semibold flex items-center justify-center shadow-lg transform hover:scale-105">
+                                    <i class="fas fa-download mr-1.5"></i>Télécharger
+                                </a>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-span-full text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                                <div class="w-24 h-24 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-folder-open text-5xl text-gray-400"></i>
+                                </div>
+                                <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucun document disponible</h4>
+                                <p class="text-gray-500">Le professeur n'a pas encore partagé de documents</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 5: ASSIGNMENTS -->
+                <div id="assignments-content" class="tab-content">
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-tasks text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-bold text-gray-900">Devoirs et Travaux Dirigés</h3>
+                            <p class="text-gray-600 mt-1">Devoirs publiés par le professeur</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        {% if assignments %}
+                            {% for assignment in assignments %}
+                            <div class="bg-white rounded-2xl shadow-lg border-l-4 border-orange-500 p-7 card-hover">
+                                <div class="flex items-center mb-4">
+                                    <h4 class="text-2xl font-bold text-gray-900 mr-4">{{ assignment.titre }}</h4>
+                                    <span class="bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 px-4 py-2 rounded-xl text-xs font-bold uppercase">{{ assignment.type_assignment }}</span>
+                                </div>
+                                {% if assignment.description %}
+                                <p class="text-gray-700 mb-4 text-lg">{{ assignment.description }}</p>
+                                {% endif %}
+                                <div class="flex items-center space-x-6 text-gray-700 text-sm font-medium mb-4">
+                                    {% if assignment.date_publication %}
+                                    <span class="flex items-center bg-blue-50 px-4 py-2 rounded-lg">
+                                        <i class="fas fa-calendar-check mr-2 text-blue-600"></i>Publié: {{ assignment.date_publication }}
+                                    </span>
+                                    {% endif %}
+                                    {% if assignment.date_limite %}
+                                    <span class="flex items-center bg-orange-50 px-4 py-2 rounded-lg">
+                                        <i class="fas fa-clock mr-2 text-orange-600"></i>Limite: {{ assignment.date_limite }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if assignment.fichier_corrige %}
+                                <div class="mt-4">
+                                    <a href="/uploads/{{ assignment.fichier_corrige }}" target="_blank"
+                                       class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold bg-blue-50 px-4 py-2 rounded-lg inline-flex">
+                                        <i class="fas fa-file-pdf mr-2"></i>Corrigé disponible
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                                <div class="w-24 h-24 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-tasks text-5xl text-gray-400"></i>
+                                </div>
+                                <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucun devoir publié</h4>
+                                <p class="text-gray-500">Aucun devoir n'a été publié pour ce module</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 6: GRADEBOOK (Notes) -->
+                <div id="gradebook-content" class="tab-content">
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-table text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-bold text-gray-900">Mes Notes</h3>
+                            <p class="text-gray-600 mt-1">Vos notes pour ce module</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead class="table-header text-white">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left font-bold text-sm uppercase">Type de Note</th>
+                                        <th class="px-6 py-4 text-center font-bold text-sm uppercase">Note</th>
+                                        <th class="px-6 py-4 text-center font-bold text-sm uppercase">Coefficient</th>
+                                        <th class="px-6 py-4 text-center font-bold text-sm uppercase">Date</th>
+                                        <th class="px-6 py-4 text-left font-bold text-sm uppercase">Commentaire</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    {% if gradebook_notes %}
+                                        {% for note in gradebook_notes %}
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 font-semibold text-gray-900">{{ note.type_note }}</td>
+                                            <td class="px-6 py-4 text-center">
+                                                <span class="inline-flex items-center justify-center w-16 h-16 rounded-full font-bold text-xl
+                                                    {% if note.note >= 16 %}bg-green-100 text-green-800
+                                                    {% elif note.note >= 14 %}bg-blue-100 text-blue-800
+                                                    {% elif note.note >= 10 %}bg-yellow-100 text-yellow-800
+                                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                                    {{ note.note }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-center font-medium text-gray-700">x{{ note.coefficient }}</td>
+                                            <td class="px-6 py-4 text-center text-gray-600">{{ note.date_note or '-' }}</td>
+                                            <td class="px-6 py-4 text-gray-600">{{ note.commentaire or '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                                <i class="fas fa-clipboard-list text-4xl mb-4 text-gray-300"></i>
+                                                <p class="text-lg">Aucune note enregistrée</p>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% if notes_data %}
+                        <div class="p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-t border-gray-200">
+                            <h4 class="text-lg font-bold text-gray-900 mb-4">Résumé des Notes</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {% if notes_data.CC1 %}
+                                <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                                    <p class="text-sm text-gray-600 mb-1">CC1</p>
+                                    <p class="text-2xl font-bold text-blue-600">{{ notes_data.CC1 }}</p>
+                                </div>
+                                {% endif %}
+                                {% if notes_data.CC2 %}
+                                <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                                    <p class="text-sm text-gray-600 mb-1">CC2</p>
+                                    <p class="text-2xl font-bold text-blue-600">{{ notes_data.CC2 }}</p>
+                                </div>
+                                {% endif %}
+                                {% if notes_data.Participation %}
+                                <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                                    <p class="text-sm text-gray-600 mb-1">Participation</p>
+                                    <p class="text-2xl font-bold text-green-600">{{ notes_data.Participation }}</p>
+                                </div>
+                                {% endif %}
+                                {% if notes_data.Examen %}
+                                <div class="bg-white rounded-lg p-4 text-center shadow-sm">
+                                    <p class="text-sm text-gray-600 mb-1">Examen</p>
+                                    <p class="text-2xl font-bold text-purple-600">{{ notes_data.Examen }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% set moyenne = ((notes_data.CC1|default(0)|float + notes_data.CC2|default(0)|float + notes_data.Participation|default(0)|float + notes_data.Examen|default(0)|float) / 4) %}
+                            <div class="mt-6 bg-white rounded-lg p-6 text-center shadow-lg">
+                                <p class="text-sm text-gray-600 mb-2">Moyenne Générale</p>
+                                <p class="text-4xl font-bold {% if moyenne >= 10 %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {{ "%.2f"|format(moyenne) }}
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const courseId = {{ course.id }};
+        
+        function showTab(tabName) {
+            // Masquer tous les contenus
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Retirer l'état actif de tous les onglets
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Afficher le contenu sélectionné
+            document.getElementById(tabName + '-content').classList.add('active');
+            
+            // Activer l'onglet sélectionné
+            event.target.closest('.nav-tab').classList.add('active');
+        }
+    </script>
+</body>
+</html>
+

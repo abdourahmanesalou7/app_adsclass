@@ -260,7 +260,7 @@
                                 </div>
                                 
                                 {% if session.get('role') != 'admin' %}
-                                    <a href="{{ url_for('profile') }}" class="flex items-center space-x-3 px-4 py-3 hover:bg-gray-100 transition-colors">
+                                    <a href="{{ url_for('student_profile') }}" class="flex items-center space-x-3 px-4 py-3 hover:bg-gray-100 transition-colors">
                                         <i class="fas fa-user text-gray-600"></i>
                                         <span class="text-gray-800">Mon Profil</span>
                                     </a>

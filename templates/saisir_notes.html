@@ -23,6 +23,42 @@
     <!-- Form Card -->
     <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
       <form method="POST" novalidate class="space-y-8">
+        <!-- Semestre Selection -->
+        {% if semestre_exists %}
+        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border-2 border-indigo-200 mb-6">
+          <label class="flex items-center gap-2 text-lg font-bold text-gray-800 mb-4">
+            <i class="fas fa-calendar-alt text-indigo-600"></i>
+            Sélectionner le Semestre
+          </label>
+          <div class="grid grid-cols-2 gap-4">
+            <label class="relative flex items-center p-4 bg-white rounded-xl border-2 border-indigo-200 cursor-pointer hover:border-indigo-400 transition-all group semestre-option" data-semestre="1">
+              <input type="radio" name="semestre" value="1" checked class="sr-only" id="semestre1">
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-lg font-bold text-gray-800">Semestre 1</span>
+                  <div class="w-6 h-6 rounded-full border-2 border-indigo-300 flex items-center justify-center transition-all semestre-indicator">
+                    <div class="w-3 h-3 rounded-full bg-white semestre-dot"></div>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-600">Premier semestre de l'année</p>
+              </div>
+            </label>
+            <label class="relative flex items-center p-4 bg-white rounded-xl border-2 border-indigo-200 cursor-pointer hover:border-indigo-400 transition-all group semestre-option" data-semestre="2">
+              <input type="radio" name="semestre" value="2" class="sr-only" id="semestre2">
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-lg font-bold text-gray-800">Semestre 2</span>
+                  <div class="w-6 h-6 rounded-full border-2 border-indigo-300 flex items-center justify-center transition-all semestre-indicator">
+                    <div class="w-3 h-3 rounded-full bg-white semestre-dot"></div>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-600">Deuxième semestre de l'année</p>
+              </div>
+            </label>
+          </div>
+        </div>
+        {% endif %}
+        
         <!-- Subject Input -->
         <div class="space-y-2">
           <label for="nom_cours" class="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -210,11 +246,47 @@ function calculateAverage() {
   }
 }
 
+// Gérer la sélection du semestre
+function updateSemestreSelection() {
+  const semestreOptions = document.querySelectorAll('.semestre-option');
+  semestreOptions.forEach(option => {
+    const radio = option.querySelector('input[type="radio"]');
+    const indicator = option.querySelector('.semestre-indicator');
+    const dot = option.querySelector('.semestre-dot');
+    
+    if (radio.checked) {
+      option.classList.add('border-indigo-600', 'bg-indigo-50');
+      option.classList.remove('border-indigo-200');
+      indicator.classList.add('border-indigo-600', 'bg-indigo-600');
+      indicator.classList.remove('border-indigo-300');
+      dot.style.display = 'block';
+    } else {
+      option.classList.remove('border-indigo-600', 'bg-indigo-50');
+      option.classList.add('border-indigo-200');
+      indicator.classList.remove('border-indigo-600', 'bg-indigo-600');
+      indicator.classList.add('border-indigo-300');
+      dot.style.display = 'none';
+    }
+  });
+}
+
 // Add event listeners
 document.addEventListener('DOMContentLoaded', function() {
   ['CC1', 'CC2', 'Participation', 'Examen'].forEach(id => {
-    document.getElementById(id).addEventListener('input', calculateAverage);
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('input', calculateAverage);
+    }
   });
+  
+  // Gérer les boutons radio du semestre
+  const semestreRadios = document.querySelectorAll('input[name="semestre"]');
+  semestreRadios.forEach(radio => {
+    radio.addEventListener('change', updateSemestreSelection);
+  });
+  
+  // Initialiser l'affichage
+  updateSemestreSelection();
 });
 
 // Form validation

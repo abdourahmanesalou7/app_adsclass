@@ -299,29 +299,60 @@
               />
             </div>
 
-            <!-- Students List -->
-            <div class="space-y-2 max-h-96 overflow-y-auto scrollbar-custom" id="liste-etudiants">
-              {% for etudiant in etudiants %}
-              <div class="student-card glass-effect rounded-lg p-4 border border-white/20"
-                   data-id="{{ etudiant.id }}"
-                   onclick="chargerPaiements({{ etudiant.id }}, `{{ etudiant.prenom }} {{ etudiant.nom }}`)"
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {{ etudiant.prenom[0].upper() }}{{ etudiant.nom[0].upper() }}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-white font-medium truncate">
-                      {{ etudiant.prenom }} {{ etudiant.nom }}
+            <!-- Students List grouped by Filière / Niveau -->
+            <div class="space-y-4 max-h-96 overflow-y-auto scrollbar-custom" id="liste-etudiants">
+              {% for (filiere, niveau), liste in etudiants_groupes.items() %}
+                <div class="rounded-lg overflow-hidden border border-white/20">
+                  <!-- Group header -->
+                  <div class="px-4 py-2 bg-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-white">
+                      <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                        {{ niveau.split()[0] if niveau else '---' }}
+                      </div>
+                      <div>
+                        <div class="font-semibold leading-tight">{{ filiere or 'Filière non définie' }}</div>
+                        <div class="text-xs text-white/70">Niveau: {{ niveau or 'Non défini' }}</div>
+                      </div>
                     </div>
-                    <div class="text-white/60 text-xs">
-                      ID: #{{ etudiant.id }}
-                    </div>
+                    <span class="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full text-xs font-semibold">{{ liste|length }}</span>
                   </div>
-                  <div class="text-white/40">
-                    <i class="fas fa-chevron-right text-xs"></i>
+                  <!-- Group students -->
+                  <div class="divide-y divide-white/10">
+                    {% for etudiant in liste %}
+                      <div class="student-card px-4 py-3 hover:bg-white/5 cursor-pointer"
+                           data-id="{{ etudiant.id }}"
+                           data-name="{{ etudiant.prenom }} {{ etudiant.nom }}"
+                           data-filiere="{{ filiere|e }}"
+                           data-niveau="{{ niveau|e }}"
+                           onclick="chargerPaiements(this.dataset.id, this.dataset.name)">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+                            {{ etudiant.prenom[0].upper() }}{{ etudiant.nom[0].upper() }}
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-white font-medium truncate">
+                              {{ etudiant.prenom }} {{ etudiant.nom }}
+                            </div>
+                            <div class="text-white/60 text-xs truncate">
+                              {{ filiere }} • {{ niveau }}
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <div class="text-green-300 text-xs font-semibold">
+                              {{ "{:,.0f}".format(etudiant.total_paye or 0).replace(",", " ") }} FCFA
+                            </div>
+                            <div class="text-white/50 text-[10px]">
+                              {{ etudiant.nombre_paiements or 0 }} paiement(s)
+                            </div>
+                          </div>
+                          <div class="text-white/40 ml-2">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
                   </div>
                 </div>
-              </div>
               {% endfor %}
             </div>
           </div>

@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -86,7 +87,7 @@ def index():
         elif role == 'etudiant':
             return redirect(url_for('student_dashboard'))
         elif role == 'professeur':
-            return redirect(url_for('prof_dashboard'))  # <-- utiliser le dashboard unifié
+            return redirect(url_for('professeur_emploi_temps'))
     return redirect(url_for('register'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -168,7 +169,7 @@ def login():
             if user['role'] == 'admin':
                 return redirect(url_for('admin_home'))
             elif user['role'] == 'professeur':
-                return redirect(url_for('prof_dashboard'))  # dashboard unifié
+                return redirect(url_for('professeur_emploi_temps'))
             else:
                 return redirect(url_for('student_dashboard'))
         else:
@@ -176,150 +177,6 @@ def login():
             return render_template('login.html', email=email)
 
     return render_template('login.html')
-@app.route('/professeur/dashboard')
-@login_required
-def prof_dashboard():
-    if session.get('role') != 'professeur':
-        flash("Accès non autorisé.", "danger")
-        return redirect(url_for('login'))
-
-    user_id = session['user_id']
-    conn = get_db_connection()
-    if not conn:
-        flash("Erreur de connexion à la base de données.", "danger")
-        return redirect(url_for('login'))
-
-    # 🎯 RÉCUPÉRER UNIQUEMENT LES COURS DE CE PROFESSEUR depuis emploi_temps
-    cursor = conn.cursor(dictionary=True)
-    courses_query = """
-        SELECT c.*, et.visible, et.notifications
-        FROM courses c
-        JOIN emploi_temps et ON c.id = et.course_id
-        WHERE et.user_id = %s AND et.role = 'professeur' AND et.visible = 1
-        ORDER BY c.jour_semaine, c.heure_debut
-    """
-    cursor.execute(courses_query, (user_id,))
-    cours = cursor.fetchall()
-
-    # 🎯 RÉCUPÉRER LES ÉTUDIANTS UNIQUEMENT POUR SES COURS
-    cours_etudiants = {}
-    events = []
-    filieres_enseignees = set()
-
-    for cours_item in cours:
-        # cours_item est déjà un dict avec cursor(dictionary=True)
-        cours_dict = cours_item
-
-        # Ajouter la filière à la liste des filières enseignées par ce prof
-        if cours_dict['filiere']:
-            filieres_enseignees.add(cours_dict['filiere'])
-
-        # Récupérer UNIQUEMENT les étudiants de cette filière pour ce cours
-        cursor.execute(
-            "SELECT * FROM users WHERE role='etudiant' AND filiere = %s ORDER BY nom ASC",
-            (cours_dict['filiere'],)
-        )
-        etudiants = cursor.fetchall()
-        cours_etudiants[cours_dict['id']] = etudiants
-
-        # Préparer les événements pour le calendrier de CE professeur
-        title = cours_dict['nom_cours']
-        if cours_dict.get('salle'):
-            title += f" ({cours_dict['salle']})"
-        title += f" - {len(etudiants)} étudiant(s)"
-
-        events.append({
-            "title": title,
-            "start": cours_dict["start"],
-            "end": cours_dict["end"],
-            "description": cours_dict.get('description', ''),
-            "salle": cours_dict.get('salle', ''),
-            "nb_etudiants": len(etudiants),
-            "id": cours_dict['id'],
-            "filiere": cours_dict['filiere'],
-            "jour_semaine": cours_dict.get('jour_semaine', ''),
-            "heure_debut": cours_dict.get('heure_debut', ''),
-            "heure_fin": cours_dict.get('heure_fin', '')
-        })
-
-    # 🎯 CALCULER LES STATISTIQUES UNIQUEMENT POUR CE PROFESSEUR
-    # Compter les étudiants uniques (éviter les doublons entre cours)
-    total_etudiants_uniques = set()
-    for etudiants_list in cours_etudiants.values():
-        for etudiant in etudiants_list:
-            total_etudiants_uniques.add(etudiant['id'])
-
-    # Calculer les cours d'aujourd'hui pour CE professeur
-    from datetime import datetime
-    jour_actuel = datetime.now().strftime('%A')
-    jours_fr = {
-        'Monday': 'Lundi',
-        'Tuesday': 'Mardi',
-        'Wednesday': 'Mercredi',
-        'Thursday': 'Jeudi',
-        'Friday': 'Vendredi',
-        'Saturday': 'Samedi',
-        'Sunday': 'Dimanche'
-    }
-    jour_fr = jours_fr.get(jour_actuel, 'Lundi')
-
-    cours_aujourd_hui = len([c for c in cours if dict(c).get('jour_semaine') == jour_fr])
-
-    # 🎯 STATISTIQUES PERSONNALISÉES POUR CE PROFESSEUR UNIQUEMENT
-    stats = {
-        'total_cours': len(cours),
-        'total_etudiants': len(total_etudiants_uniques),
-        'cours_aujourd_hui': cours_aujourd_hui,
-        'filieres_enseignees': len(filieres_enseignees),
-        'jour_actuel': jour_fr
-    }
-
-    conn.close()
-
-    # Organiser les cours par jour pour le nouveau template
-    jours_semaine = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-    emploi_temps = {}
-
-    for jour in jours_semaine:
-        emploi_temps[jour] = []
-
-    for course in cours:
-        course_dict = dict(course)
-        if course_dict['jour_semaine'] in emploi_temps:
-            emploi_temps[course_dict['jour_semaine']].append(course_dict)
-
-    # Organiser les étudiants par filière et niveau
-    filieres_etudiants = {}
-    all_etudiants = []
-
-    for cours_id, etudiants_list in cours_etudiants.items():
-        for etudiant in etudiants_list:
-            etudiant_dict = dict(etudiant)
-            if etudiant_dict not in all_etudiants:
-                all_etudiants.append(etudiant_dict)
-
-    for etudiant in all_etudiants:
-        filiere = etudiant['filiere']
-        niveau = etudiant['niveau']
-
-        if filiere not in filieres_etudiants:
-            filieres_etudiants[filiere] = {}
-
-        if niveau not in filieres_etudiants[filiere]:
-            filieres_etudiants[filiere][niveau] = []
-
-        if etudiant not in filieres_etudiants[filiere][niveau]:
-            filieres_etudiants[filiere][niveau].append(etudiant)
-
-    return render_template('prof_dashboard_ultra.html',
-                           cours=cours,
-                           cours_etudiants=cours_etudiants,
-                           events=events,
-                           stats=stats,
-                           emploi_temps=emploi_temps,
-                           filieres_etudiants=filieres_etudiants,
-                           nom=session.get('nom', ''),
-                           prenom=session.get('prenom', ''))
 
 # Route supprimée - utilisation de la route principale unifiée
 
@@ -572,15 +429,34 @@ def student_dashboard():
     user_filiere = session.get('filiere')
     user_niveau = session.get('niveau')
     cursor = conn.cursor(dictionary=True)
-    courses_query = """
-        SELECT c.* FROM courses c
-        JOIN emploi_temps et ON c.id = et.course_id
-        WHERE et.user_id = %s AND et.role = 'etudiant' AND c.filiere = %s AND c.niveau = %s
-        ORDER BY c.start
-    """
-    cursor.execute(courses_query, (user_id, user_filiere, user_niveau))
+    
+    # Vérifier si la colonne niveau existe dans courses
+    # Récupérer tous les résultats pour éviter "Unread result found"
+    cursor.execute("SHOW COLUMNS FROM courses LIKE 'niveau'")
+    results = cursor.fetchall()
+    niveau_exists = len(results) > 0
+    
+    if niveau_exists and user_niveau:
+        courses_query = """
+            SELECT c.* FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'etudiant' 
+            AND c.filiere = %s 
+            AND (c.niveau = %s OR c.niveau IS NULL OR c.niveau = '')
+            ORDER BY c.start
+        """
+        cursor.execute(courses_query, (user_id, user_filiere, user_niveau))
+    else:
+        courses_query = """
+            SELECT c.* FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'etudiant' 
+            AND c.filiere = %s
+            ORDER BY c.start
+        """
+        cursor.execute(courses_query, (user_id, user_filiere))
+    
     raw_courses = cursor.fetchall()
-    conn.close()
 
     events = []
     from datetime import datetime
@@ -619,23 +495,37 @@ def student_dashboard():
         })
 
     # Récupérer les documents récents pour les cours de l'étudiant
-    conn = get_db_connection()
-    if not conn:
-        flash("Erreur de connexion à la base de données.", "danger")
-        return redirect(url_for('login'))
-
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('''
-    SELECT d.id, d.titre, d.description, d.nom_fichier, d.date_upload,
-           c.nom_cours, u.nom as prof_nom, u.prenom as prof_prenom
-    FROM documents d
-    JOIN courses c ON d.course_id = c.id
-    JOIN users u ON d.professeur_id = u.id
-    JOIN emploi_temps et ON c.id = et.course_id
-    WHERE et.user_id = %s AND et.role = 'etudiant' AND d.visible = 1
-    ORDER BY d.date_upload DESC
-    LIMIT 5
-    ''', (session['user_id'],))
+    # Utiliser nom_cours et filiere si disponibles, sinon utiliser course_id
+    cursor.execute("SHOW COLUMNS FROM documents LIKE 'nom_cours'")
+    nom_cours_exists = cursor.fetchone() is not None
+    
+    if nom_cours_exists:
+        # Récupérer les documents par nom_cours et filiere (disponibles pendant 5 ans)
+        cursor.execute('''
+        SELECT DISTINCT d.id, d.titre, d.description, d.nom_fichier, d.date_upload,
+               d.nom_cours, u.nom as prof_nom, u.prenom as prof_prenom
+        FROM documents d
+        JOIN users u ON d.professeur_id = u.id
+        JOIN courses c ON d.nom_cours = c.nom_cours AND d.filiere = c.filiere
+        JOIN emploi_temps et ON c.id = et.course_id
+        WHERE et.user_id = %s AND et.role = 'etudiant' AND d.visible = 1
+        AND d.date_upload >= DATE_SUB(NOW(), INTERVAL 5 YEAR)
+        ORDER BY d.date_upload DESC
+        LIMIT 5
+        ''', (session['user_id'],))
+    else:
+        # Compatibilité avec l'ancienne structure
+        cursor.execute('''
+        SELECT d.id, d.titre, d.description, d.nom_fichier, d.date_upload,
+               c.nom_cours, u.nom as prof_nom, u.prenom as prof_prenom
+        FROM documents d
+        JOIN courses c ON d.course_id = c.id
+        JOIN users u ON d.professeur_id = u.id
+        JOIN emploi_temps et ON c.id = et.course_id
+        WHERE et.user_id = %s AND et.role = 'etudiant' AND d.visible = 1
+        ORDER BY d.date_upload DESC
+        LIMIT 5
+        ''', (session['user_id'],))
     documents_recents = cursor.fetchall()
 
     # Récupérer les absences récentes de l'étudiant
@@ -654,90 +544,245 @@ def student_dashboard():
     # Calculer les vraies statistiques
     from datetime import datetime, timedelta
 
-    # 1. Cours cette semaine
+    # Créer un nouveau curseur pour les statistiques pour éviter "Unread result found"
+    stats_cursor = conn.cursor(dictionary=True)
+
+    # 1. Cours cette semaine (utiliser start ou date_cours et gérer les récurrences par jour)
     today = datetime.now()
     start_of_week = today - timedelta(days=today.weekday())  # Lundi de cette semaine
     end_of_week = start_of_week + timedelta(days=6)  # Dimanche de cette semaine
+    start_of_week_str = start_of_week.strftime('%Y-%m-%d')
+    end_of_week_str = end_of_week.strftime('%Y-%m-%d')
+    # Jours de la semaine (Fr) pour correspondre à c.jour_semaine
+    jours_semaine = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
-    cursor.execute('''
-        SELECT COUNT(*) as count FROM courses c
+    # Compter les cours cette semaine (une occurrence par cours si planifié dans la semaine)
+    # Définir le filtre niveau
+    if niveau_exists and user_niveau:
+        niveau_filter = "AND (c.niveau = %s OR c.niveau IS NULL OR c.niveau = '')"
+        params_cours = (user_id, user_filiere, user_niveau,
+                        start_of_week_str, end_of_week_str,
+                        start_of_week_str, end_of_week_str,
+                        jours_semaine[0], jours_semaine[1], jours_semaine[2],
+                        jours_semaine[3], jours_semaine[4], jours_semaine[5], jours_semaine[6])
+    else:
+        niveau_filter = ""
+        params_cours = (user_id, user_filiere,
+                        start_of_week_str, end_of_week_str,
+                        start_of_week_str, end_of_week_str,
+                        jours_semaine[0], jours_semaine[1], jours_semaine[2],
+                        jours_semaine[3], jours_semaine[4], jours_semaine[5], jours_semaine[6])
+    
+    query_cours_semaine = f'''
+        SELECT COUNT(DISTINCT c.id) as count FROM courses c
         JOIN emploi_temps et ON c.id = et.course_id
         WHERE et.user_id = %s AND et.role = 'etudiant'
-        AND date(c.date_cours) BETWEEN %s AND %s
-    ''', (user_id, start_of_week.strftime('%Y-%m-%d'), end_of_week.strftime('%Y-%m-%d')))
-    cours_cette_semaine = cursor.fetchone()
+        AND c.filiere = %s 
+        {niveau_filter}
+        AND (
+            (c.date_cours IS NOT NULL AND DATE(c.date_cours) BETWEEN %s AND %s)
+            OR (c.date_cours IS NULL AND DATE(c.start) BETWEEN %s AND %s)
+            OR (c.recurrent = 1 AND c.jour_semaine IN (%s, %s, %s, %s, %s, %s, %s))
+        )
+    '''
+    stats_cursor.execute(query_cours_semaine, params_cours)
+    result = stats_cursor.fetchall()
+    cours_cette_semaine = result[0] if result else {'count': 0}
 
     # Cours semaine dernière pour comparaison
     start_last_week = start_of_week - timedelta(days=7)
     end_last_week = start_of_week - timedelta(days=1)
+    start_last_week_str = start_last_week.strftime('%Y-%m-%d')
+    end_last_week_str = end_last_week.strftime('%Y-%m-%d')
 
-    cursor.execute('''
-        SELECT COUNT(*) as count FROM courses c
+    if niveau_exists and user_niveau:
+        params_cours_last = (user_id, user_filiere, user_niveau,
+                             start_last_week_str, end_last_week_str,
+                             start_last_week_str, end_last_week_str,
+                             jours_semaine[0], jours_semaine[1], jours_semaine[2],
+                             jours_semaine[3], jours_semaine[4], jours_semaine[5], jours_semaine[6])
+    else:
+        params_cours_last = (user_id, user_filiere,
+                             start_last_week_str, end_last_week_str,
+                             start_last_week_str, end_last_week_str,
+                             jours_semaine[0], jours_semaine[1], jours_semaine[2],
+                             jours_semaine[3], jours_semaine[4], jours_semaine[5], jours_semaine[6])
+    
+    query_cours_semaine_last = f'''
+        SELECT COUNT(DISTINCT c.id) as count FROM courses c
         JOIN emploi_temps et ON c.id = et.course_id
         WHERE et.user_id = %s AND et.role = 'etudiant'
-        AND date(c.date_cours) BETWEEN %s AND %s
-    ''', (user_id, start_last_week.strftime('%Y-%m-%d'), end_last_week.strftime('%Y-%m-%d')))
-    cours_semaine_derniere = cursor.fetchone()
+        AND c.filiere = %s 
+        {niveau_filter}
+        AND (
+            (c.date_cours IS NOT NULL AND DATE(c.date_cours) BETWEEN %s AND %s)
+            OR (c.date_cours IS NULL AND DATE(c.start) BETWEEN %s AND %s)
+            OR (c.recurrent = 1 AND c.jour_semaine IN (%s, %s, %s, %s, %s, %s, %s))
+        )
+    '''
+    stats_cursor.execute(query_cours_semaine_last, params_cours_last)
+    result = stats_cursor.fetchall()
+    cours_semaine_derniere = result[0] if result else {'count': 0}
 
-    # 2. Absences à justifier
-    cursor.execute('''
+    # 2. Absences (toutes absences/retards enregistrées dans "Mes absences")
+    stats_cursor.execute('''
         SELECT COUNT(*) as count FROM presences p
-        JOIN courses c ON p.course_id = c.id
-        WHERE p.etudiant_id = %s AND p.statut IN ('absent', 'retard')
-        AND (p.commentaire IS NULL OR p.commentaire = '')
+        WHERE p.etudiant_id = %s 
+        AND p.statut IN ('absent', 'retard')
     ''', (user_id,))
-    absences_a_justifier = cursor.fetchone()
+    result = stats_cursor.fetchall()
+    absences_total = result[0] if result else {'count': 0}
 
-    # 3. Prochains examens (cours avec "examen" dans le nom ou description)
-    cursor.execute('''
-        SELECT COUNT(*) as count FROM courses c
+    # 3. Prochains examens (cours avec "examen" dans le nom ou description, ou date future)
+    today_str = today.strftime('%Y-%m-%d')
+    if niveau_exists and user_niveau:
+        params_examens = (user_id, user_filiere, user_niveau, today_str, today_str)
+    else:
+        params_examens = (user_id, user_filiere, today_str, today_str)
+    
+    query_examens = f'''
+        SELECT COUNT(DISTINCT c.id) as count FROM courses c
         JOIN emploi_temps et ON c.id = et.course_id
         WHERE et.user_id = %s AND et.role = 'etudiant'
-        AND (LOWER(c.nom_cours) LIKE '%%examen%%' OR LOWER(c.description) LIKE '%%examen%%'
-             OR LOWER(c.nom_cours) LIKE '%%test%%' OR LOWER(c.description) LIKE '%%test%%')
-        AND date(c.date_cours) > CURDATE()
-    ''', (user_id,))
-    prochains_examens = cursor.fetchone()
+        AND c.filiere = %s 
+        {niveau_filter}
+        AND (
+            LOWER(c.nom_cours) LIKE '%%examen%%' 
+            OR LOWER(c.nom_cours) LIKE '%%test%%'
+            OR LOWER(c.nom_cours) LIKE '%%evaluation%%'
+            OR LOWER(c.description) LIKE '%%examen%%'
+            OR LOWER(c.description) LIKE '%%test%%'
+            OR LOWER(c.description) LIKE '%%evaluation%%'
+        )
+        AND (
+            (c.date_cours IS NOT NULL AND DATE(c.date_cours) >= %s)
+            OR (c.date_cours IS NULL AND DATE(c.start) >= %s)
+        )
+    '''
+    stats_cursor.execute(query_examens, params_examens)
+    result = stats_cursor.fetchall()
+    prochains_examens = result[0] if result else {'count': 0}
 
     # Prochain examen le plus proche
-    cursor.execute('''
-        SELECT MIN(date(c.date_cours)) as next_exam FROM courses c
+    query_examen_date = f'''
+        SELECT MIN(COALESCE(DATE(c.date_cours), DATE(c.start))) as next_exam 
+        FROM courses c
         JOIN emploi_temps et ON c.id = et.course_id
         WHERE et.user_id = %s AND et.role = 'etudiant'
-        AND (LOWER(c.nom_cours) LIKE '%%examen%%' OR LOWER(c.description) LIKE '%%examen%%'
-             OR LOWER(c.nom_cours) LIKE '%%test%%' OR LOWER(c.description) LIKE '%%test%%')
-        AND date(c.date_cours) > CURDATE()
-    ''', (user_id,))
-    prochain_examen_date = cursor.fetchone()
+        AND c.filiere = %s 
+        {niveau_filter}
+        AND (
+            LOWER(c.nom_cours) LIKE '%%examen%%' 
+            OR LOWER(c.nom_cours) LIKE '%%test%%'
+            OR LOWER(c.nom_cours) LIKE '%%evaluation%%'
+            OR LOWER(c.description) LIKE '%%examen%%'
+            OR LOWER(c.description) LIKE '%%test%%'
+            OR LOWER(c.description) LIKE '%%evaluation%%'
+        )
+        AND (
+            (c.date_cours IS NOT NULL AND DATE(c.date_cours) >= %s)
+            OR (c.date_cours IS NULL AND DATE(c.start) >= %s)
+        )
+    '''
+    stats_cursor.execute(query_examen_date, params_examens)
+    result = stats_cursor.fetchall()
+    prochain_examen_date = result[0] if result else {'next_exam': None}
 
     # Calculer les jours jusqu'au prochain examen
     jours_prochain_examen = 0
     if prochain_examen_date and prochain_examen_date['next_exam']:
-        exam_date = datetime.strptime(prochain_examen_date['next_exam'], '%Y-%m-%d')
-        jours_prochain_examen = (exam_date - today).days
+        try:
+            if isinstance(prochain_examen_date['next_exam'], str):
+                exam_date = datetime.strptime(prochain_examen_date['next_exam'], '%Y-%m-%d')
+            else:
+                exam_date = prochain_examen_date['next_exam']
+            jours_prochain_examen = (exam_date.date() - today.date()).days
+            if jours_prochain_examen < 0:
+                jours_prochain_examen = 0
+        except:
+            jours_prochain_examen = 0
 
-    # 4. Moyenne générale (simulée pour l'instant - vous pouvez ajouter une table notes)
-    # Pour l'instant, on génère une moyenne basée sur la présence
-    total_cours = len(raw_courses)
-    total_absences = absences_a_justifier['count'] if absences_a_justifier else 0
-
-    # Calcul simple : 20 - (absences * 2), minimum 10
-    moyenne_generale = max(10.0, 20.0 - (total_absences * 1.5)) if total_cours > 0 else 15.0
+    # 4. Moyenne générale (basée sur la table notes)
+    stats_cursor.execute('''
+        SELECT CC1, CC2, Participation, Examen 
+        FROM notes 
+        WHERE etudiant_id = %s
+        AND (CC1 IS NOT NULL OR CC2 IS NOT NULL OR Participation IS NOT NULL OR Examen IS NOT NULL)
+    ''', (user_id,))
+    notes_rows = stats_cursor.fetchall()
+    
+    moyenne_generale = 0.0
+    moyenne_mois_dernier = 0.0
+    
+    if notes_rows:
+        # Calculer la moyenne actuelle
+        total_moyennes = 0
+        nb_cours_avec_notes = 0
+        
+        for note in notes_rows:
+            # Calculer la moyenne pour ce cours
+            notes_valides = []
+            if note.get('CC1') is not None:
+                try:
+                    notes_valides.append(float(note['CC1']))
+                except Exception:
+                    pass
+            if note.get('CC2') is not None:
+                try:
+                    notes_valides.append(float(note['CC2']))
+                except Exception:
+                    pass
+            if note.get('Participation') is not None:
+                try:
+                    notes_valides.append(float(note['Participation']))
+                except Exception:
+                    pass
+            if note.get('Examen') is not None:
+                try:
+                    notes_valides.append(float(note['Examen']))
+                except Exception:
+                    pass
+            
+            if notes_valides:
+                moyenne_cours = sum(notes_valides) / len(notes_valides)
+                total_moyennes += moyenne_cours
+                nb_cours_avec_notes += 1
+        
+        if nb_cours_avec_notes > 0:
+            moyenne_generale = float(total_moyennes) / float(nb_cours_avec_notes)
+        
+        # Calculer la variation de moyenne (basée sur l'évolution récente)
+        # Pour une vraie comparaison temporelle, il faudrait stocker l'historique
+        # Ici, on calcule une variation basée sur les performances récentes
+        total_absences = absences_total['count'] if absences_total else 0
+        # Variation basée sur les absences (plus d'absences = baisse potentielle)
+        # Mais aussi sur la moyenne actuelle (si moyenne > 15, tendance positive)
+        if float(moyenne_generale) >= 15.0:
+            variation_moyenne = max(0.0, min(2.0, (float(moyenne_generale) - 15.0) * 0.1 - float(total_absences) * 0.05))
+        else:
+            variation_moyenne = max(-2.0, min(0.0, (float(moyenne_generale) - 15.0) * 0.1 - float(total_absences) * 0.1))
+    else:
+        # Pas de notes, moyenne par défaut basée sur les absences
+        total_absences = absences_total['count'] if absences_total else 0
+        moyenne_generale = max(10.0, 20.0 - (float(total_absences) * 1.5))
+        variation_moyenne = 0.0
 
     # Statistiques pour le template
     stats = {
         'cours_cette_semaine': cours_cette_semaine['count'] if cours_cette_semaine else 0,
         'cours_semaine_derniere': cours_semaine_derniere['count'] if cours_semaine_derniere else 0,
         'moyenne_generale': round(moyenne_generale, 1),
-        'absences_a_justifier': total_absences,
+        'absences_a_justifier': absences_total['count'] if absences_total else 0,
         'prochains_examens': prochains_examens['count'] if prochains_examens else 0,
         'jours_prochain_examen': jours_prochain_examen
     }
 
     # Calcul des variations
     stats['variation_cours'] = stats['cours_cette_semaine'] - stats['cours_semaine_derniere']
-    stats['variation_moyenne'] = 0.3  # Simulé pour l'instant
+    stats['variation_moyenne'] = round(variation_moyenne, 1)
 
+    # Fermer le curseur des statistiques avant de fermer la connexion
+    stats_cursor.close()
     conn.close()
 
     return render_template('student_dashboard.html',
@@ -832,6 +877,822 @@ def professeur_emploi_temps():
                                nom=session.get('nom', ''),
                                prenom=session.get('prenom', ''),
                                error_message="Erreur lors du chargement du planning. Veuillez réessayer.")
+
+# 🎯 GESTION COMPLÈTE DU MODULE PAR LE PROFESSEUR
+@app.route('/professeur/course/<int:course_id>/manage')
+@login_required
+def professeur_course_manage(course_id):
+    """Page de gestion complète d'un module avec 7 onglets"""
+    try:
+        if session.get('role') != 'professeur':
+            flash("Accès refusé.", "danger")
+            return redirect(url_for('login'))
+
+        user_id = session['user_id']
+        conn = get_db_connection()
+        if not conn:
+            flash("Erreur de connexion à la base de données.", "danger")
+            return redirect(url_for('professeur_emploi_temps'))
+
+        cursor = conn.cursor(dictionary=True)
+        
+        # Vérifier que le cours appartient à ce professeur
+        cursor.execute("""
+            SELECT c.*, u.prenom, u.nom
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            JOIN users u ON et.user_id = u.id
+            WHERE c.id = %s AND et.user_id = %s AND et.role = 'professeur'
+        """, (course_id, user_id))
+        
+        course = cursor.fetchone()
+        
+        if not course:
+            print(f"DEBUG: Cours non trouvé - Course ID: {course_id}, User ID: {user_id}")
+            # Vérifier si le cours existe
+            cursor.execute("SELECT * FROM courses WHERE id = %s", (course_id,))
+            course_exists = cursor.fetchone()
+            if course_exists:
+                print(f"DEBUG: Le cours existe mais n'est pas associé à ce professeur")
+                cursor.execute("""
+                    SELECT et.* FROM emploi_temps et 
+                    WHERE et.course_id = %s AND et.role = 'professeur'
+                """, (course_id,))
+                emploi_temps_data = cursor.fetchall()
+                print(f"DEBUG: Emploi temps pour ce cours: {emploi_temps_data}")
+            flash("Cours non trouvé ou accès refusé. Vérifiez que vous êtes bien assigné à ce cours.", "danger")
+            conn.close()
+            return redirect(url_for('professeur_emploi_temps'))
+
+        # Récupérer les étudiants inscrits au module (par filière)
+        # Vérifier si la colonne classe existe
+        cursor.execute("SHOW COLUMNS FROM users LIKE 'classe'")
+        classe_exists = cursor.fetchone() is not None
+        
+        if classe_exists:
+            cursor.execute("""
+                SELECT u.id, u.nom, u.prenom, u.email, u.filiere, u.niveau, u.classe
+                FROM users u
+                WHERE u.role = 'etudiant' AND u.filiere = %s
+                ORDER BY u.nom, u.prenom
+            """, (course['filiere'],))
+        else:
+            cursor.execute("""
+                SELECT u.id, u.nom, u.prenom, u.email, u.filiere, u.niveau, NULL as classe
+                FROM users u
+                WHERE u.role = 'etudiant' AND u.filiere = %s
+                ORDER BY u.nom, u.prenom
+            """, (course['filiere'],))
+        etudiants = cursor.fetchall()
+
+        # Récupérer les présences pour ce cours
+        from datetime import datetime
+        today = datetime.now().strftime('%Y-%m-%d')
+        cursor.execute("""
+            SELECT etudiant_id, date_cours, statut, commentaire
+            FROM presences
+            WHERE course_id = %s
+            ORDER BY date_cours DESC, etudiant_id
+        """, (course_id,))
+        presences = {f"{p['etudiant_id']}_{p['date_cours']}": p for p in cursor.fetchall()}
+
+        # Récupérer les documents/ressources pour ce module (par nom_cours et filiere)
+        # Les documents restent disponibles pendant 5 ans
+        nom_cours = course['nom_cours']
+        filiere_cours = course['filiere']
+        
+        # Vérifier si les colonnes nom_cours et filiere existent dans documents
+        cursor.execute("SHOW COLUMNS FROM documents LIKE 'nom_cours'")
+        nom_cours_exists = cursor.fetchone() is not None
+        
+        if nom_cours_exists:
+            # Récupérer tous les documents de ce module (nom_cours + filiere) de moins de 5 ans
+            cursor.execute("""
+                SELECT id, titre, description, nom_fichier, chemin_fichier, type_doc, date_upload, visible
+                FROM documents
+                WHERE nom_cours = %s AND filiere = %s
+                AND date_upload >= DATE_SUB(NOW(), INTERVAL 5 YEAR)
+                ORDER BY date_upload DESC
+            """, (nom_cours, filiere_cours))
+        else:
+            # Si les colonnes n'existent pas encore, utiliser course_id (compatibilité)
+            cursor.execute("""
+                SELECT id, titre, description, nom_fichier, chemin_fichier, type_doc, date_upload, visible
+                FROM documents
+                WHERE course_id = %s
+                ORDER BY date_upload DESC
+            """, (course_id,))
+        documents = cursor.fetchall()
+
+        # Récupérer les notes (si la table existe)
+        notes_data = {}
+        try:
+            cursor.execute("""
+                SELECT etudiant_id, nom_cours, CC1, CC2, Participation, Examen
+                FROM notes
+                WHERE nom_cours = %s
+            """, (course['nom_cours'],))
+            for note in cursor.fetchall():
+                notes_data[note['etudiant_id']] = note
+        except:
+            pass  # Table notes peut ne pas exister
+
+        # Vérifier et créer les tables nécessaires si elles n'existent pas
+        try:
+            # Table lectures (contenus de cours)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS lectures (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    course_id INT NOT NULL,
+                    titre VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    contenu TEXT,
+                    date_seance DATE,
+                    ordre INT DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Table exams
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS exams (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    course_id INT NOT NULL,
+                    type_examen VARCHAR(50) NOT NULL,
+                    titre VARCHAR(255) NOT NULL,
+                    date_examen DATE,
+                    coefficient DOUBLE DEFAULT 1.0,
+                    description TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Table assignments
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS assignments (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    course_id INT NOT NULL,
+                    titre VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    date_publication DATE,
+                    date_limite DATE,
+                    type_assignment VARCHAR(50) DEFAULT 'devoir',
+                    fichier_corrige VARCHAR(255),
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Table assignment_submissions (devoirs rendus)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS assignment_submissions (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    assignment_id INT NOT NULL,
+                    etudiant_id INT NOT NULL,
+                    fichier_rendu VARCHAR(255),
+                    date_rendu DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    note DOUBLE,
+                    commentaire TEXT,
+                    FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
+                    FOREIGN KEY (etudiant_id) REFERENCES users(id) ON DELETE CASCADE,
+                    UNIQUE(assignment_id, etudiant_id)
+                )
+            """)
+            
+            # Table gradebook (notes détaillées)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS gradebook (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    course_id INT NOT NULL,
+                    etudiant_id INT NOT NULL,
+                    professeur_id INT NOT NULL,
+                    type_note VARCHAR(50) NOT NULL,
+                    note DOUBLE NOT NULL,
+                    coefficient DOUBLE DEFAULT 1.0,
+                    date_note DATE,
+                    commentaire TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                    FOREIGN KEY (etudiant_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (professeur_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Ajouter la colonne professeur_id si elle n'existe pas (pour les tables existantes)
+            try:
+                cursor.execute("SHOW COLUMNS FROM gradebook LIKE 'professeur_id'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE gradebook ADD COLUMN professeur_id INT NOT NULL AFTER etudiant_id")
+                    cursor.execute("ALTER TABLE gradebook ADD FOREIGN KEY (professeur_id) REFERENCES users(id) ON DELETE CASCADE")
+            except Exception as e:
+                print(f"Note: colonne professeur_id peut déjà exister: {e}")
+            
+            conn.commit()
+        except Exception as e:
+            print(f"Erreur création tables: {e}")
+            pass
+
+        # Récupérer les lectures
+        cursor.execute("""
+            SELECT id, titre, description, contenu, date_seance, ordre
+            FROM lectures
+            WHERE course_id = %s
+            ORDER BY ordre, date_seance, created_at
+        """, (course_id,))
+        lectures = cursor.fetchall()
+
+        # Récupérer les exams
+        cursor.execute("""
+            SELECT id, type_examen, titre, date_examen, coefficient, description
+            FROM exams
+            WHERE course_id = %s
+            ORDER BY date_examen DESC
+        """, (course_id,))
+        exams = cursor.fetchall()
+
+        # Récupérer les assignments
+        cursor.execute("""
+            SELECT id, titre, description, date_publication, date_limite, type_assignment, fichier_corrige
+            FROM assignments
+            WHERE course_id = %s
+            ORDER BY date_limite DESC
+        """, (course_id,))
+        assignments = cursor.fetchall()
+
+        # Récupérer les notes du gradebook
+        cursor.execute("""
+            SELECT etudiant_id, type_note, note, coefficient, date_note, commentaire
+            FROM gradebook
+            WHERE course_id = %s
+            ORDER BY etudiant_id, date_note DESC
+        """, (course_id,))
+        gradebook_notes = {}
+        for gb_note in cursor.fetchall():
+            etud_id = gb_note['etudiant_id']
+            if etud_id not in gradebook_notes:
+                gradebook_notes[etud_id] = []
+            gradebook_notes[etud_id].append(gb_note)
+
+        conn.close()
+
+        return render_template('professeur_course_manage.html',
+                               course=course,
+                               etudiants=etudiants,
+                               presences=presences,
+                               documents=documents,
+                               notes_data=notes_data,
+                               lectures=lectures,
+                               exams=exams,
+                               assignments=assignments,
+                               gradebook_notes=gradebook_notes,
+                               today=today,
+                               nom=session.get('nom', ''),
+                               prenom=session.get('prenom', ''))
+
+    except Exception as e:
+        import traceback
+        error_msg = f"Erreur gestion module: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        print(f"Course ID: {course_id}, User ID: {session.get('user_id')}")
+        flash(f"Erreur lors du chargement de la page de gestion: {str(e)}", "error")
+        return redirect(url_for('professeur_emploi_temps'))
+
+# Routes POST pour la gestion du module
+@app.route('/professeur/course/<int:course_id>/presences', methods=['GET'])
+@login_required
+def get_presences(course_id):
+    """Récupérer les présences pour une date donnée"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        date = request.args.get('date')
+        if not date:
+            return jsonify({'success': False, 'message': 'Date requise'}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT etudiant_id, statut, commentaire
+            FROM presences
+            WHERE course_id = %s AND date_cours = %s
+        """, (course_id, date))
+        
+        presences = cursor.fetchall()
+        conn.close()
+        
+        return jsonify({'success': True, 'presences': presences})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/professeur/course/<int:course_id>/presences/save', methods=['POST'])
+@login_required
+def save_course_presences(course_id):
+    """Sauvegarder les présences pour un cours"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        data = request.get_json()
+        date = data.get('date_cours') or data.get('date')  # Support des deux formats
+        if not date:
+            # Si aucune date n'est fournie, utiliser la date du jour
+            from datetime import datetime
+            date = datetime.now().strftime('%Y-%m-%d')
+        presences = data.get('presences', {})  # Peut être un objet ou une liste
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        professeur_id = session['user_id']
+        
+        # Gérer les deux formats : liste ou dictionnaire
+        if isinstance(presences, dict):
+            # Format dictionnaire : {etudiant_id: {statut: ..., commentaire: ...}}
+            for etudiant_id, presence_info in presences.items():
+                statut = presence_info.get('statut', 'unspecified')
+                commentaire = presence_info.get('commentaire', '')
+                
+                cursor.execute("""
+                    INSERT INTO presences (etudiant_id, course_id, professeur_id, date_cours, statut, commentaire)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE statut = %s, commentaire = %s, professeur_id = %s, updated_at = NOW()
+                """, (etudiant_id, course_id, professeur_id, date, statut, commentaire,
+                      statut, commentaire, professeur_id))
+        else:
+            # Format liste : [{'etudiant_id': ..., 'statut': ..., ...}, ...]
+            for p in presences:
+                cursor.execute("""
+                    INSERT INTO presences (etudiant_id, course_id, professeur_id, date_cours, statut, commentaire)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE statut = %s, commentaire = %s, professeur_id = %s, updated_at = NOW()
+                """, (p.get('etudiant_id') or p.get('etudiantId'), course_id, professeur_id, date, 
+                      p.get('statut', 'unspecified'), p.get('commentaire', ''),
+                      p.get('statut', 'unspecified'), p.get('commentaire', ''), professeur_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Présences enregistrées'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/professeur/course/<int:course_id>/lecture/add', methods=['POST'])
+@login_required
+def add_lecture(course_id):
+    """Ajouter une séance de cours"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        data = request.get_json()
+        cursor = get_db_connection().cursor()
+        
+        cursor.execute("""
+            INSERT INTO lectures (course_id, titre, description, contenu, date_seance, ordre)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (course_id, data.get('titre'), data.get('description'), data.get('contenu'), 
+              data.get('date_seance'), data.get('ordre', 0)))
+        
+        get_db_connection().commit()
+        get_db_connection().close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/professeur/course/<int:course_id>/exam/add', methods=['POST'])
+@login_required
+def add_exam(course_id):
+    """Créer un examen"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        data = request.get_json()
+        cursor = get_db_connection().cursor()
+        
+        cursor.execute("""
+            INSERT INTO exams (course_id, type_examen, titre, date_examen, coefficient, description)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (course_id, data.get('type_examen'), data.get('titre'), data.get('date_examen'),
+              data.get('coefficient', 1.0), data.get('description')))
+        
+        get_db_connection().commit()
+        get_db_connection().close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/professeur/course/<int:course_id>/assignment/add', methods=['POST'])
+@login_required
+def add_assignment(course_id):
+    """Publier un devoir"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        data = request.get_json()
+        cursor = get_db_connection().cursor()
+        
+        cursor.execute("""
+            INSERT INTO assignments (course_id, titre, description, date_publication, date_limite, type_assignment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (course_id, data.get('titre'), data.get('description'), data.get('date_publication'),
+              data.get('date_limite'), data.get('type_assignment', 'devoir')))
+        
+        get_db_connection().commit()
+        get_db_connection().close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+def sync_gradebook_to_notes(course_id, etudiant_id, professeur_id=None):
+    """Synchroniser les notes du gradebook vers la table notes pour l'administrateur"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return False
+        
+        cursor = conn.cursor(dictionary=True)
+        
+        # Récupérer le nom du cours
+        cursor.execute("SELECT nom_cours, filiere, niveau FROM courses WHERE id = %s", (course_id,))
+        course = cursor.fetchone()
+        if not course:
+            conn.close()
+            return False
+        
+        nom_cours = course['nom_cours']
+        
+        # Si professeur_id n'est pas fourni, le récupérer depuis le gradebook
+        if professeur_id is None:
+            cursor.execute("""
+                SELECT professeur_id FROM gradebook 
+                WHERE course_id = %s AND etudiant_id = %s 
+                LIMIT 1
+            """, (course_id, etudiant_id))
+            prof_result = cursor.fetchone()
+            if prof_result:
+                professeur_id = prof_result['professeur_id']
+        
+        # Vérifier si la colonne professeur_id existe dans notes
+        cursor.execute("SHOW COLUMNS FROM notes LIKE 'professeur_id'")
+        professeur_id_exists = cursor.fetchone() is not None
+        if not professeur_id_exists and professeur_id:
+            try:
+                cursor.execute("ALTER TABLE notes ADD COLUMN professeur_id INT AFTER etudiant_id")
+                cursor.execute("ALTER TABLE notes ADD FOREIGN KEY (professeur_id) REFERENCES users(id) ON DELETE CASCADE")
+                conn.commit()
+            except Exception as e:
+                print(f"Erreur ajout colonne professeur_id: {e}")
+        
+        # Vérifier si la colonne visible existe dans notes
+        cursor.execute("SHOW COLUMNS FROM notes LIKE 'visible'")
+        visible_exists = cursor.fetchone() is not None
+        if not visible_exists:
+            try:
+                cursor.execute("ALTER TABLE notes ADD COLUMN visible TINYINT(1) DEFAULT 0")
+                conn.commit()
+            except Exception as e:
+                print(f"Erreur ajout colonne visible: {e}")
+        
+        # Vérifier si la colonne semestre existe
+        cursor.execute("SHOW COLUMNS FROM notes LIKE 'semestre'")
+        semestre_exists = cursor.fetchone() is not None
+        
+        # Récupérer toutes les notes du gradebook pour ce cours et cet étudiant
+        cursor.execute("""
+            SELECT type_note, note, coefficient 
+            FROM gradebook 
+            WHERE course_id = %s AND etudiant_id = %s
+        """, (course_id, etudiant_id))
+        
+        gradebook_notes = cursor.fetchall()
+        
+        # Initialiser les valeurs
+        cc1 = None
+        cc2 = None
+        participation = None
+        examen = None
+        
+        # Regrouper les notes par type
+        for gb_note in gradebook_notes:
+            type_note = gb_note['type_note']
+            note_value = gb_note['note']
+            
+            if type_note == 'CC1':
+                cc1 = note_value
+            elif type_note == 'CC2':
+                cc2 = note_value
+            elif type_note == 'Participation':
+                participation = note_value
+            elif type_note == 'Examen':
+                examen = note_value
+            # Rattrapage n'est pas dans la table notes, on l'ignore pour l'instant
+        
+        # Vérifier si une note existe déjà pour ce cours et cet étudiant
+        if semestre_exists:
+            cursor.execute("""
+                SELECT id FROM notes 
+                WHERE etudiant_id = %s AND nom_cours = %s AND semestre = 1
+            """, (etudiant_id, nom_cours))
+        else:
+            cursor.execute("""
+                SELECT id FROM notes 
+                WHERE etudiant_id = %s AND nom_cours = %s
+            """, (etudiant_id, nom_cours))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Mettre à jour la note existante
+            if semestre_exists and professeur_id_exists and professeur_id:
+                cursor.execute("""
+                    UPDATE notes 
+                    SET CC1 = %s, CC2 = %s, Participation = %s, Examen = %s, professeur_id = %s
+                    WHERE id = %s
+                """, (cc1, cc2, participation, examen, professeur_id, existing['id']))
+            elif semestre_exists:
+                cursor.execute("""
+                    UPDATE notes 
+                    SET CC1 = %s, CC2 = %s, Participation = %s, Examen = %s
+                    WHERE id = %s
+                """, (cc1, cc2, participation, examen, existing['id']))
+            elif professeur_id_exists and professeur_id:
+                cursor.execute("""
+                    UPDATE notes 
+                    SET CC1 = %s, CC2 = %s, Participation = %s, Examen = %s, professeur_id = %s
+                    WHERE id = %s
+                """, (cc1, cc2, participation, examen, professeur_id, existing['id']))
+            else:
+                cursor.execute("""
+                    UPDATE notes 
+                    SET CC1 = %s, CC2 = %s, Participation = %s, Examen = %s
+                    WHERE id = %s
+                """, (cc1, cc2, participation, examen, existing['id']))
+        else:
+            # Insérer une nouvelle note
+            if semestre_exists and professeur_id_exists and professeur_id:
+                cursor.execute("""
+                    INSERT INTO notes (etudiant_id, professeur_id, nom_cours, CC1, CC2, Participation, Examen, semestre, visible)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 1, 0)
+                """, (etudiant_id, professeur_id, nom_cours, cc1, cc2, participation, examen))
+            elif semestre_exists:
+                cursor.execute("""
+                    INSERT INTO notes (etudiant_id, nom_cours, CC1, CC2, Participation, Examen, semestre, visible)
+                    VALUES (%s, %s, %s, %s, %s, %s, 1, 0)
+                """, (etudiant_id, nom_cours, cc1, cc2, participation, examen))
+            elif professeur_id_exists and professeur_id:
+                if visible_exists:
+                    cursor.execute("""
+                        INSERT INTO notes (etudiant_id, professeur_id, nom_cours, CC1, CC2, Participation, Examen, visible)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 0)
+                    """, (etudiant_id, professeur_id, nom_cours, cc1, cc2, participation, examen))
+                else:
+                    cursor.execute("""
+                        INSERT INTO notes (etudiant_id, professeur_id, nom_cours, CC1, CC2, Participation, Examen)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (etudiant_id, professeur_id, nom_cours, cc1, cc2, participation, examen))
+            else:
+                if visible_exists:
+                    cursor.execute("""
+                        INSERT INTO notes (etudiant_id, nom_cours, CC1, CC2, Participation, Examen, visible)
+                        VALUES (%s, %s, %s, %s, %s, %s, 0)
+                    """, (etudiant_id, nom_cours, cc1, cc2, participation, examen))
+                else:
+                    cursor.execute("""
+                        INSERT INTO notes (etudiant_id, nom_cours, CC1, CC2, Participation, Examen)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (etudiant_id, nom_cours, cc1, cc2, participation, examen))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Erreur synchronisation gradebook vers notes: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+@app.route('/professeur/course/<int:course_id>/gradebook/add', methods=['POST'])
+@login_required
+def add_gradebook_note(course_id):
+    """Ajouter une note au gradebook"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        data = request.get_json()
+        from datetime import datetime
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Vérifier si une note existe déjà pour ce type
+        cursor.execute("""
+            SELECT id FROM gradebook 
+            WHERE course_id = %s AND etudiant_id = %s AND type_note = %s
+        """, (course_id, data.get('etudiant_id'), data.get('type_note')))
+        
+        existing = cursor.fetchone()
+        
+        professeur_id = session['user_id']
+        
+        if existing:
+            # Mettre à jour la note existante
+            cursor.execute("""
+                UPDATE gradebook 
+                SET note = %s, coefficient = %s, date_note = %s, professeur_id = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (data.get('note'), data.get('coefficient', 1.0), 
+                  datetime.now().strftime('%Y-%m-%d'), professeur_id, existing[0]))
+        else:
+            # Insérer une nouvelle note
+            cursor.execute("""
+                INSERT INTO gradebook (course_id, etudiant_id, professeur_id, type_note, note, coefficient, date_note)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (course_id, data.get('etudiant_id'), professeur_id, data.get('type_note'), data.get('note'),
+                  data.get('coefficient', 1.0), datetime.now().strftime('%Y-%m-%d')))
+        
+        conn.commit()
+        
+        # Synchroniser vers la table notes
+        sync_gradebook_to_notes(course_id, data.get('etudiant_id'), professeur_id)
+        
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/professeur/course/<int:course_id>/gradebook/update', methods=['POST'])
+@login_required
+def update_gradebook_note(course_id):
+    """Mettre à jour une note du gradebook directement"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        data = request.get_json()
+        from datetime import datetime
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Mapper les types de notes
+        type_mapping = {
+            'CC1': 'CC1',
+            'CC2': 'CC2',
+            'Participation': 'Participation',
+            'Examen': 'Examen',
+            'Rattrapage': 'Rattrapage'
+        }
+        
+        type_note = type_mapping.get(data.get('type_note'), data.get('type_note'))
+        etudiant_id = data.get('etudiant_id')
+        note_value = data.get('note')
+        coefficient = data.get('coefficient', 1.0)
+        
+        professeur_id = session['user_id']
+        
+        if note_value is None or note_value == '':
+            # Supprimer la note si elle est vide
+            cursor.execute("""
+                DELETE FROM gradebook 
+                WHERE course_id = %s AND etudiant_id = %s AND type_note = %s
+            """, (course_id, etudiant_id, type_note))
+        else:
+            # Vérifier si une note existe déjà
+            cursor.execute("""
+                SELECT id FROM gradebook 
+                WHERE course_id = %s AND etudiant_id = %s AND type_note = %s
+            """, (course_id, etudiant_id, type_note))
+            
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Mettre à jour
+                cursor.execute("""
+                    UPDATE gradebook 
+                    SET note = %s, coefficient = %s, date_note = %s, professeur_id = %s, updated_at = NOW()
+                    WHERE id = %s
+                """, (float(note_value), float(coefficient), datetime.now().strftime('%Y-%m-%d'), professeur_id, existing[0]))
+            else:
+                # Insérer
+                cursor.execute("""
+                    INSERT INTO gradebook (course_id, etudiant_id, professeur_id, type_note, note, coefficient, date_note)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (course_id, etudiant_id, professeur_id, type_note, float(note_value), float(coefficient), 
+                      datetime.now().strftime('%Y-%m-%d')))
+        
+        conn.commit()
+        
+        # Synchroniser vers la table notes si une note a été ajoutée/modifiée
+        if note_value is not None and note_value != '':
+            sync_gradebook_to_notes(course_id, etudiant_id, professeur_id)
+        elif note_value is None or note_value == '':
+            # Si la note est supprimée, synchroniser quand même pour mettre à jour
+            sync_gradebook_to_notes(course_id, etudiant_id, professeur_id)
+        
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/professeur/course/<int:course_id>/gradebook/calculate', methods=['POST'])
+@login_required
+def calculate_gradebook_averages(course_id):
+    """Calculer les moyennes pour tous les étudiants du gradebook"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Récupérer tous les étudiants du cours
+        cursor.execute("""
+            SELECT u.id
+            FROM users u
+            JOIN courses c ON u.filiere = c.filiere
+            WHERE c.id = %s AND u.role = 'etudiant'
+        """, (course_id,))
+        etudiants = cursor.fetchall()
+        
+        # Pour chaque étudiant, calculer la moyenne
+        for etudiant in etudiants:
+            etudiant_id = etudiant['id']
+            
+            # Récupérer toutes les notes avec leurs coefficients
+            cursor.execute("""
+                SELECT type_note, note, coefficient
+                FROM gradebook
+                WHERE course_id = %s AND etudiant_id = %s
+            """, (course_id, etudiant_id))
+            notes = cursor.fetchall()
+            
+            if notes:
+                total = 0
+                total_coef = 0
+                for note in notes:
+                    if note['note'] is not None:
+                        total += note['note'] * note['coefficient']
+                        total_coef += note['coefficient']
+                
+                # La moyenne est calculée côté client, on ne stocke pas ici
+                # mais on pourrait ajouter une colonne moyenne dans gradebook si nécessaire
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Moyennes calculées'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/professeur/course/<int:course_id>/document/<int:doc_id>/delete', methods=['POST'])
+@login_required
+def delete_course_document(course_id, doc_id):
+    """Supprimer un document"""
+    try:
+        if session.get('role') != 'professeur':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Vérifier que le document appartient au cours
+        cursor.execute("SELECT chemin_fichier FROM documents WHERE id = %s AND course_id = %s", (doc_id, course_id))
+        doc = cursor.fetchone()
+        
+        if not doc:
+            return jsonify({'success': False, 'message': 'Document non trouvé'}), 404
+
+        # Supprimer le fichier
+        import os
+        file_path = os.path.join('uploads', doc['chemin_fichier'])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        # Supprimer de la base
+        cursor.execute("DELETE FROM documents WHERE id = %s", (doc_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # Route pour créer un compte professeur (pour l'admin)
 @app.route('/admin/add_professeur', methods=['GET', 'POST'])
@@ -1069,8 +1930,31 @@ def etudiants_paiements():
         return redirect(url_for('admin_home'))
 
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, prenom, nom FROM users WHERE role = 'etudiant' ORDER BY nom")
+    # Liste enrichie des étudiants avec filière, niveau et stats de paiement
+    cursor.execute("""
+        SELECT 
+            u.id, u.prenom, u.nom, u.email, 
+            u.filiere, u.niveau,
+            COALESCE(SUM(p.montant), 0) AS total_paye,
+            COUNT(p.id) AS nombre_paiements,
+            MAX(p.date) AS dernier_paiement
+        FROM users u
+        LEFT JOIN paiements p ON p.etudiant_id = u.id
+        WHERE u.role = 'etudiant'
+        GROUP BY u.id, u.prenom, u.nom, u.email, u.filiere, u.niveau
+        ORDER BY u.filiere ASC, u.niveau ASC, u.nom ASC, u.prenom ASC
+    """)
     etudiants = cursor.fetchall()
+
+    # Regrouper par (filiere, niveau) pour affichage professionnel
+    etudiants_groupes = {}
+    for e in etudiants:
+        filiere = e.get('filiere') or 'Non défini'
+        niveau = e.get('niveau') or 'Non défini'
+        key = (filiere, niveau)
+        if key not in etudiants_groupes:
+            etudiants_groupes[key] = []
+        etudiants_groupes[key].append(e)
 
     cursor.execute("""
         SELECT p.date, u.prenom, u.nom, p.observation AS description, p.montant, 'Recette' AS type
@@ -1082,7 +1966,12 @@ def etudiants_paiements():
 
     conn.close()
 
-    return render_template('etudiants_paiements.html', etudiants=etudiants, transactions=transactions)
+    return render_template(
+        'etudiants_paiements.html',
+        etudiants=etudiants,
+        etudiants_groupes=etudiants_groupes,
+        transactions=transactions
+    )
 
 @app.route('/admin/api/etudiant/<int:etudiant_id>/paiements', methods=['GET', 'POST'])
 @login_required
@@ -1513,7 +2402,7 @@ def admin_filieres():
     query = f"""
         SELECT {select_fields}
         FROM users 
-        WHERE role = 'etudiant' AND filiere IS NOT NULL AND filiere != '' 
+        WHERE role = 'etudiant' AND filiere IS NOT NULL AND filiere != ''
         AND niveau IS NOT NULL AND niveau != ''
         ORDER BY filiere, niveau, nom ASC
     """
@@ -1522,15 +2411,266 @@ def admin_filieres():
     etudiants = cursor.fetchall()
 
     # Regrouper les étudiants par (filiere, niveau)
-    groupes = {}
+    # Convertir en liste de dictionnaires pour faciliter l'affichage dans le template
+    groupes_list = []
+    groupes_dict = {}
     for etu in etudiants:
-        key = (etu['filiere'], etu['niveau'])
-        if key not in groupes:
-            groupes[key] = []
-        groupes[key].append(etu)
+        filiere = etu['filiere']
+        niveau = etu['niveau']
+        key = f"{filiere}_{niveau}"
+        
+        if key not in groupes_dict:
+            groupes_dict[key] = {
+                'filiere': filiere,
+                'niveau': niveau,
+                'etudiants': []
+            }
+        groupes_dict[key]['etudiants'].append(etu)
+    
+    # Convertir en liste triée
+    groupes_list = sorted(groupes_dict.values(), key=lambda x: (x['filiere'], x['niveau']))
 
     conn.close()
-    return render_template("admin_filieres.html", groupes=groupes, classe_exists=classe_exists)
+    return render_template("admin_filieres.html", groupes=groupes_list, classe_exists=classe_exists)
+
+@app.route('/admin/classes')
+@login_required
+@admin_required
+def admin_classes():
+    conn = get_db_connection()
+    if not conn:
+        flash("Erreur de connexion à la base de données.", "danger")
+        return redirect(url_for('admin_home'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Définir les 5 niveaux standards
+    niveaux_standards = ['L1', 'L2', 'L3', 'M1', 'M2']
+    
+    # Récupérer toutes les filières distinctes
+    cursor.execute("""
+        SELECT DISTINCT filiere 
+        FROM users 
+        WHERE role = 'etudiant' AND filiere IS NOT NULL AND filiere != ''
+        ORDER BY filiere ASC
+    """)
+    filieres = cursor.fetchall()
+
+    # Récupérer le nombre d'étudiants par filière et niveau
+    cursor.execute("""
+        SELECT filiere, niveau, COUNT(*) as count
+            FROM users 
+        WHERE role = 'etudiant' AND filiere IS NOT NULL AND filiere != ''
+        AND niveau IS NOT NULL AND niveau != ''
+        GROUP BY filiere, niveau
+    """)
+    classes_data = cursor.fetchall()
+    
+    # Créer un dictionnaire pour accéder rapidement aux counts
+    counts_dict = {}
+    for row in classes_data:
+        filiere = row['filiere']
+        niveau = row['niveau']
+        # Normaliser le niveau (prendre juste L1, L2, etc.)
+        niveau_normalise = niveau.split()[0] if niveau else ""
+        key = (filiere, niveau_normalise)
+        counts_dict[key] = row['count']
+
+    # Fonction pour générer le nom de classe (L1-IA, L2-IA, etc.)
+    def generer_nom_classe(niveau, filiere):
+        # Extraire le numéro du niveau (L1, L2, L3, M1, M2, etc.)
+        niveau_abbrev = niveau.split()[0] if niveau else ""
+        
+        # Mapping des filières vers leurs abréviations
+        filiere_abbrev_map = {
+            'Intelligence Artificielle': 'IA',
+            'IA': 'IA',
+            'Comptabilité Contrôle Audit': 'CCA',
+            'CCA': 'CCA',
+            'Finance': 'FINANCE',
+            'Finance et Gestion': 'FINANCE',
+            'Médecine': 'MEDS',
+            'MEDS': 'MEDS',
+            'Marketing': 'MARKETING',
+            'Marketing Digital': 'MARKETING'
+        }
+        
+        # Utiliser le mapping ou prendre les 3 premières lettres en majuscules
+        filiere_abbrev = filiere_abbrev_map.get(filiere, filiere.upper()[:8] if filiere else "")
+        
+        return f"{niveau_abbrev}-{filiere_abbrev}"
+
+    # Organiser les classes par filière avec les 5 niveaux pour chaque filière
+    # Les niveaux seront dans l'ordre : L1, L2, L3, M1, M2
+    classes_par_filiere = {}
+    
+    for filiere_row in filieres:
+        filiere = filiere_row['filiere']
+        classes_par_filiere[filiere] = []
+        
+        # Pour chaque niveau standard (dans l'ordre L1, L2, L3, M1, M2), créer une entrée
+        for niveau_abbrev in niveaux_standards:
+            # Déterminer les variantes textuelles pour correspondance flexible
+            variantes = {
+                'L1': ['L1', 'Licence 1', 'LICENCE 1'],
+                'L2': ['L2', 'Licence 2', 'LICENCE 2'],
+                'L3': ['L3', 'Licence 3', 'LICENCE 3'],
+                'M1': ['M1', 'Master 1', 'MASTER 1'],
+                'M2': ['M2', 'Master 2', 'MASTER 2'],
+            }.get(niveau_abbrev, [niveau_abbrev])
+            
+            # Construire les patterns SQL
+            patterns = []
+            for v in variantes:
+                v_clean = v.strip()
+                patterns.append(v_clean)               # égalité stricte
+                patterns.append(f"{v_clean} %")        # commence par
+                patterns.append(f"% {v_clean}%")       # contient avec espace
+            
+            # Compter de manière flexible via la base
+            # On utilise TRIM(niveau) = %s OR TRIM(niveau) LIKE %s ... pour toutes les variantes
+            conditions = " OR ".join(["TRIM(niveau) = %s"] + ["TRIM(niveau) LIKE %s"] * (len(patterns) - 1))
+            sql_count = f"""
+                SELECT COUNT(*) as count
+                FROM users
+                WHERE role = 'etudiant'
+                  AND filiere = %s
+                  AND niveau IS NOT NULL AND niveau != ''
+                  AND ({conditions})
+            """
+            params = [filiere] + patterns
+            cursor.execute(sql_count, tuple(params))
+            count_row = cursor.fetchone() or {'count': 0}
+            count = count_row['count'] or 0
+            
+            # Niveau complet affiché: on garde l'abréviation comme libellé court
+            niveau_complet = niveau_abbrev
+            
+            nom_classe = generer_nom_classe(niveau_complet, filiere)
+            
+            classes_par_filiere[filiere].append({
+                'nom_classe': nom_classe,
+                'niveau': niveau_complet,
+                'count': count
+        })
+
+    conn.close()
+    return render_template("admin_classes.html", classes_par_filiere=classes_par_filiere)
+
+@app.route('/admin/classes/<filiere>/<niveau>')
+@login_required
+@admin_required
+def admin_class_details(filiere, niveau):
+    from urllib.parse import unquote
+    
+    # Décoder les paramètres URL
+    filiere = unquote(filiere)
+    niveau = unquote(niveau)
+    
+    conn = get_db_connection()
+    if not conn:
+        flash("Erreur de connexion à la base de données.", "danger")
+        return redirect(url_for('admin_classes'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Fonction pour générer le nom de classe
+    def generer_nom_classe(niveau, filiere):
+        niveau_abbrev = niveau.split()[0] if niveau else ""
+        filiere_abbrev_map = {
+            'Intelligence Artificielle': 'IA',
+            'IA': 'IA',
+            'Comptabilité Contrôle Audit': 'CCA',
+            'CCA': 'CCA',
+            'Finance': 'FINANCE',
+            'Finance et Gestion': 'FINANCE',
+            'Médecine': 'MEDS',
+            'MEDS': 'MEDS',
+            'Marketing': 'MARKETING',
+            'Marketing Digital': 'MARKETING'
+        }
+        filiere_abbrev = filiere_abbrev_map.get(filiere, filiere.upper()[:8] if filiere else "")
+        return f"{niveau_abbrev}-{filiere_abbrev}"
+    
+    nom_classe = generer_nom_classe(niveau, filiere)
+    
+    # Récupérer les étudiants de cette classe avec correspondance flexible du niveau
+    # Ex: "L1" ~ "Licence 1", "M2" ~ "Master 2"
+    niveau_clean = niveau.strip() if niveau else ""
+    niveau_abbrev = niveau_clean.split()[0] if niveau_clean else ""
+    # Variantes par niveau abrégé
+    variantes_map = {
+        'L1': ['L1', 'Licence 1', 'LICENCE 1'],
+        'L2': ['L2', 'Licence 2', 'LICENCE 2'],
+        'L3': ['L3', 'Licence 3', 'LICENCE 3'],
+        'M1': ['M1', 'Master 1', 'MASTER 1'],
+        'M2': ['M2', 'Master 2', 'MASTER 2'],
+    }
+    variantes = variantes_map.get(niveau_abbrev.upper(), [niveau_clean or niveau_abbrev])
+    # Construire patterns (égalité stricte + débute par + contient)
+    patterns = []
+    for v in variantes:
+        v_clean = v.strip()
+        if not v_clean:
+            continue
+        patterns.append(v_clean)            # égalité stricte
+        patterns.append(f"{v_clean} %")     # commence par
+        patterns.append(f"% {v_clean}%")    # contient avec espace
+        patterns.append(f"%{v_clean}%")     # contient partout
+    
+    # Vérifier si la colonne 'classe' existe
+    cursor.execute("SHOW COLUMNS FROM users LIKE 'classe'")
+    classe_exists = cursor.fetchone() is not None
+    
+    # Construire la condition SQL flexible pour toutes les variantes
+    if patterns:
+        # 1 égalité + (len(patterns)-1) LIKE, mais on a plusieurs variantes: on simplifie à uniquement LIKE sur tous patterns et exact match sur premières variantes
+        conditions = " OR ".join(["TRIM(niveau) = %s"] * len(variantes) + ["TRIM(niveau) LIKE %s"] * len(patterns))
+        params_base = [v.strip() for v in variantes] + patterns
+    else:
+        conditions = "TRIM(niveau) = %s"
+        params_base = [niveau_clean or niveau_abbrev]
+    
+    if classe_exists:
+        sql = f"""
+            SELECT id, prenom, nom, email, telephone, filiere, niveau, classe
+            FROM users 
+            WHERE role = 'etudiant' 
+              AND filiere = %s 
+              AND niveau IS NOT NULL AND niveau != ''
+              AND (
+                {conditions}
+                OR classe = %s
+              )
+            ORDER BY nom, prenom ASC
+        """
+        params = [filiere] + params_base + [nom_classe]
+    else:
+        sql = f"""
+            SELECT id, prenom, nom, email, telephone, filiere, niveau
+            FROM users 
+            WHERE role = 'etudiant' 
+              AND filiere = %s 
+              AND niveau IS NOT NULL AND niveau != ''
+              AND (
+                {conditions}
+              )
+            ORDER BY nom, prenom ASC
+        """
+        params = [filiere] + params_base
+    
+    cursor.execute(sql, tuple(params))
+    
+    etudiants = cursor.fetchall()
+    
+    conn.close()
+    
+    return render_template("admin_class_details.html", 
+                         etudiants=etudiants,
+                         filiere=filiere,
+                         niveau=niveau,
+                         nom_classe=nom_classe,
+                         classe_exists=classe_exists)
 
 
 @app.route('/admin/api/professeurs')
@@ -1991,17 +3131,53 @@ def get_student_events(user_id):
     
     cursor = conn.cursor(dictionary=True)
 
-    # Récupérer la filière de l'étudiant
-    cursor.execute("SELECT filiere FROM users WHERE id = %s", (user_id,))
+    # Récupérer la filière et le niveau de l'étudiant
+    cursor.execute("SELECT filiere, niveau FROM users WHERE id = %s", (user_id,))
     row = cursor.fetchone()
     if row is None:
         conn.close()
         return []
 
     filiere = row["filiere"]
-
-    # Récupérer les cours liés à cette filière
-    cursor.execute("SELECT nom_cours AS title, start, end FROM courses WHERE filiere = %s", (filiere,))
+    niveau = row.get("niveau")
+    
+    # Vérifier si la colonne niveau existe dans courses
+    cursor.execute("SHOW COLUMNS FROM courses LIKE 'niveau'")
+    results = cursor.fetchall()
+    niveau_exists = len(results) > 0
+    
+    # Récupérer les cours liés à cette filière et niveau
+    # Joindre avec emploi_temps pour vérifier que l'étudiant est inscrit
+    if niveau_exists and niveau:
+        # Correspondance flexible du niveau pour gérer "L1" vs "Licence 1", etc.
+        niveau_clean = niveau.strip()
+        niveau_abbrev = niveau_clean.split()[0] if niveau_clean else ""
+        cursor.execute("""
+            SELECT DISTINCT c.nom_cours AS title, c.start, c.end 
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'etudiant' 
+            AND c.filiere = %s 
+            AND c.niveau IS NOT NULL AND c.niveau != ''
+            AND (
+                TRIM(c.niveau) = %s 
+                OR TRIM(c.niveau) = %s
+                OR c.niveau LIKE %s
+                OR c.niveau LIKE %s
+            )
+            ORDER BY c.start
+        """, (user_id, filiere, niveau_clean, niveau_abbrev, f'{niveau_abbrev}%', f'%{niveau_abbrev}%'))
+    else:
+        # Si pas de niveau ou colonne niveau n'existe pas, filtrer uniquement par filière
+        cursor.execute("""
+            SELECT DISTINCT c.nom_cours AS title, c.start, c.end 
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'etudiant' 
+            AND c.filiere = %s
+            ORDER BY c.start
+        """, (user_id, filiere))
+    
     events = cursor.fetchall()
     conn.close()
 
@@ -2042,16 +3218,194 @@ def get_student_notes(user_id, cours_list):
 @app.route('/student/courses')
 @login_required
 def student_courses():
+    """Afficher tous les modules de l'étudiant sans doublons"""
     user_id = session['user_id']
-    user_filiere = session.get('filiere', 'IAM')  # Par défaut IAM
-
-    events = get_student_events(user_id)
-    cours_set = set(event['title'] for event in events)
-    cours = sorted(cours_set)
-
-    notes = get_student_notes(user_id, cours)
-
+    user_filiere = session.get('filiere', 'IAM')
+    
+    if session.get('role') != 'etudiant':
+        flash("Accès refusé.", "danger")
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    if not conn:
+        flash("Erreur de connexion à la base de données.", "danger")
+        return redirect(url_for('student_dashboard'))
+    
+    cursor = conn.cursor(dictionary=True)
+    
+    # Récupérer les modules uniques (par nom_cours) pour cet étudiant
+    # Chaque module apparaît une seule fois même s'il a plusieurs séances ou plusieurs entrées dans courses
+    cursor.execute("""
+        SELECT 
+            MIN(c.id) as id,
+            c.nom_cours,
+            c.filiere,
+            c.niveau,
+            c.description,
+            MIN(c.salle) as salle,
+            MIN(c.heure_debut) as heure_debut,
+            MIN(c.heure_fin) as heure_fin,
+            MIN(c.jour_semaine) as jour_semaine,
+            COUNT(DISTINCT c.id) as nb_seances
+        FROM courses c
+        JOIN emploi_temps et ON c.id = et.course_id
+        WHERE et.user_id = %s AND et.role = 'etudiant' AND c.filiere = %s
+        GROUP BY c.nom_cours, c.filiere, c.niveau, c.description
+        ORDER BY c.nom_cours
+    """, (user_id, user_filiere))
+    
+    cours = cursor.fetchall()
+    conn.close()
+    
+    # Récupérer les notes pour ces cours
+    cours_noms = [c['nom_cours'] for c in cours]
+    notes = get_student_notes(user_id, cours_noms)
+    
     return render_template('student_courses.html', cours=cours, notes=notes, filiere=user_filiere)
+
+@app.route('/student/course/<int:course_id>/manage')
+@login_required
+def student_course_manage(course_id):
+    """Page de détail d'un module pour l'étudiant (lecture seule)"""
+    try:
+        if session.get('role') != 'etudiant':
+            flash("Accès refusé.", "danger")
+            return redirect(url_for('login'))
+
+        user_id = session['user_id']
+        conn = get_db_connection()
+        if not conn:
+            flash("Erreur de connexion à la base de données.", "danger")
+            return redirect(url_for('student_courses'))
+
+        cursor = conn.cursor(dictionary=True)
+        
+        # Vérifier que l'étudiant est inscrit à ce cours et récupérer les infos du professeur
+        cursor.execute("""
+            SELECT c.*, 
+                   prof.prenom as prof_prenom, 
+                   prof.nom as prof_nom
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            LEFT JOIN emploi_temps et_prof ON c.id = et_prof.course_id AND et_prof.role = 'professeur'
+            LEFT JOIN users prof ON et_prof.user_id = prof.id
+            WHERE c.id = %s AND et.user_id = %s AND et.role = 'etudiant'
+            LIMIT 1
+        """, (course_id, user_id))
+        
+        course = cursor.fetchone()
+        
+        if not course:
+            flash("Module non trouvé ou accès refusé.", "danger")
+            conn.close()
+            return redirect(url_for('student_courses'))
+
+        # Récupérer les présences de cet étudiant pour ce cours
+        cursor.execute("""
+            SELECT date_cours, statut, commentaire
+            FROM presences
+            WHERE course_id = %s AND etudiant_id = %s
+            ORDER BY date_cours DESC
+        """, (course_id, user_id))
+        presences = cursor.fetchall()
+
+        # Récupérer les documents/ressources visibles pour ce module (par nom_cours et filiere)
+        # Les documents restent disponibles pendant 5 ans
+        nom_cours = course['nom_cours']
+        filiere_cours = course['filiere']
+        
+        # Vérifier si les colonnes nom_cours et filiere existent dans documents
+        cursor.execute("SHOW COLUMNS FROM documents LIKE 'nom_cours'")
+        nom_cours_exists = cursor.fetchone() is not None
+        
+        if nom_cours_exists:
+            # Récupérer tous les documents de ce module (nom_cours + filiere) de moins de 5 ans
+            cursor.execute("""
+                SELECT id, titre, description, nom_fichier, chemin_fichier, type_doc, date_upload
+                FROM documents
+                WHERE nom_cours = %s AND filiere = %s AND visible = 1
+                AND date_upload >= DATE_SUB(NOW(), INTERVAL 5 YEAR)
+                ORDER BY date_upload DESC
+            """, (nom_cours, filiere_cours))
+        else:
+            # Si les colonnes n'existent pas encore, utiliser course_id (compatibilité)
+            cursor.execute("""
+                SELECT id, titre, description, nom_fichier, chemin_fichier, type_doc, date_upload
+                FROM documents
+                WHERE course_id = %s AND visible = 1
+                ORDER BY date_upload DESC
+            """, (course_id,))
+        documents = cursor.fetchall()
+
+        # Récupérer les lectures
+        cursor.execute("""
+            SELECT id, titre, description, contenu, date_seance, ordre
+            FROM lectures
+            WHERE course_id = %s
+            ORDER BY ordre, date_seance
+        """, (course_id,))
+        lectures = cursor.fetchall()
+
+        # Récupérer les examens
+        cursor.execute("""
+            SELECT id, type_examen, titre, date_examen, coefficient, description
+            FROM exams
+            WHERE course_id = %s
+            ORDER BY date_examen
+        """, (course_id,))
+        exams = cursor.fetchall()
+
+        # Récupérer les assignments
+        cursor.execute("""
+            SELECT id, titre, description, date_publication, date_limite, type_assignment, fichier_corrige
+            FROM assignments
+            WHERE course_id = %s
+            ORDER BY date_publication DESC
+        """, (course_id,))
+        assignments = cursor.fetchall()
+
+        # Récupérer les notes du gradebook pour cet étudiant
+        cursor.execute("""
+            SELECT type_note, note, coefficient, date_note, commentaire
+            FROM gradebook
+            WHERE course_id = %s AND etudiant_id = %s
+            ORDER BY date_note DESC
+        """, (course_id, user_id))
+        gradebook_notes = cursor.fetchall()
+
+        # Récupérer les notes de la table notes (si visible)
+        cursor.execute("SHOW COLUMNS FROM notes LIKE 'visible'")
+        visible_exists = cursor.fetchone() is not None
+        
+        notes_data = None
+        if visible_exists:
+            cursor.execute("""
+                SELECT CC1, CC2, Participation, Examen
+                FROM notes
+                WHERE etudiant_id = %s AND nom_cours = %s AND visible = 1
+            """, (user_id, course['nom_cours']))
+            notes_data = cursor.fetchone()
+
+        conn.close()
+
+        return render_template('student_course_manage.html',
+                              course=course,
+                              presences=presences,
+                              documents=documents,
+                              lectures=lectures,
+                              exams=exams,
+                              assignments=assignments,
+                              gradebook_notes=gradebook_notes,
+                              notes_data=notes_data,
+                              nom=session.get('nom', ''),
+                              prenom=session.get('prenom', ''))
+
+    except Exception as e:
+        import traceback
+        error_msg = f"Erreur chargement module étudiant: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        flash(f"Erreur lors du chargement du module: {str(e)}", "error")
+        return redirect(url_for('student_courses'))
 
 
 # Route student_absences supprimée - remplacée par la nouvelle version
@@ -2074,11 +3428,35 @@ def admin_grades():
     ''')
     etudiants = cursor.fetchall()
 
-    # Récupérer toutes les notes associées aux étudiants
-    cursor.execute('''
-        SELECT id, etudiant_id, nom_cours, CC1, CC2, Participation, Examen
-        FROM notes
-    ''')
+    # Vérifier si la colonne semestre existe
+    cursor.execute("SHOW COLUMNS FROM notes LIKE 'semestre'")
+    semestre_exists = cursor.fetchone() is not None
+    
+    # Vérifier si la colonne visible existe
+    cursor.execute("SHOW COLUMNS FROM notes LIKE 'visible'")
+    visible_exists = cursor.fetchone() is not None
+    
+    # Récupérer toutes les notes associées aux étudiants (incluant celles du gradebook synchronisées)
+    if semestre_exists and visible_exists:
+        cursor.execute('''
+            SELECT id, etudiant_id, nom_cours, CC1, CC2, Participation, Examen, semestre, visible
+            FROM notes
+        ''')
+    elif semestre_exists:
+        cursor.execute('''
+            SELECT id, etudiant_id, nom_cours, CC1, CC2, Participation, Examen, semestre, 0 as visible
+            FROM notes
+        ''')
+    elif visible_exists:
+        cursor.execute('''
+            SELECT id, etudiant_id, nom_cours, CC1, CC2, Participation, Examen, visible
+            FROM notes
+        ''')
+    else:
+        cursor.execute('''
+            SELECT id, etudiant_id, nom_cours, CC1, CC2, Participation, Examen, 0 as visible
+            FROM notes
+        ''')
     notes_rows = cursor.fetchall()
 
     # Organiser les notes en un dictionnaire : { etudiant_id: [liste de notes (dict)] }
@@ -2099,19 +3477,35 @@ def admin_grades():
     return render_template(
         'admin_grades.html',
         groupes=groupes,
-        notes_par_etudiant=notes_par_etudiant
+        notes_par_etudiant=notes_par_etudiant,
+        semestre_exists=semestre_exists,
+        visible_exists=visible_exists
     )
 
 @app.route('/admin/bulletin/<int:etudiant_id>')
 def admin_bulletin(etudiant_id):
-    """Générer le bulletin d'un étudiant"""
+    """Générer le bulletin d'un étudiant avec sélection du semestre"""
     if 'user_id' not in session or session.get('role') != 'admin':
         flash("Accès non autorisé.", "danger")
         return redirect(url_for('login'))
     
+    # Récupérer le semestre depuis les paramètres de requête
+    semestre = request.args.get('semestre', '1')
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        
+        # Vérifier si la colonne semestre existe, sinon l'ajouter
+        cursor.execute("SHOW COLUMNS FROM notes LIKE 'semestre'")
+        semestre_exists = cursor.fetchone() is not None
+        
+        if not semestre_exists:
+            try:
+                cursor.execute("ALTER TABLE notes ADD COLUMN semestre INT DEFAULT 1")
+                conn.commit()
+            except Exception as e:
+                print(f"Erreur lors de l'ajout de la colonne semestre: {e}")
         
         # Récupérer les informations de l'étudiant
         cursor.execute("""
@@ -2125,13 +3519,21 @@ def admin_bulletin(etudiant_id):
             flash("Étudiant non trouvé.", "error")
             return redirect(url_for('admin_grades'))
         
-        # Récupérer les notes de l'étudiant
-        cursor.execute("""
-            SELECT n.*
-            FROM notes n
-            WHERE n.etudiant_id = %s
-            ORDER BY n.nom_cours
-        """, (etudiant_id,))
+        # Récupérer les notes de l'étudiant pour le semestre sélectionné
+        if semestre_exists:
+            cursor.execute("""
+                SELECT n.*
+                FROM notes n
+                WHERE n.etudiant_id = %s AND (n.semestre = %s OR n.semestre IS NULL)
+                ORDER BY n.nom_cours
+            """, (etudiant_id, int(semestre)))
+        else:
+            cursor.execute("""
+                SELECT n.*
+                FROM notes n
+                WHERE n.etudiant_id = %s
+                ORDER BY n.nom_cours
+            """, (etudiant_id,))
         
         notes = cursor.fetchall()
         
@@ -2187,6 +3589,9 @@ def admin_bulletin(etudiant_id):
                     stats['mention'] = 'Insuffisant'
         
         # Récupérer les informations de l'établissement
+        annee_courante = datetime.now().year
+        annee_scolaire = f"{annee_courante}-{annee_courante + 1}"
+        
         etablissement = {
             'nom': 'ADS CLASS',
             'adresse': 'Niamey, Niger',
@@ -2194,8 +3599,8 @@ def admin_bulletin(etudiant_id):
             'email': 'contact@adsclass.ne',
             'site_web': 'www.adsclass.ne',
             'directeur': 'Dr. Directeur',
-            'annee_scolaire': '2024-2025',
-            'semestre': 'Semestre 1'
+            'annee_scolaire': annee_scolaire,
+            'semestre': f'Semestre {semestre}'
         }
         
         conn.close()
@@ -2206,7 +3611,9 @@ def admin_bulletin(etudiant_id):
                              notes=notes, 
                              stats=stats,
                              etablissement=etablissement,
-                             generation_date=generation_date)
+                             generation_date=generation_date,
+                             semestre=semestre,
+                             semestre_actuel=semestre)
         
     except Error as e:
         print(f"Erreur lors de la génération du bulletin: {e}")
@@ -2253,6 +3660,49 @@ def modifier_note(note_id):
     return render_template('modifier_note.html', note=note)
 
 
+@app.route('/admin/notes/<int:note_id>/toggle_visible', methods=['POST'])
+@login_required
+def toggle_note_visible(note_id):
+    """Rendre une note visible ou invisible pour l'étudiant"""
+    try:
+        if session.get('role') != 'admin':
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+        
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Erreur de connexion'}), 500
+        
+        cursor = conn.cursor(dictionary=True)
+        
+        # Vérifier si la colonne visible existe
+        cursor.execute("SHOW COLUMNS FROM notes LIKE 'visible'")
+        visible_exists = cursor.fetchone() is not None
+        
+        if not visible_exists:
+            # Créer la colonne si elle n'existe pas
+            cursor.execute("ALTER TABLE notes ADD COLUMN visible TINYINT(1) DEFAULT 0")
+            conn.commit()
+        
+        # Récupérer l'état actuel
+        cursor.execute("SELECT visible FROM notes WHERE id = %s", (note_id,))
+        note = cursor.fetchone()
+        
+        if not note:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Note non trouvée'}), 404
+        
+        # Inverser l'état
+        new_visible = 1 if note['visible'] == 0 else 0
+        
+        # Mettre à jour
+        cursor.execute("UPDATE notes SET visible = %s WHERE id = %s", (new_visible, note_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'visible': new_visible})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/admin/saisir_notes/<int:etudiant_id>', methods=['GET', 'POST'])
 def saisir_notes(etudiant_id):
     conn = get_db_connection()
@@ -2261,6 +3711,19 @@ def saisir_notes(etudiant_id):
         return redirect(url_for('admin_grades'))
     
     cursor = conn.cursor(dictionary=True)
+    
+    # Vérifier si la colonne semestre existe, sinon l'ajouter
+    cursor.execute("SHOW COLUMNS FROM notes LIKE 'semestre'")
+    semestre_exists = cursor.fetchone() is not None
+    
+    if not semestre_exists:
+        try:
+            cursor.execute("ALTER TABLE notes ADD COLUMN semestre INT DEFAULT 1")
+            conn.commit()
+            semestre_exists = True
+        except Exception as e:
+            print(f"Erreur lors de l'ajout de la colonne semestre: {e}")
+    
     cursor.execute('SELECT * FROM users WHERE id = %s', (etudiant_id,))
     etu = cursor.fetchone()
     if not etu:
@@ -2274,20 +3737,44 @@ def saisir_notes(etudiant_id):
         cc2 = request.form.get('CC2')
         participation = request.form.get('Participation')
         examen = request.form.get('Examen')
+        semestre = request.form.get('semestre', '1')
 
-        # Insertion simple (ou update selon ta logique)
-        cursor.execute('''
-            INSERT INTO notes (etudiant_id, nom_cours, CC1, CC2, Participation, Examen)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (etudiant_id, nom_cours, cc1, cc2, participation, examen))
+        # Vérifier si une note existe déjà pour ce cours et ce semestre
+        if semestre_exists:
+            cursor.execute('''
+                SELECT id FROM notes 
+                WHERE etudiant_id = %s AND nom_cours = %s AND semestre = %s
+            ''', (etudiant_id, nom_cours, int(semestre)))
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Mise à jour
+                cursor.execute('''
+                    UPDATE notes 
+                    SET CC1 = %s, CC2 = %s, Participation = %s, Examen = %s
+                    WHERE id = %s
+                ''', (cc1, cc2, participation, examen, existing['id']))
+            else:
+                # Insertion
+                cursor.execute('''
+                    INSERT INTO notes (etudiant_id, nom_cours, CC1, CC2, Participation, Examen, semestre)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ''', (etudiant_id, nom_cours, cc1, cc2, participation, examen, int(semestre)))
+        else:
+            # Insertion sans semestre (rétrocompatibilité)
+            cursor.execute('''
+                INSERT INTO notes (etudiant_id, nom_cours, CC1, CC2, Participation, Examen)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (etudiant_id, nom_cours, cc1, cc2, participation, examen))
+        
         conn.commit()
         conn.close()
 
-        flash("Notes enregistrées avec succès.", "success")
+        flash("Notes enregistrées avec succès pour le semestre " + semestre + ".", "success")
         return redirect(url_for('admin_grades'))
 
     conn.close()
-    return render_template('saisir_notes.html', etudiant=etu)
+    return render_template('saisir_notes.html', etudiant=etu, semestre_exists=semestre_exists)
 
  # Route: Gestion des absences (supprimée - remplacée par la nouvelle version)
 
@@ -2303,17 +3790,31 @@ def student_grades():
     
     cursor = conn.cursor(dictionary=True)
 
-    # Récupération des cours liés à cet étudiant
-    cursor.execute("SELECT DISTINCT nom_cours FROM notes WHERE etudiant_id = %s", (user_id,))
+    # Vérifier si la colonne visible existe
+    cursor.execute("SHOW COLUMNS FROM notes LIKE 'visible'")
+    visible_exists = cursor.fetchone() is not None
+    
+    # Récupération des cours liés à cet étudiant (uniquement les notes visibles)
+    if visible_exists:
+        cursor.execute("SELECT DISTINCT nom_cours FROM notes WHERE etudiant_id = %s AND visible = 1", (user_id,))
+    else:
+        cursor.execute("SELECT DISTINCT nom_cours FROM notes WHERE etudiant_id = %s", (user_id,))
     cours = [row['nom_cours'] for row in cursor.fetchall()]
 
     notes_dict = {}
     for nom_cours in cours:
-        cursor.execute("""
-            SELECT CC1, CC2, Participation, Examen 
-            FROM notes 
-            WHERE etudiant_id = %s AND nom_cours = %s
-        """, (user_id, nom_cours))
+        if visible_exists:
+            cursor.execute("""
+                SELECT CC1, CC2, Participation, Examen 
+                FROM notes 
+                WHERE etudiant_id = %s AND nom_cours = %s AND visible = 1
+            """, (user_id, nom_cours))
+        else:
+            cursor.execute("""
+                SELECT CC1, CC2, Participation, Examen 
+                FROM notes 
+                WHERE etudiant_id = %s AND nom_cours = %s
+            """, (user_id, nom_cours))
         note = cursor.fetchone()
 
         if note:
@@ -2515,7 +4016,7 @@ def debug_professeur(prof_id):
 # Route de test ultra-simple pour le dashboard professeur
 @app.route('/professeur/test-dashboard')
 @login_required
-def test_prof_dashboard():
+def test_professeur_emploi_temps():
     try:
         if session.get('role') != 'professeur':
             return "Accès refusé - pas professeur", 403
@@ -2578,126 +4079,6 @@ def test_prof_dashboard():
         import traceback
         return f"<h1>Erreur test dashboard:</h1><pre>{traceback.format_exc()}</pre>"
 
-# Route pour voir les étudiants d'un cours (professeur)
-@app.route('/professeur/cours/<int:course_id>/etudiants')
-@login_required
-def professeur_etudiants_cours(course_id):
-    if session.get('role') != 'professeur':
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'error')
-        return redirect(url_for('prof_dashboard'))
-    
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        # Vérifier que le cours appartient au professeur connecté
-        cursor.execute('''
-        SELECT * FROM courses
-        WHERE id = %s AND professeur_id = %s
-        ''', (course_id, session['user_id']))
-
-        course = cursor.fetchone()
-        if not course:
-            flash('Cours non trouvé ou accès non autorisé', 'error')
-            return redirect(url_for('prof_dashboard'))
-
-        # Récupérer les étudiants inscrits à ce cours
-        cursor.execute('''
-        SELECT u.id, u.nom, u.prenom, u.email, u.filiere, u.niveau
-        FROM users u
-        JOIN emploi_temps et ON u.id = et.user_id
-        WHERE et.course_id = %s AND et.role = 'etudiant' AND u.role = 'etudiant'
-        ORDER BY u.nom, u.prenom
-        ''', (course_id,))
-
-        etudiants = cursor.fetchall()
-
-        # Récupérer les présences d'aujourd'hui pour ce cours
-        today = datetime.now().strftime('%Y-%m-%d')
-        cursor.execute('''
-        SELECT etudiant_id, statut, commentaire
-        FROM presences
-        WHERE course_id = %s AND date_cours = %s
-        ''', (course_id, today))
-
-        presences_today = {row['etudiant_id']: {'statut': row['statut'], 'commentaire': row['commentaire']}
-                          for row in cursor.fetchall()}
-
-        conn.close()
-
-        return render_template('professeur_etudiants_cours.html',
-                             course=course,
-                             etudiants=etudiants,
-                             presences_today=presences_today,
-                             today=today,
-                             nom=session.get('nom'),
-                             prenom=session.get('prenom'))
-
-    except Exception as e:
-        conn.close()
-        flash(f'Erreur lors du chargement des étudiants: {str(e)}', 'error')
-        return redirect(url_for('prof_dashboard'))
-
-# Route pour enregistrer les présences
-@app.route('/professeur/cours/<int:course_id>/presences', methods=['POST'])
-@login_required
-def enregistrer_presences(course_id):
-    if session.get('role') != 'professeur':
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'error')
-        return redirect(url_for('prof_dashboard'))
-    
-    cursor = conn.cursor()
-
-    try:
-        date_cours = request.form.get('date_cours')
-        if not date_cours:
-            date_cours = datetime.now().strftime('%Y-%m-%d')
-
-        # Récupérer tous les étudiants du cours
-        cursor.execute('''
-        SELECT u.id
-        FROM users u
-        JOIN emploi_temps et ON u.id = et.user_id
-        WHERE et.course_id = %s AND et.role = 'etudiant'
-        ''', (course_id,))
-
-        etudiants = cursor.fetchall()
-
-        # Enregistrer les présences
-        for etudiant in etudiants:
-            etudiant_id = etudiant['id']
-            statut = request.form.get(f'presence_{etudiant_id}', 'absent')
-            commentaire = request.form.get(f'commentaire_{etudiant_id}', '')
-
-            # Insérer ou mettre à jour la présence (MySQL utilise ON DUPLICATE KEY UPDATE)
-            cursor.execute('''
-            INSERT INTO presences
-            (etudiant_id, course_id, professeur_id, date_cours, statut, commentaire, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-            statut = VALUES(statut),
-            commentaire = VALUES(commentaire),
-            updated_at = VALUES(updated_at)
-            ''', (etudiant_id, course_id, session['user_id'], date_cours, statut, commentaire,
-                  datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-
-        conn.commit()
-        conn.close()
-
-        flash('Présences enregistrées avec succès!', 'success')
-        return redirect(url_for('professeur_etudiants_cours', course_id=course_id))
-
-    except Exception as e:
-        conn.close()
-        flash(f'Erreur lors de l\'enregistrement des présences: {str(e)}', 'error')
-        return redirect(url_for('professeur_etudiants_cours', course_id=course_id))
 
 # Route pour uploader un document
 @app.route('/professeur/cours/<int:course_id>/upload', methods=['GET', 'POST'])
@@ -2711,7 +4092,7 @@ def upload_document(course_id):
         conn = get_db_connection()
         if not conn:
             flash('Erreur de connexion à la base de données', 'error')
-            return redirect(url_for('prof_dashboard'))
+            return redirect(url_for('professeur_emploi_temps'))
         
         cursor = conn.cursor(dictionary=True)
         cursor.execute('SELECT * FROM courses WHERE id = %s AND professeur_id = %s',
@@ -2721,7 +4102,7 @@ def upload_document(course_id):
 
         if not course:
             flash('Cours non trouvé', 'error')
-            return redirect(url_for('prof_dashboard'))
+            return redirect(url_for('professeur_emploi_temps'))
 
         return render_template('professeur_upload_document.html',
                              course=course,
@@ -2764,22 +4145,56 @@ def upload_document(course_id):
                 flash('Erreur de connexion à la base de données', 'error')
                 return redirect(request.url)
             
-            cursor = conn.cursor()
-            cursor.execute('''
-            INSERT INTO documents
-            (course_id, professeur_id, titre, description, nom_fichier, chemin_fichier,
-             taille_fichier, type_fichier, visible)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (course_id, session['user_id'],
-                  request.form.get('titre', filename),
-                  request.form.get('description', ''),
-                  filename, filepath, file_size, file_extension, 1))
+            cursor = conn.cursor(dictionary=True)
+            
+            # Récupérer le nom_cours et la filiere du cours
+            cursor.execute("SELECT nom_cours, filiere FROM courses WHERE id = %s", (course_id,))
+            course_info = cursor.fetchone()
+            
+            nom_cours = course_info['nom_cours'] if course_info else None
+            filiere_cours = course_info['filiere'] if course_info else None
+            
+            # Vérifier si les colonnes nom_cours et filiere existent dans documents
+            cursor.execute("SHOW COLUMNS FROM documents LIKE 'nom_cours'")
+            nom_cours_exists = cursor.fetchone() is not None
+            
+            if not nom_cours_exists:
+                # Ajouter les colonnes si elles n'existent pas
+                try:
+                    cursor.execute("ALTER TABLE documents ADD COLUMN nom_cours VARCHAR(255) AFTER course_id")
+                    cursor.execute("ALTER TABLE documents ADD COLUMN filiere VARCHAR(255) AFTER nom_cours")
+                    conn.commit()
+                except Exception as e:
+                    print(f"Erreur ajout colonnes nom_cours/filiere: {e}")
+            
+            # Insérer le document avec nom_cours et filiere si disponibles
+            if nom_cours_exists and nom_cours and filiere_cours:
+                cursor.execute('''
+                INSERT INTO documents
+                (course_id, nom_cours, filiere, professeur_id, titre, description, nom_fichier, chemin_fichier,
+                 taille_fichier, type_fichier, visible)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (course_id, nom_cours, filiere_cours, session['user_id'],
+                      request.form.get('titre', filename),
+                      request.form.get('description', ''),
+                      filename, filepath, file_size, file_extension, 1))
+            else:
+                # Compatibilité avec l'ancienne structure
+                cursor.execute('''
+                INSERT INTO documents
+                (course_id, professeur_id, titre, description, nom_fichier, chemin_fichier,
+                 taille_fichier, type_fichier, visible)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (course_id, session['user_id'],
+                      request.form.get('titre', filename),
+                      request.form.get('description', ''),
+                      filename, filepath, file_size, file_extension, 1))
 
             conn.commit()
             conn.close()
 
             flash('Document uploadé avec succès!', 'success')
-            return redirect(url_for('professeur_etudiants_cours', course_id=course_id))
+            return redirect(url_for('prof_classes'))
 
         except Exception as e:
             flash(f'Erreur lors de l\'upload: {str(e)}', 'error')
@@ -2825,7 +4240,7 @@ def download_document(document_id):
             # Le professeur peut télécharger ses propres documents
             if document['professeur_id'] != session['user_id']:
                 flash('Accès non autorisé à ce document', 'error')
-                return redirect(url_for('prof_dashboard'))
+                return redirect(url_for('professeur_emploi_temps'))
 
         conn.close()
 
@@ -3014,155 +4429,433 @@ def admin_ajouter_cours_simple():
         flash(f'Erreur lors de la création du cours: {str(e)}', 'error')
         return redirect(request.url)
 
-# 🎯 GESTION DES PRÉSENCES PAR PROFESSEUR
-@app.route('/professeur/presences/<int:course_id>')
-@login_required
-def professeur_presences(course_id):
-    """Page de gestion des présences pour un cours spécifique"""
-    try:
-        if session.get('role') != 'professeur':
-            flash("Accès refusé.", "danger")
-            return redirect(url_for('login'))
 
-        user_id = session['user_id']
-        conn = get_db_connection()
-        if not conn:
-            flash("Erreur de connexion à la base de données.", "danger")
-            return redirect(url_for('prof_dashboard'))
-
-        cursor = conn.cursor(dictionary=True)
-        
-        # Vérifier que le professeur a accès à ce cours
-        cursor.execute("""
-            SELECT c.*, et.visible, et.notifications
-            FROM courses c
-            JOIN emploi_temps et ON c.id = et.course_id
-            WHERE c.id = %s AND et.user_id = %s AND et.role = 'professeur'
-        """, (course_id, user_id))
-        
-        course = cursor.fetchone()
-        if not course:
-            flash("Cours non trouvé ou accès refusé.", "danger")
-            conn.close()
-            return redirect(url_for('prof_dashboard'))
-
-        # Récupérer tous les étudiants de la filière ET du niveau de ce cours
-        cursor.execute("""
-            SELECT u.id, u.nom, u.prenom, u.email, u.filiere, u.niveau
-            FROM users u
-            WHERE u.role = 'etudiant' AND u.filiere = %s AND u.niveau = %s
-            ORDER BY u.nom, u.prenom
-        """, (course['filiere'], course['niveau']))
-        
-        etudiants = cursor.fetchall()
-
-        # Récupérer les présences existantes pour ce cours aujourd'hui
-        today = datetime.now().strftime('%Y-%m-%d')
-        cursor.execute("""
-            SELECT etudiant_id, statut, commentaire, created_at
-            FROM presences
-            WHERE course_id = %s AND date_cours = %s
-        """, (course_id, today))
-        
-        presences_existantes = {p['etudiant_id']: p for p in cursor.fetchall()}
-
-        # Récupérer l'historique des présences pour ce cours (7 derniers jours)
-        cursor.execute("""
-            SELECT p.*, u.nom, u.prenom
-            FROM presences p
-            JOIN users u ON p.etudiant_id = u.id
-            WHERE p.course_id = %s AND p.date_cours >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-            ORDER BY p.date_cours DESC, u.nom, u.prenom
-        """, (course_id,))
-        
-        historique = cursor.fetchall()
-
-        conn.close()
-
-        return render_template('professeur_presences.html',
-                               course=course,
-                               etudiants=etudiants,
-                               presences_existantes=presences_existantes,
-                               historique=historique,
-                               today=today,
-                               nom=session.get('nom', ''),
-                               prenom=session.get('prenom', ''))
-
-    except Exception as e:
-        import traceback
-        error_msg = f"Erreur gestion présences: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        flash("Erreur lors du chargement des présences.", "danger")
-        return redirect(url_for('prof_dashboard'))
-
-@app.route('/professeur/presences/<int:course_id>/save', methods=['POST'])
-@login_required
-def save_presences(course_id):
-    """Sauvegarder les présences pour un cours"""
-    try:
-        if session.get('role') != 'professeur':
-            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
-
-        user_id = session['user_id']
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Erreur de connexion'}), 500
-
-        cursor = conn.cursor(dictionary=True)
-        
-        # Vérifier que le professeur a accès à ce cours
-        cursor.execute("""
-            SELECT c.* FROM courses c
-            JOIN emploi_temps et ON c.id = et.course_id
-            WHERE c.id = %s AND et.user_id = %s AND et.role = 'professeur'
-        """, (course_id, user_id))
-        
-        course = cursor.fetchone()
-        if not course:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Cours non trouvé'}), 404
-
-        # Récupérer les données du formulaire
-        presences_data = request.get_json()
-        date_cours = presences_data.get('date_cours', datetime.now().strftime('%Y-%m-%d'))
-        
-        # Sauvegarder chaque présence
-        for etudiant_id, presence_info in presences_data.get('presences', {}).items():
-            statut = presence_info.get('statut')  # 'present', 'absent', 'retard'
-            commentaire = presence_info.get('commentaire', '')
-            
-            # Vérifier si une présence existe déjà
-            cursor.execute("""
-                SELECT id FROM presences 
-                WHERE course_id = %s AND etudiant_id = %s AND date_cours = %s
-            """, (course_id, etudiant_id, date_cours))
-            
-            existing = cursor.fetchone()
-            
-            if existing:
-                # Mettre à jour la présence existante
-                cursor.execute("""
-                    UPDATE presences 
-                    SET statut = %s, commentaire = %s, updated_at = NOW()
-                    WHERE id = %s
-                """, (statut, commentaire, existing['id']))
-            else:
-                # Créer une nouvelle présence
-                cursor.execute("""
-                    INSERT INTO presences (etudiant_id, course_id, professeur_id, date_cours, statut, commentaire, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-                """, (etudiant_id, course_id, user_id, date_cours, statut, commentaire))
-
-        conn.commit()
-        conn.close()
-
-        return jsonify({'success': True, 'message': 'Présences sauvegardées avec succès'})
-
-    except Exception as e:
         import traceback
         error_msg = f"Erreur sauvegarde présences: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return jsonify({'success': False, 'message': 'Erreur lors de la sauvegarde'}), 500
+
+# 🎯 ROUTES POUR GESTION DES CLASSES PAR PROFESSEUR
+@app.route('/professeur/classes')
+@login_required
+def prof_classes():
+    """Page de gestion des classes pour les professeurs - Affiche uniquement les classes concernées par les modules enseignés"""
+    if session.get('role') != 'professeur':
+        flash("Accès non autorisé.", "danger")
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    if not conn:
+        flash("Erreur de connexion à la base de données.", "danger")
+        return redirect(url_for('professeur_emploi_temps'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Vérifier si la colonne niveau existe dans courses
+    cursor.execute("SHOW COLUMNS FROM courses LIKE 'niveau'")
+    niveau_exists = cursor.fetchone() is not None
+    
+    # Récupérer les combinaisons (filière, niveau) distinctes des cours où ce professeur enseigne
+    if niveau_exists:
+        cursor.execute("""
+            SELECT DISTINCT c.filiere, c.niveau
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'professeur' AND et.visible = 1
+            AND c.filiere IS NOT NULL AND c.filiere != ''
+            AND c.niveau IS NOT NULL AND c.niveau != ''
+            ORDER BY c.filiere ASC, c.niveau ASC
+        """, (user_id,))
+    else:
+        # Si la colonne niveau n'existe pas, récupérer seulement les filières
+        cursor.execute("""
+            SELECT DISTINCT c.filiere, NULL as niveau
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'professeur' AND et.visible = 1
+            AND c.filiere IS NOT NULL AND c.filiere != ''
+            ORDER BY c.filiere ASC
+        """, (user_id,))
+    
+    cours_classes = cursor.fetchall()
+    
+    # Si le professeur n'a aucun cours, afficher un message
+    if not cours_classes:
+        conn.close()
+        return render_template("prof_classes.html", 
+                             classes_par_filiere={},
+                             nom=session.get('nom', ''),
+                             prenom=session.get('prenom', ''),
+                             message="Vous n'enseignez actuellement aucun cours. Les classes apparaîtront ici une fois qu'un administrateur vous assignera des cours.")
+    
+    # Créer un set des combinaisons (filière, niveau) uniques
+    classes_enseignees = set()
+    for row in cours_classes:
+        filiere = row['filiere']
+        niveau = row.get('niveau')
+        if niveau:
+            # Normaliser le niveau (prendre L1, L2, etc. même si c'est "Licence 1")
+            niveau_normalise = niveau.split()[0] if niveau else ""
+            classes_enseignees.add((filiere, niveau_normalise, niveau))
+        else:
+            # Si pas de niveau dans le cours, on ne peut pas déterminer la classe
+            continue
+    
+    # Récupérer le nombre d'étudiants pour chaque classe enseignée
+    classes_avec_counts = []
+    for filiere, niveau_abbrev, niveau_complet in classes_enseignees:
+        # Chercher les étudiants avec cette filière et ce niveau
+        # Le niveau dans users peut être "Licence 1", "L1", etc.
+        # On cherche avec plusieurs patterns pour couvrir tous les cas
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM users 
+            WHERE role = 'etudiant' 
+            AND filiere = %s 
+            AND niveau IS NOT NULL AND niveau != ''
+            AND (
+                niveau = %s 
+                OR niveau = %s
+                OR niveau LIKE %s
+                OR niveau LIKE %s
+            )
+        """, (filiere, niveau_complet, niveau_abbrev, f'{niveau_abbrev}%', f'%{niveau_abbrev}%'))
+        
+        result = cursor.fetchone()
+        count = result['count'] if result else 0
+        
+        # Trouver le niveau complet réel dans la base de données (le plus courant)
+        cursor.execute("""
+            SELECT niveau, COUNT(*) as cnt
+            FROM users 
+            WHERE role = 'etudiant' 
+            AND filiere = %s 
+            AND niveau IS NOT NULL AND niveau != ''
+            AND (
+                niveau = %s 
+                OR niveau = %s
+                OR niveau LIKE %s
+                OR niveau LIKE %s
+            )
+            GROUP BY niveau
+            ORDER BY cnt DESC
+            LIMIT 1
+        """, (filiere, niveau_complet, niveau_abbrev, f'{niveau_abbrev}%', f'%{niveau_abbrev}%'))
+        
+        niveau_result = cursor.fetchone()
+        niveau_final = niveau_result['niveau'] if niveau_result else niveau_complet
+        
+        classes_avec_counts.append({
+            'filiere': filiere,
+            'niveau': niveau_final,
+            'count': count
+        })
+    
+    # Fonction pour générer le nom de classe
+    def generer_nom_classe(niveau, filiere):
+        niveau_abbrev = niveau.split()[0] if niveau else ""
+        filiere_abbrev_map = {
+            'Intelligence Artificielle': 'IA', 'IA': 'IA',
+            'Comptabilité Contrôle Audit': 'CCA', 'CCA': 'CCA',
+            'Finance': 'FINANCE', 'Finance et Gestion': 'FINANCE',
+            'Médecine': 'MEDS', 'MEDS': 'MEDS',
+            'Marketing': 'MARKETING', 'Marketing Digital': 'MARKETING'
+        }
+        filiere_abbrev = filiere_abbrev_map.get(filiere, filiere.upper()[:8] if filiere else "")
+        return f"{niveau_abbrev}-{filiere_abbrev}"
+
+    # Organiser les classes par filière (uniquement les classes concernées par les cours)
+    classes_par_filiere = {}
+    
+    for classe_info in classes_avec_counts:
+        filiere = classe_info['filiere']
+        niveau = classe_info['niveau']
+        count = classe_info['count']
+        
+        if filiere not in classes_par_filiere:
+            classes_par_filiere[filiere] = []
+        
+        nom_classe = generer_nom_classe(niveau, filiere)
+        
+        classes_par_filiere[filiere].append({
+            'nom_classe': nom_classe,
+            'niveau': niveau,
+            'count': count
+        })
+    
+    # Trier les classes par niveau dans chaque filière
+    for filiere in classes_par_filiere:
+        # Ordre de tri : L1, L2, L3, M1, M2
+        ordre_niveaux = {'L1': 1, 'L2': 2, 'L3': 3, 'M1': 4, 'M2': 5}
+        classes_par_filiere[filiere].sort(key=lambda x: ordre_niveaux.get(x['niveau'].split()[0].upper(), 99))
+
+    conn.close()
+    return render_template("prof_classes.html", 
+                         classes_par_filiere=classes_par_filiere,
+                         nom=session.get('nom', ''),
+                         prenom=session.get('prenom', ''))
+
+@app.route('/professeur/classes/<filiere>/<niveau>')
+@login_required
+def prof_class_details(filiere, niveau):
+    """Page de détails d'une classe avec liste des étudiants et marquage de présence"""
+    from urllib.parse import unquote
+    
+    if session.get('role') != 'professeur':
+        flash("Accès non autorisé.", "danger")
+        return redirect(url_for('login'))
+    
+    # Décoder les paramètres URL
+    filiere = unquote(filiere)
+    niveau = unquote(niveau)
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    if not conn:
+        flash("Erreur de connexion à la base de données.", "danger")
+        return redirect(url_for('prof_classes'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Vérifier que le professeur a des cours pour cette classe (filière + niveau)
+    cursor.execute("SHOW COLUMNS FROM courses LIKE 'niveau'")
+    niveau_exists = cursor.fetchone() is not None
+    
+    if niveau_exists:
+        # Vérifier que le professeur a au moins un cours pour cette filière et niveau
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'professeur' AND et.visible = 1
+            AND c.filiere = %s 
+            AND c.niveau IS NOT NULL AND c.niveau != ''
+            AND (
+                c.niveau = %s 
+                OR c.niveau LIKE %s
+                OR c.niveau LIKE %s
+            )
+        """, (user_id, filiere, niveau, f'{niveau.split()[0] if niveau else ""}%', f'%{niveau.split()[0] if niveau else ""}%'))
+    else:
+        # Si la colonne niveau n'existe pas, vérifier seulement la filière
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'professeur' AND et.visible = 1
+            AND c.filiere = %s
+        """, (user_id, filiere))
+    
+    access_check = cursor.fetchone()
+    if not access_check or access_check['count'] == 0:
+        flash("Vous n'avez pas accès à cette classe. Vous devez avoir des cours programmés pour cette filière et niveau.", "danger")
+        conn.close()
+        return redirect(url_for('prof_classes'))
+    
+    # Fonction pour générer le nom de classe
+    def generer_nom_classe(niveau, filiere):
+        niveau_abbrev = niveau.split()[0] if niveau else ""
+        filiere_abbrev_map = {
+            'Intelligence Artificielle': 'IA', 'IA': 'IA',
+            'Comptabilité Contrôle Audit': 'CCA', 'CCA': 'CCA',
+            'Finance': 'FINANCE', 'Finance et Gestion': 'FINANCE',
+            'Médecine': 'MEDS', 'MEDS': 'MEDS',
+            'Marketing': 'MARKETING', 'Marketing Digital': 'MARKETING'
+        }
+        filiere_abbrev = filiere_abbrev_map.get(filiere, filiere.upper()[:8] if filiere else "")
+        return f"{niveau_abbrev}-{filiere_abbrev}"
+    
+    nom_classe = generer_nom_classe(niveau, filiere)
+    
+    # Récupérer les étudiants de cette classe (basé sur filiere et niveau)
+    cursor.execute("SHOW COLUMNS FROM users LIKE 'classe'")
+    classe_exists = cursor.fetchone() is not None
+    
+    select_fields = "id, prenom, nom, email, telephone, filiere, niveau"
+    if classe_exists:
+        select_fields += ", classe"
+
+    # Rechercher les étudiants avec correspondance flexible du niveau
+    niveau_abbrev = niveau.split()[0] if niveau else ""
+    cursor.execute(f"""
+        SELECT {select_fields}
+        FROM users 
+        WHERE role = 'etudiant' 
+        AND filiere = %s 
+        AND niveau IS NOT NULL AND niveau != ''
+        AND (
+            niveau = %s 
+            OR niveau = %s
+            OR niveau LIKE %s
+            OR niveau LIKE %s
+        )
+        ORDER BY nom, prenom ASC
+    """, (filiere, niveau, niveau_abbrev, f'{niveau_abbrev}%', f'%{niveau_abbrev}%'))
+    etudiants = cursor.fetchall()
+
+    # Récupérer les cours que ce professeur enseigne dans cette filière et niveau
+    # Utiliser la variable niveau_exists déjà définie plus haut
+    
+    if niveau_exists:
+        # Si la colonne niveau existe, filtrer par filière et niveau avec correspondance flexible
+        niveau_abbrev_cours = niveau.split()[0] if niveau else ""
+        cursor.execute("""
+            SELECT c.id, c.nom_cours, c.jour_semaine, c.heure_debut, c.heure_fin, c.niveau
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'professeur' 
+            AND c.filiere = %s 
+            AND c.niveau IS NOT NULL AND c.niveau != ''
+            AND (
+                c.niveau = %s 
+                OR c.niveau = %s
+                OR c.niveau LIKE %s
+                OR c.niveau LIKE %s
+            )
+            AND et.visible = 1
+            ORDER BY c.nom_cours ASC
+        """, (user_id, filiere, niveau, niveau_abbrev_cours, f'{niveau_abbrev_cours}%', f'%{niveau_abbrev_cours}%'))
+    else:
+        # Si la colonne niveau n'existe pas, filtrer seulement par filière
+        cursor.execute("""
+            SELECT c.id, c.nom_cours, c.jour_semaine, c.heure_debut, c.heure_fin
+            FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE et.user_id = %s AND et.role = 'professeur' 
+            AND c.filiere = %s
+            AND et.visible = 1
+            ORDER BY c.nom_cours ASC
+        """, (user_id, filiere))
+    cours_prof = cursor.fetchall()
+    
+    # Récupérer la date actuelle pour les présences
+    from datetime import datetime
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Si un cours est sélectionné, récupérer les présences pour ce cours aujourd'hui
+    course_id = request.args.get('course_id', type=int)
+    date_cours = request.args.get('date', today)
+    
+    presences_existantes = {}
+    if course_id:
+        cursor.execute("""
+            SELECT etudiant_id, statut, commentaire
+            FROM presences
+            WHERE course_id = %s AND date_cours = %s
+        """, (course_id, date_cours))
+        presences_existantes = {p['etudiant_id']: p for p in cursor.fetchall()}
+
+        conn.close()
+
+    return render_template("prof_class_details.html", 
+                               etudiants=etudiants,
+                         filiere=filiere,
+                         niveau=niveau,
+                         nom_classe=nom_classe,
+                         classe_exists=classe_exists,
+                         cours_prof=cours_prof,
+                         course_id=course_id,
+                         date_cours=date_cours,
+                               presences_existantes=presences_existantes,
+                               nom=session.get('nom', ''),
+                               prenom=session.get('prenom', ''))
+
+@app.route('/professeur/classes/<filiere>/<niveau>/save-presences', methods=['POST'])
+@login_required
+def prof_save_presences(filiere, niveau):
+    """Sauvegarder les présences pour une classe"""
+    from urllib.parse import unquote
+    from datetime import datetime
+    
+    if session.get('role') != 'professeur':
+        return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+
+    filiere = unquote(filiere)
+    niveau = unquote(niveau)
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Erreur de connexion'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Récupérer les données du formulaire
+    data = request.get_json()
+    course_id = data.get('course_id')
+    date_cours = data.get('date_cours', datetime.now().strftime('%Y-%m-%d'))
+    presences = data.get('presences', {})
+    
+    if not course_id:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Cours requis'}), 400
+    
+    # Vérifier que le professeur a accès à ce cours
+    # Vérifier si la colonne niveau existe dans courses
+    cursor.execute("SHOW COLUMNS FROM courses LIKE 'niveau'")
+    niveau_exists = cursor.fetchone() is not None
+    
+    if niveau_exists:
+        # Correspondance flexible du niveau
+        niveau_abbrev = niveau.split()[0] if niveau else ""
+        cursor.execute("""
+            SELECT c.* FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE c.id = %s AND et.user_id = %s AND et.role = 'professeur'
+            AND c.filiere = %s 
+            AND c.niveau IS NOT NULL AND c.niveau != ''
+            AND (
+                c.niveau = %s 
+                OR c.niveau = %s
+                OR c.niveau LIKE %s
+                OR c.niveau LIKE %s
+            )
+        """, (course_id, user_id, filiere, niveau, niveau_abbrev, f'{niveau_abbrev}%', f'%{niveau_abbrev}%'))
+    else:
+        cursor.execute("""
+            SELECT c.* FROM courses c
+            JOIN emploi_temps et ON c.id = et.course_id
+            WHERE c.id = %s AND et.user_id = %s AND et.role = 'professeur'
+            AND c.filiere = %s
+        """, (course_id, user_id, filiere))
+    
+    course = cursor.fetchone()
+    if not course:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Cours non trouvé ou accès refusé pour cette classe'}), 404
+    
+    # Sauvegarder chaque présence
+    for etudiant_id, presence_info in presences.items():
+        statut = presence_info.get('statut', 'absent')
+        commentaire = presence_info.get('commentaire', '')
+        
+        # Vérifier si une présence existe déjà
+        cursor.execute("""
+            SELECT id FROM presences 
+            WHERE course_id = %s AND etudiant_id = %s AND date_cours = %s
+        """, (course_id, etudiant_id, date_cours))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Mettre à jour la présence existante
+            cursor.execute("""
+                UPDATE presences 
+                SET statut = %s, commentaire = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (statut, commentaire, existing['id']))
+        else:
+            # Créer une nouvelle présence
+            cursor.execute("""
+                INSERT INTO presences (etudiant_id, course_id, professeur_id, date_cours, statut, commentaire, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+            """, (etudiant_id, course_id, user_id, date_cours, statut, commentaire))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': 'Présences sauvegardées avec succès'})
 
 # 🎯 ROUTE POUR LES ABSENCES ADMIN
 @app.route('/admin/absences')
@@ -3280,7 +4973,7 @@ def professeur_upload_document(course_id):
         conn = get_db_connection()
         if not conn:
             flash("Erreur de connexion à la base de données.", "danger")
-            return redirect(url_for('prof_dashboard'))
+            return redirect(url_for('professeur_emploi_temps'))
 
         cursor = conn.cursor(dictionary=True)
         
@@ -3297,7 +4990,7 @@ def professeur_upload_document(course_id):
         if not course:
             flash("Cours non trouvé ou accès refusé.", "danger")
             conn.close()
-            return redirect(url_for('prof_dashboard'))
+            return redirect(url_for('professeur_emploi_temps'))
 
         conn.close()
         
@@ -3310,7 +5003,7 @@ def professeur_upload_document(course_id):
         error_msg = f"Erreur upload document: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         flash("Erreur lors du chargement de la page d'upload.", "error")
-        return redirect(url_for('prof_dashboard'))
+        return redirect(url_for('professeur_emploi_temps'))
 
 @app.route('/professeur/upload-document/<int:course_id>', methods=['POST'])
 def upload_document_post(course_id):
@@ -3389,12 +5082,47 @@ def upload_document_post(course_id):
             flash("Erreur de connexion à la base de données.", "danger")
             return redirect(url_for('professeur_upload_document', course_id=course_id))
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         
-        cursor.execute("""
-            INSERT INTO documents (course_id, professeur_id, titre, description, type_doc, nom_fichier, chemin_fichier, taille_fichier, date_upload)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-        """, (course_id, session['user_id'], titre, description, type_doc, file.filename, filename, len(file_content)))
+        # Récupérer le nom_cours et la filiere du cours
+        cursor.execute("SELECT nom_cours, filiere FROM courses WHERE id = %s", (course_id,))
+        course_info = cursor.fetchone()
+        
+        if not course_info:
+            flash("Cours non trouvé.", "danger")
+            conn.close()
+            return redirect(url_for('professeur_upload_document', course_id=course_id))
+        
+        nom_cours = course_info['nom_cours']
+        filiere_cours = course_info['filiere']
+        
+        # Vérifier si les colonnes nom_cours et filiere existent dans documents
+        cursor.execute("SHOW COLUMNS FROM documents LIKE 'nom_cours'")
+        nom_cours_exists = cursor.fetchone() is not None
+        
+        if not nom_cours_exists:
+            # Ajouter les colonnes si elles n'existent pas
+            try:
+                cursor.execute("ALTER TABLE documents ADD COLUMN nom_cours VARCHAR(255) AFTER course_id")
+                cursor.execute("ALTER TABLE documents ADD COLUMN filiere VARCHAR(255) AFTER nom_cours")
+                conn.commit()
+            except Exception as e:
+                print(f"Erreur ajout colonnes nom_cours/filiere: {e}")
+        
+        # Insérer le document avec nom_cours et filiere
+        # Après avoir ajouté les colonnes, elles existent maintenant
+        try:
+            cursor.execute("""
+                INSERT INTO documents (course_id, nom_cours, filiere, professeur_id, titre, description, type_doc, nom_fichier, chemin_fichier, taille_fichier, date_upload)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (course_id, nom_cours, filiere_cours, session['user_id'], titre, description, type_doc, file.filename, filename, len(file_content)))
+        except Exception as e:
+            # Si erreur (colonnes n'existent pas), utiliser l'ancienne structure
+            print(f"Erreur insertion avec nom_cours/filiere, utilisation ancienne structure: {e}")
+            cursor.execute("""
+                INSERT INTO documents (course_id, professeur_id, titre, description, type_doc, nom_fichier, chemin_fichier, taille_fichier, date_upload)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (course_id, session['user_id'], titre, description, type_doc, file.filename, filename, len(file_content)))
         
         conn.commit()
         conn.close()
@@ -3439,14 +5167,33 @@ def student_course_documents(course_id):
             conn.close()
             return redirect(url_for('student_dashboard'))
 
-        # Récupérer les documents du cours
-        cursor.execute("""
-            SELECT d.*, u.prenom as prof_prenom, u.nom as prof_nom
-            FROM documents d
-            JOIN users u ON d.professeur_id = u.id
-            WHERE d.course_id = %s
-            ORDER BY d.date_upload DESC
-        """, (course_id,))
+        # Récupérer les documents du cours (par nom_cours et filiere, disponibles pendant 5 ans)
+        nom_cours = course['nom_cours']
+        filiere_cours = course['filiere']
+        
+        # Vérifier si les colonnes nom_cours et filiere existent dans documents
+        cursor.execute("SHOW COLUMNS FROM documents LIKE 'nom_cours'")
+        nom_cours_exists = cursor.fetchone() is not None
+        
+        if nom_cours_exists:
+            # Récupérer tous les documents de ce module (nom_cours + filiere) de moins de 5 ans
+            cursor.execute("""
+                SELECT d.*, u.prenom as prof_prenom, u.nom as prof_nom
+                FROM documents d
+                JOIN users u ON d.professeur_id = u.id
+                WHERE d.nom_cours = %s AND d.filiere = %s
+                AND d.date_upload >= DATE_SUB(NOW(), INTERVAL 5 YEAR)
+                ORDER BY d.date_upload DESC
+            """, (nom_cours, filiere_cours))
+        else:
+            # Si les colonnes n'existent pas encore, utiliser course_id (compatibilité)
+            cursor.execute("""
+                SELECT d.*, u.prenom as prof_prenom, u.nom as prof_nom
+                FROM documents d
+                JOIN users u ON d.professeur_id = u.id
+                WHERE d.course_id = %s
+                ORDER BY d.date_upload DESC
+            """, (course_id,))
         
         documents = cursor.fetchall()
 

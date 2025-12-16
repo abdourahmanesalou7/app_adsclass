@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Module - {{ course.nom_cours }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            scroll-behavior: smooth;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .nav-tab {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 3px solid transparent;
+            position: relative;
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav-tab:not(.active):hover {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            transform: translateY(-2px);
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        
+        .input-modern {
+            transition: all 0.2s;
+        }
+        
+        .input-modern:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-present {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .badge-absent {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .badge-retard {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .badge-excuse {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+        }
+        
+        .select-modern {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen">
+    <!-- Navigation Sticky -->
+    <nav class="bg-white shadow-lg border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('professeur_emploi_temps') }}" 
+                       class="w-11 h-11 bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl flex items-center justify-center hover:shadow-xl transition-all transform hover:scale-105">
+                        <i class="fas fa-arrow-left text-white text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">{{ course.nom_cours }}</h1>
+                        <p class="text-sm text-gray-600 flex items-center">
+                            <i class="fas fa-graduation-cap text-blue-600 mr-1.5"></i>
+                            {{ course.filiere }} • 
+                            <i class="fas fa-calendar-day text-purple-600 mx-1.5"></i>
+                            {{ course.jour_semaine }} {{ course.heure_debut }}-{{ course.heure_fin }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right hidden md:block">
+                        <p class="text-sm font-semibold text-gray-900">{{ prenom }} {{ nom }}</p>
+                        <p class="text-xs text-gray-500">Professeur</p>
+                    </div>
+                    <a href="{{ url_for('professeur_emploi_temps') }}" 
+                       class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-xl transition-all text-sm font-semibold flex items-center shadow-lg transform hover:scale-105">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- En-tête du module avec statistiques -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-6 border border-gray-100">
+            <div class="flex items-center justify-between flex-wrap gap-6">
+                <div class="flex items-center space-x-5">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform">
+                        <i class="fas fa-book text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-1">{{ course.nom_cours }}</h2>
+                        <div class="flex items-center space-x-5 flex-wrap mt-3">
+                            <div class="flex items-center text-gray-700 bg-blue-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-graduation-cap text-blue-600 mr-2"></i>
+                                <span class="font-semibold">{{ course.filiere }}</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 bg-indigo-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-door-open text-indigo-600 mr-2"></i>
+                                <span>{{ course.salle or 'Non définie' }}</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 bg-purple-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-clock text-purple-600 mr-2"></i>
+                                <span class="font-medium">{{ course.heure_debut }} - {{ course.heure_fin }}</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 bg-green-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-users text-green-600 mr-2"></i>
+                                <span class="font-bold text-green-700">{{ etudiants|length }} étudiants</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglets de navigation améliorés -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-6 border border-gray-100">
+            <div class="flex flex-wrap border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <button onclick="showTab('general')" class="nav-tab active px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-users mr-2.5"></i>General
+                </button>
+                <button onclick="showTab('lectures')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-book-open mr-2.5"></i>Lectures
+                </button>
+                <button onclick="showTab('exams')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-file-alt mr-2.5"></i>Exams
+                </button>
+                <button onclick="showTab('ressources')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-folder-open mr-2.5"></i>Ressources
+                </button>
+                <button onclick="showTab('assignments')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-tasks mr-2.5"></i>Assignments
+                </button>
+                <button onclick="showTab('gradebook')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-table mr-2.5"></i>Gradebook
+                </button>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="p-8">
+                <!-- ONGLET 1: GENERAL -->
+                <div id="general-content" class="tab-content active">
+                    <div class="flex gap-6">
+                        <!-- Barre latérale gauche -->
+                        <div class="w-48 flex-shrink-0">
+                            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                                <div class="p-4">
+                                    <nav class="space-y-1">
+                                        <a href="#" class="block px-4 py-3 bg-blue-50 border-l-4 border-blue-600 text-blue-700 font-medium text-sm">
+                                            Attendance
+                                        </a>
+                                        <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium text-sm">
+                                            Assignments
+                                        </a>
+                                        <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium text-sm">
+                                            Resources
+                                        </a>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Zone principale -->
+                        <div class="flex-1">
+                            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                                <!-- En-tête avec recherche et Mark all as -->
+                                <div class="p-4 border-b border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1"></div>
+                                        <div class="flex items-center space-x-3">
+                                            <div class="relative">
+                                                <input type="text" id="search-students-general" placeholder="Search Students" 
+                                                       class="border border-gray-300 rounded-md px-4 py-2 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-48">
+                                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="text-sm text-gray-700 whitespace-nowrap">Mark all as:</span>
+                                                <select id="mark-all-status-general" 
+                                                        class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                                    <option value="present">Present</option>
+                                                    <option value="absent">Absent</option>
+                                                    <option value="retard">Late</option>
+                                                    <option value="excuse">Excused</option>
+                                                </select>
+                                                <button onclick="markAllAsGeneral()" 
+                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-all">
+                                                    Apply
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Liste des étudiants -->
+                                <div class="p-4">
+                                    <div id="etudiants-list-general" class="space-y-3">
+                                        {% for etudiant in etudiants %}
+                                        <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                                            <div class="flex items-center space-x-4 flex-1">
+                                                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                                    <i class="fas fa-user text-gray-600 text-sm"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <div class="font-medium text-gray-900 text-sm">{{ etudiant.nom }} {{ etudiant.prenom }}</div>
+                                                    <div class="text-xs text-gray-500">{{ etudiant.email }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-4">
+                                                <span class="text-xs text-gray-500 min-w-[100px]" id="status-{{ etudiant.id }}">Unspecified</span>
+                                                <input type="text" 
+                                                       class="presence-input-general border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white w-24" 
+                                                       data-etudiant-id="{{ etudiant.id }}"
+                                                       placeholder=""
+                                                       onchange="updatePresenceGeneral(this)"
+                                                       oninput="updatePresenceGeneral(this)">
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Bouton de sauvegarde -->
+                                <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                                    <button onclick="savePresencesGeneral()" 
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-all">
+                                        Save Attendance
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ONGLET 2: LECTURES -->
+                <div id="lectures-content" class="tab-content">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-book-open text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-bold text-gray-900">Contenus de Cours</h3>
+                                <p class="text-gray-600 mt-1">Organisez vos séances et contenus pédagogiques</p>
+                            </div>
+                        </div>
+                        <button onclick="showLectureModal()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold flex items-center shadow-lg">
+                            <i class="fas fa-plus mr-2"></i>Ajouter une séance
+                        </button>
+                    </div>
+
+
+                    <!-- Liste des séances -->
+                    <div class="space-y-5" id="lectures-list">
+                        {% for lecture in lectures %}
+                        <div class="bg-white rounded-2xl shadow-lg border-l-4 border-blue-500 p-7 card-hover">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-4">
+                                        <h4 class="text-2xl font-bold text-gray-900 mr-4">{{ lecture.titre }}</h4>
+                                        {% if lecture.date_seance %}
+                                        <span class="bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full text-xs font-bold">
+                                            <i class="fas fa-calendar mr-1"></i>{{ lecture.date_seance }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    {% if lecture.description %}
+                                    <p class="text-gray-700 mb-4 text-lg">{{ lecture.description }}</p>
+                                    {% endif %}
+                                    {% if lecture.contenu %}
+                                    <div class="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-5 mb-4 border border-gray-200">
+                                        <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">{{ lecture.contenu }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex space-x-2 ml-6">
+                                    <button onclick="editLecture({{ lecture.id }})" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-xl transition-all shadow-lg transform hover:scale-105">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteLecture({{ lecture.id }})" 
+                                            class="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl transition-all shadow-lg transform hover:scale-105">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-20 empty-state rounded-2xl border-2 border-dashed border-gray-300">
+                            <div class="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-book-open text-5xl text-gray-400"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucune séance de cours ajoutée</h4>
+                            <p class="text-gray-500 mb-6">Commencez par ajouter votre première séance de cours</p>
+                            <button onclick="showLectureModal()" class="btn-primary text-white px-8 py-3 rounded-xl font-semibold inline-flex items-center shadow-lg">
+                                <i class="fas fa-plus mr-2"></i>Ajouter une séance
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 3: EXAMS -->
+                <div id="exams-content" class="tab-content">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-file-alt text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-bold text-gray-900">Gestion des Examens</h3>
+                                <p class="text-gray-600 mt-1">Créez et gérez vos examens, partiels et contrôles</p>
+                            </div>
+                        </div>
+                        <button onclick="showExamModal()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold flex items-center shadow-lg">
+                            <i class="fas fa-plus mr-2"></i>Créer un examen
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="exams-list">
+                        {% for exam in exams %}
+                        <div class="bg-white rounded-2xl shadow-lg border-l-4 border-purple-500 p-6 card-hover">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide">{{ exam.type_examen }}</span>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="editExam({{ exam.id }})" 
+                                            class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-all">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteExam({{ exam.id }})" 
+                                            class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">{{ exam.titre }}</h4>
+                            {% if exam.date_examen %}
+                            <p class="text-gray-700 mb-2 flex items-center text-sm font-medium">
+                                <i class="fas fa-calendar mr-2 text-purple-600"></i>{{ exam.date_examen }}
+                            </p>
+                            {% endif %}
+                            <p class="text-gray-700 mb-3 flex items-center text-sm font-medium">
+                                <i class="fas fa-weight mr-2 text-purple-600"></i>Coefficient: <span class="font-bold ml-1">{{ exam.coefficient }}</span>
+                            </p>
+                            {% if exam.description %}
+                            <p class="text-gray-600 text-sm mt-4 bg-gray-50 p-3 rounded-lg">{{ exam.description }}</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="col-span-full text-center py-20 empty-state rounded-2xl border-2 border-dashed border-gray-300">
+                            <div class="w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-file-alt text-5xl text-gray-400"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucun examen créé</h4>
+                            <p class="text-gray-500 mb-6">Créez votre premier examen pour commencer</p>
+                            <button onclick="showExamModal()" class="btn-primary text-white px-8 py-3 rounded-xl font-semibold inline-flex items-center shadow-lg">
+                                <i class="fas fa-plus mr-2"></i>Créer un examen
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 4: RESSOURCES -->
+                <div id="ressources-content" class="tab-content">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-folder-open text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-bold text-gray-900">Ressources et Documents</h3>
+                                <p class="text-gray-600 mt-1">Partagez vos documents avec vos étudiants</p>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('professeur_upload_document', course_id=course.id) }}" 
+                           class="btn-primary text-white px-6 py-3 rounded-xl font-semibold flex items-center shadow-lg">
+                            <i class="fas fa-upload mr-2"></i>Uploader un document
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for doc in documents %}
+                        <div class="bg-white rounded-2xl shadow-lg border-l-4 border-green-500 p-6 card-hover">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-bold text-gray-900 mb-3">{{ doc.titre }}</h4>
+                                    {% if doc.description %}
+                                    <p class="text-gray-600 text-sm mb-3">{{ doc.description }}</p>
+                                    {% endif %}
+                                    <div class="space-y-2">
+                                        <p class="text-gray-500 text-xs flex items-center">
+                                            <i class="fas fa-file mr-2 text-green-600"></i>{{ doc.nom_fichier }}
+                                        </p>
+                                        <p class="text-gray-500 text-xs flex items-center">
+                                            <i class="fas fa-calendar mr-2 text-green-600"></i>{{ doc.date_upload.strftime('%d/%m/%Y') if doc.date_upload else '' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2 mt-4">
+                                <a href="/uploads/{{ doc.chemin_fichier }}" target="_blank" 
+                                   class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-xl transition-all text-center text-sm font-semibold flex items-center justify-center shadow-lg transform hover:scale-105">
+                                    <i class="fas fa-download mr-1.5"></i>Télécharger
+                                </a>
+                                <button onclick="deleteDocument({{ doc.id }})" 
+                                        class="bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg transform hover:scale-105">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-span-full text-center py-20 empty-state rounded-2xl border-2 border-dashed border-gray-300">
+                            <div class="w-24 h-24 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-folder-open text-5xl text-gray-400"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucun document uploadé</h4>
+                            <p class="text-gray-500 mb-6">Commencez par uploader votre premier document</p>
+                            <a href="{{ url_for('professeur_upload_document', course_id=course.id) }}" 
+                               class="btn-primary text-white px-8 py-3 rounded-xl font-semibold inline-flex items-center shadow-lg">
+                                <i class="fas fa-upload mr-2"></i>Uploader un document
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 6: ASSIGNMENTS -->
+                <div id="assignments-content" class="tab-content">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-tasks text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-bold text-gray-900">Devoirs et Travaux Dirigés</h3>
+                                <p class="text-gray-600 mt-1">Publiez et gérez les devoirs de vos étudiants</p>
+                            </div>
+                        </div>
+                        <button onclick="showAssignmentModal()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold flex items-center shadow-lg">
+                            <i class="fas fa-plus mr-2"></i>Publier un devoir
+                        </button>
+                    </div>
+
+                    <div class="space-y-5" id="assignments-list">
+                        {% for assignment in assignments %}
+                        <div class="bg-white rounded-2xl shadow-lg border-l-4 border-orange-500 p-7 card-hover">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-4">
+                                        <h4 class="text-2xl font-bold text-gray-900 mr-4">{{ assignment.titre }}</h4>
+                                        <span class="bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide">{{ assignment.type_assignment }}</span>
+                                    </div>
+                                    {% if assignment.description %}
+                                    <p class="text-gray-700 mb-4 text-lg">{{ assignment.description }}</p>
+                                    {% endif %}
+                                    <div class="flex items-center space-x-6 text-gray-700 text-sm font-medium">
+                                        {% if assignment.date_publication %}
+                                        <span class="flex items-center bg-blue-50 px-4 py-2 rounded-lg">
+                                            <i class="fas fa-calendar-check mr-2 text-blue-600"></i>Publié: {{ assignment.date_publication }}
+                                        </span>
+                                        {% endif %}
+                                        {% if assignment.date_limite %}
+                                        <span class="flex items-center bg-orange-50 px-4 py-2 rounded-lg">
+                                            <i class="fas fa-clock mr-2 text-orange-600"></i>Limite: {{ assignment.date_limite }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    {% if assignment.fichier_corrige %}
+                                    <div class="mt-4">
+                                        <a href="/uploads/{{ assignment.fichier_corrige }}" 
+                                           class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold bg-blue-50 px-4 py-2 rounded-lg inline-flex">
+                                            <i class="fas fa-file-pdf mr-2"></i>Corrigé disponible
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex space-x-2 ml-6">
+                                    <button onclick="viewSubmissions({{ assignment.id }})" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-xl transition-all text-sm font-semibold shadow-lg transform hover:scale-105">
+                                        <i class="fas fa-eye mr-1.5"></i>Voir rendus
+                                    </button>
+                                    <button onclick="editAssignment({{ assignment.id }})" 
+                                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-3 rounded-xl transition-all shadow-lg transform hover:scale-105">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteAssignment({{ assignment.id }})" 
+                                            class="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl transition-all shadow-lg transform hover:scale-105">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-20 empty-state rounded-2xl border-2 border-dashed border-gray-300">
+                            <div class="w-24 h-24 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-tasks text-5xl text-gray-400"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold text-gray-700 mb-2">Aucun devoir publié</h4>
+                            <p class="text-gray-500 mb-6">Publiez votre premier devoir pour commencer</p>
+                            <button onclick="showAssignmentModal()" class="btn-primary text-white px-8 py-3 rounded-xl font-semibold inline-flex items-center shadow-lg">
+                                <i class="fas fa-plus mr-2"></i>Publier un devoir
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ONGLET 7: GRADEBOOK -->
+                <div id="gradebook-content" class="tab-content">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-table text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-bold text-gray-900">Gradebook - Encodage des Notes</h3>
+                                <p class="text-gray-600 mt-1">Gérez toutes les notes et calculez les moyennes</p>
+                            </div>
+                        </div>
+                        <button onclick="calculateAverages()" class="btn-success text-white px-6 py-3 rounded-xl font-semibold flex items-center shadow-lg">
+                            <i class="fas fa-calculator mr-2"></i>Calculer les moyennes
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border-2 border-gray-200 shadow-lg bg-white">
+                        <table class="min-w-full">
+                            <thead class="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                                <tr>
+                                    <th class="px-6 py-4 text-left font-bold text-sm uppercase tracking-wider">Student</th>
+                                    <th class="px-6 py-4 text-center font-bold text-sm uppercase tracking-wider">CC1 x2</th>
+                                    <th class="px-6 py-4 text-center font-bold text-sm uppercase tracking-wider">CC2 x2</th>
+                                    <th class="px-6 py-4 text-center font-bold text-sm uppercase tracking-wider">Participation x1</th>
+                                    <th class="px-6 py-4 text-center font-bold text-sm uppercase tracking-wider">Examen x3</th>
+                                    <th class="px-6 py-4 text-center font-bold text-sm uppercase tracking-wider">Rattrapage x3</th>
+                                    <th class="px-6 py-4 text-center font-bold text-sm uppercase tracking-wider">Moyenne Corrigé - Ra</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                {% for etudiant in etudiants %}
+                                {% set gb_notes = gradebook_notes.get(etudiant.id, []) %}
+                                {% set cc1_data = gb_notes | selectattr('type_note', 'equalto', 'CC1') | list | first %}
+                                {% set cc2_data = gb_notes | selectattr('type_note', 'equalto', 'CC2') | list | first %}
+                                {% set participation_data = gb_notes | selectattr('type_note', 'equalto', 'Participation') | list | first %}
+                                {% set examen_data = gb_notes | selectattr('type_note', 'equalto', 'Examen') | list | first %}
+                                {% set rattrapage_data = gb_notes | selectattr('type_note', 'equalto', 'Rattrapage') | list | first %}
+                                {% set cc1_note = cc1_data.note if cc1_data else None %}
+                                {% set cc2_note = cc2_data.note if cc2_data else None %}
+                                {% set participation_note = participation_data.note if participation_data else None %}
+                                {% set examen_note = examen_data.note if examen_data else None %}
+                                {% set rattrapage_note = rattrapage_data.note if rattrapage_data else None %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 font-semibold text-gray-900">{{ etudiant.nom }} {{ etudiant.prenom }}</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="number" step="0.01" min="0" max="20" 
+                                               class="gb-input w-20 text-center border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                                               data-etudiant-id="{{ etudiant.id }}" 
+                                               data-type="CC1" 
+                                               data-coefficient="2"
+                                               value="{{ cc1_note if cc1_note else '' }}"
+                                               onblur="updateGradebookNote(this)">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="number" step="0.01" min="0" max="20" 
+                                               class="gb-input w-20 text-center border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                                               data-etudiant-id="{{ etudiant.id }}" 
+                                               data-type="CC2" 
+                                               data-coefficient="2"
+                                               value="{{ cc2_note if cc2_note else '' }}"
+                                               onblur="updateGradebookNote(this)">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="number" step="0.01" min="0" max="20" 
+                                               class="gb-input w-20 text-center border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                                               data-etudiant-id="{{ etudiant.id }}" 
+                                               data-type="Participation" 
+                                               data-coefficient="1"
+                                               value="{{ participation_note if participation_note else '' }}"
+                                               onblur="updateGradebookNote(this)">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="number" step="0.01" min="0" max="20" 
+                                               class="gb-input w-20 text-center border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                                               data-etudiant-id="{{ etudiant.id }}" 
+                                               data-type="Examen" 
+                                               data-coefficient="3"
+                                               value="{{ examen_note if examen_note else '' }}"
+                                               onblur="updateGradebookNote(this)">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="number" step="0.01" min="0" max="20" 
+                                               class="gb-input w-20 text-center border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                                               data-etudiant-id="{{ etudiant.id }}" 
+                                               data-type="Rattrapage" 
+                                               data-coefficient="3"
+                                               value="{{ rattrapage_note if rattrapage_note else '' }}"
+                                               onblur="updateGradebookNote(this)">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="font-bold text-lg text-blue-600" id="gb-moy-{{ etudiant.id }}">
+                                            {% if cc1_note or cc2_note or participation_note or examen_note or rattrapage_note %}
+                                                {% set total = (cc1_note|default(0)|float * 2) + (cc2_note|default(0)|float * 2) + (participation_note|default(0)|float * 1) + (examen_note|default(0)|float * 3) + (rattrapage_note|default(0)|float * 3) %}
+                                                {% set coef_total = 11 %}
+                                                {{ "%.2f"|format(total / coef_total) if coef_total > 0 else "-" }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const courseId = {{ course.id }};
+        
+        function showTab(tabName) {
+            // Masquer tous les contenus avec animation
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.animation = 'fadeOut 0.2s ease-out';
+                setTimeout(() => {
+                    content.classList.remove('active');
+                }, 200);
+            });
+            
+            // Désactiver tous les tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active', 'bg-gradient-to-r', 'from-purple-600', 'to-purple-700', 'text-white', 'shadow-lg');
+                tab.classList.add('text-gray-700');
+            });
+            
+            // Activer le tab et contenu sélectionnés
+            setTimeout(() => {
+                const content = document.getElementById(tabName + '-content');
+                content.classList.add('active');
+                content.style.animation = 'fadeIn 0.3s ease-in-out';
+                
+                event.target.classList.add('active', 'bg-gradient-to-r', 'from-purple-600', 'to-purple-700', 'text-white', 'shadow-lg');
+                event.target.classList.remove('text-gray-700');
+            }, 200);
+        }
+
+        function updatePresenceBadge(select) {
+            const value = select.value;
+            // Vous pouvez ajouter un badge visuel ici si nécessaire
+        }
+
+        // Fonctions pour l'onglet General (nouveau format)
+        function updatePresenceGeneral(input) {
+            // Mettre à jour le statut "Unspecified" selon la valeur saisie
+            const etudiantId = input.getAttribute('data-etudiant-id');
+            const statusSpan = document.getElementById(`status-${etudiantId}`);
+            const value = input.value.trim().toLowerCase();
+            
+            if (value === '' || value === 'present' || value === 'p' || value === 'présent') {
+                statusSpan.textContent = 'Present';
+                statusSpan.className = 'text-xs text-green-600 min-w-[100px]';
+            } else if (value === 'absent' || value === 'a') {
+                statusSpan.textContent = 'Absent';
+                statusSpan.className = 'text-xs text-red-600 min-w-[100px]';
+            } else if (value === 'late' || value === 'retard' || value === 'l' || value === 'r') {
+                statusSpan.textContent = 'Late';
+                statusSpan.className = 'text-xs text-yellow-600 min-w-[100px]';
+            } else if (value === 'excused' || value === 'excuse' || value === 'e') {
+                statusSpan.textContent = 'Excused';
+                statusSpan.className = 'text-xs text-blue-600 min-w-[100px]';
+            } else if (value !== '') {
+                // Si une valeur est saisie mais ne correspond à rien, garder Unspecified
+                statusSpan.textContent = 'Unspecified';
+                statusSpan.className = 'text-xs text-gray-500 min-w-[100px]';
+            } else {
+                statusSpan.textContent = 'Unspecified';
+                statusSpan.className = 'text-xs text-gray-500 min-w-[100px]';
+            }
+        }
+
+        function markAllAsGeneral() {
+            const status = document.getElementById('mark-all-status-general').value;
+            const inputs = document.querySelectorAll('.presence-input-general');
+            
+            inputs.forEach(input => {
+                if (status === 'present') {
+                    input.value = 'P';
+                } else if (status === 'absent') {
+                    input.value = 'A';
+                } else if (status === 'retard') {
+                    input.value = 'L';
+                } else if (status === 'excuse') {
+                    input.value = 'E';
+                }
+                updatePresenceGeneral(input);
+            });
+        }
+
+
+        function savePresencesGeneral() {
+            const date = new Date().toISOString().split('T')[0]; // Date du jour par défaut
+            const presences = [];
+            
+            document.querySelectorAll('.presence-input-general').forEach(input => {
+                const etudiantId = input.getAttribute('data-etudiant-id');
+                const value = input.value.trim().toLowerCase();
+                let statut = 'present';
+                
+                if (value === '' || value === 'present' || value === 'p') {
+                    statut = 'present';
+                } else if (value === 'absent' || value === 'a') {
+                    statut = 'absent';
+                } else if (value === 'late' || value === 'retard' || value === 'l') {
+                    statut = 'retard';
+                } else if (value === 'excused' || value === 'excuse' || value === 'e') {
+                    statut = 'excuse';
+                }
+                
+                presences.push({
+                    etudiant_id: parseInt(etudiantId),
+                    statut: statut,
+                    commentaire: ''
+                });
+            });
+
+            const button = event.target;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            button.disabled = true;
+
+            fetch(`/professeur/course/${courseId}/presences/save`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({date: date, presences: presences})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Présences enregistrées avec succès!', 'success');
+                } else {
+                    showNotification('Erreur: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la sauvegarde', 'error');
+            })
+            .finally(() => {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            });
+        }
+
+        // Recherche d'étudiants dans l'onglet General
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-students-general');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const search = e.target.value.toLowerCase();
+                    const items = document.querySelectorAll('#etudiants-list-general > div');
+                    items.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        item.style.display = text.includes(search) ? 'flex' : 'none';
+                    });
+                });
+            }
+
+        });
+
+        function loadPresences() {
+            const date = document.getElementById('date-cours').value;
+            const button = event.target;
+            const originalHTML = button.innerHTML;
+            
+            button.innerHTML = '<div class="loading-spinner"></div>';
+            button.disabled = true;
+            
+            fetch(`/professeur/course/${courseId}/presences?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        data.presences.forEach(p => {
+                            const select = document.querySelector(`.presence-select[data-etudiant-id="${p.etudiant_id}"]`);
+                            const comment = document.querySelector(`.comment-input[data-etudiant-id="${p.etudiant_id}"]`);
+                            if (select) select.value = p.statut;
+                            if (comment) comment.value = p.commentaire || '';
+                        });
+                        showNotification('Présences chargées avec succès!', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors du chargement', 'error');
+                })
+                .finally(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                });
+        }
+
+        function savePresences() {
+            const date = document.getElementById('date-cours').value;
+            const presences = [];
+            
+            document.querySelectorAll('.presence-select').forEach(select => {
+                const etudiantId = select.getAttribute('data-etudiant-id');
+                const commentInput = document.querySelector(`.comment-input[data-etudiant-id="${etudiantId}"]`);
+                presences.push({
+                    etudiant_id: etudiantId,
+                    statut: select.value,
+                    commentaire: commentInput ? commentInput.value : ''
+                });
+            });
+
+            const button = event.target;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enregistrement...';
+            button.disabled = true;
+
+            fetch(`/professeur/course/${courseId}/presences/save`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({date: date, presences: presences})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Présences enregistrées avec succès!', 'success');
+                } else {
+                    showNotification('Erreur: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la sauvegarde', 'error');
+            })
+            .finally(() => {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            });
+        }
+
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-20 right-4 px-6 py-4 rounded-xl shadow-2xl z-50 transform transition-all ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white font-semibold`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function showLectureModal() {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function showExamModal() {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function showAssignmentModal() {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function addGradebookNote() {
+            const etudiantId = document.getElementById('gb-etudiant').value;
+            const type = document.getElementById('gb-type').value;
+            const note = document.getElementById('gb-note').value;
+            const coefficient = document.getElementById('gb-coefficient').value;
+
+            if (!etudiantId || !note) {
+                showNotification('Veuillez remplir tous les champs', 'error');
+                return;
+            }
+
+            fetch(`/professeur/course/${courseId}/gradebook/add`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    etudiant_id: etudiantId,
+                    type_note: type,
+                    note: parseFloat(note),
+                    coefficient: parseFloat(coefficient)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Note ajoutée avec succès!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de l\'ajout', 'error');
+            });
+        }
+
+        function calculateAverages() {
+            const button = event.target;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Calcul en cours...';
+            button.disabled = true;
+
+            fetch(`/professeur/course/${courseId}/gradebook/calculate`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Moyennes calculées avec succès!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors du calcul', 'error');
+            })
+            .finally(() => {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            });
+        }
+
+        function deleteDocument(docId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce document?')) {
+                fetch(`/professeur/course/${courseId}/document/${docId}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Document supprimé avec succès!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors de la suppression', 'error');
+                });
+            }
+        }
+
+        function editLecture(id) {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function deleteLecture(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette séance?')) {
+                alert('Fonctionnalité à implémenter');
+            }
+        }
+
+        function editExam(id) {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function deleteExam(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet examen?')) {
+                alert('Fonctionnalité à implémenter');
+            }
+        }
+
+        function viewSubmissions(id) {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function editAssignment(id) {
+            alert('Fonctionnalité à implémenter');
+        }
+
+        function deleteAssignment(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce devoir?')) {
+                alert('Fonctionnalité à implémenter');
+            }
+        }
+
+
+        function displayAttendanceList(etudiants, presences) {
+            const attendanceList = document.getElementById('attendance-list-lecture');
+            
+            if (etudiants.length === 0) {
+                attendanceList.innerHTML = '<div class="text-center py-8 text-gray-500">Aucun étudiant trouvé</div>';
+                return;
+            }
+
+            attendanceList.innerHTML = etudiants.map(etudiant => {
+                const presence = presences[etudiant.id] || { statut: 'present', commentaire: '' };
+                const isPresent = presence.statut === 'present';
+                const isAbsent = presence.statut === 'absent';
+                const statusClass = isPresent ? 'border-green-500 bg-green-50' : isAbsent ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white';
+                const statusText = isPresent ? 'Présent' : isAbsent ? 'Absent' : presence.statut === 'retard' ? 'Retard' : 'Excusé';
+                
+                return `
+                    <div class="bg-white rounded-lg border ${statusClass} p-4 flex items-center justify-between hover:shadow-sm transition-all">
+                        <div class="flex items-center space-x-4 flex-1">
+                            <div class="w-10 h-10 rounded-full ${isPresent ? 'bg-green-500' : isAbsent ? 'bg-red-500' : 'bg-gray-400'} flex items-center justify-center text-white font-semibold text-xs">
+                                ${etudiant.prenom.charAt(0).toUpperCase()}${etudiant.nom.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900 text-sm">${etudiant.nom} ${etudiant.prenom}</div>
+                                <div class="text-xs text-gray-500">${etudiant.email}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-xs font-medium ${isPresent ? 'text-green-700' : isAbsent ? 'text-red-700' : 'text-gray-700'} min-w-[80px]">
+                                ${statusText}
+                            </div>
+                            <select class="attendance-status-lecture border border-gray-300 rounded-md px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[120px]" 
+                                    data-etudiant-id="${etudiant.id}" 
+                                    onchange="updateAttendanceBadgeLecture(this)">
+                                <option value="present" ${presence.statut === 'present' ? 'selected' : ''}>Présent</option>
+                                <option value="absent" ${presence.statut === 'absent' ? 'selected' : ''}>Absent</option>
+                                <option value="retard" ${presence.statut === 'retard' ? 'selected' : ''}>Retard</option>
+                                <option value="excuse" ${presence.statut === 'excuse' ? 'selected' : ''}>Excusé</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Ajouter la fonctionnalité de recherche (une seule fois)
+            const searchInput = document.getElementById('search-students-lecture');
+            if (searchInput) {
+                // Supprimer les anciens listeners
+                const newSearchInput = searchInput.cloneNode(true);
+                searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+                
+                // Ajouter le nouveau listener
+                newSearchInput.addEventListener('input', function(e) {
+                    const search = e.target.value.toLowerCase();
+                    const items = attendanceList.querySelectorAll('div');
+                    items.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        item.style.display = text.includes(search) ? 'flex' : 'none';
+                    });
+                });
+            }
+        }
+
+
+        function updateGradebookNote(input) {
+            const etudiantId = input.getAttribute('data-etudiant-id');
+            const typeNote = input.getAttribute('data-type');
+            const coefficient = input.getAttribute('data-coefficient');
+            const note = input.value;
+
+            fetch(`/professeur/course/${courseId}/gradebook/update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    etudiant_id: parseInt(etudiantId),
+                    type_note: typeNote,
+                    note: note ? parseFloat(note) : null,
+                    coefficient: parseFloat(coefficient)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Recalculer la moyenne
+                    calculateStudentAverage(etudiantId);
+                } else {
+                    showNotification('Erreur lors de la mise à jour', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la mise à jour', 'error');
+            });
+        }
+
+        function calculateStudentAverage(etudiantId) {
+            const inputs = document.querySelectorAll(`.gb-input[data-etudiant-id="${etudiantId}"]`);
+            let total = 0;
+            let totalCoef = 0;
+            
+            inputs.forEach(input => {
+                const value = parseFloat(input.value);
+                const coef = parseFloat(input.getAttribute('data-coefficient'));
+                if (!isNaN(value)) {
+                    total += value * coef;
+                    totalCoef += coef;
+                }
+            });
+            
+            const moyenne = totalCoef > 0 ? (total / totalCoef).toFixed(2) : '-';
+            document.getElementById(`gb-moy-${etudiantId}`).textContent = moyenne;
+        }
+    </script>
+</body>
+</html>

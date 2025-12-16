@@ -276,7 +276,11 @@
                 date.setDate(today.getDate() + i);
 
                 const dayName = daysOfWeek[date.getDay()];
-                const dateStr = date.toISOString().split('T')[0];
+                // IMPORTANT: formater la date en LOCAL (évite le décalage d'un jour avec toISOString/UTC)
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
                 const displayDate = date.toLocaleDateString('fr-FR', {
                     day: 'numeric',
                     month: 'short'

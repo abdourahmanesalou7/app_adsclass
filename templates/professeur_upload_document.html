@@ -72,7 +72,7 @@
                         <span class="font-semibold">Prof. {{ prenom }}</span>
                     </div>
                     <div class="space-x-2">
-                        <a href="{{ url_for('professeur_etudiants_cours', course_id=course.id) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all">
+                        <a href="{{ url_for('prof_classes') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all">
                             <i class="fas fa-arrow-left mr-2"></i>Retour
                         </a>
                     </div>
@@ -202,7 +202,7 @@
                                 <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition-all font-semibold">
                                     <i class="fas fa-upload mr-2"></i>Uploader le document
                                 </button>
-                                <a href="{{ url_for('professeur_etudiants_cours', course_id=course.id) }}" 
+                                <a href="{{ url_for('prof_classes') }}" 
                                    class="bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-lg transition-all">
                                     <i class="fas fa-times mr-2"></i>Annuler
                                 </a>

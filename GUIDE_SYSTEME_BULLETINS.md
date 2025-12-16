@@ -236,3 +236,17 @@ Moyenne Générale = Σ(Moyenne × Coefficient) / Σ(Coefficients)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
