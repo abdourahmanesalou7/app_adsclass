@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidature — AdsClass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>html { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 min-h-screen text-white">
+
+<div class="max-w-3xl mx-auto px-4 py-12">
+    <div class="text-center mb-10">
+        <div class="w-16 h-16 bg-gradient-to-br from-sky-400 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
+            <i class="fas fa-graduation-cap text-2xl"></i>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">Candidature AdsClass</h1>
+        <p class="text-slate-400">Rejoignez notre école — Formulaire d'inscription en ligne</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="mb-4 p-4 rounded-xl {% if category == 'danger' %}bg-red-500/20 border border-red-500/30{% else %}bg-amber-500/20{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data"
+          class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl space-y-6">
+
+        <div>
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-user text-sky-400"></i> Informations personnelles
+            </h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <input name="prenom" required placeholder="Prénom *"
+                       class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full placeholder-slate-400 focus:outline-none focus:border-sky-400">
+                <input name="nom" required placeholder="Nom *"
+                       class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full placeholder-slate-400 focus:outline-none focus:border-sky-400">
+                <input name="email" type="email" required placeholder="Email *"
+                       class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full placeholder-slate-400 focus:outline-none focus:border-sky-400">
+                <input name="telephone" placeholder="Téléphone / WhatsApp"
+                       class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full placeholder-slate-400 focus:outline-none focus:border-sky-400">
+                <input name="pays" value="Niger" placeholder="Pays"
+                       class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full placeholder-slate-400 focus:outline-none focus:border-sky-400">
+                <select name="niveau" class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full text-slate-300 focus:outline-none focus:border-sky-400">
+                    <option value="L1">Licence 1 (L1)</option>
+                    <option value="L2">Licence 2 (L2)</option>
+                    <option value="L3">Licence 3 (L3)</option>
+                    <option value="M1">Master 1 (M1)</option>
+                    <option value="M2">Master 2 (M2)</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-book text-indigo-400"></i> Choisir votre filière
+            </h2>
+            {% if filieres %}
+            <div class="grid sm:grid-cols-2 gap-3 mb-4" id="filiereCards">
+                {% for f in filieres %}
+                {% if f.est_ouvert %}
+                <label class="filiere-card cursor-pointer block bg-white/5 border-2 border-white/10 rounded-xl p-4 hover:border-sky-400 transition-all has-[:checked]:border-sky-400 has-[:checked]:bg-sky-500/10">
+                    <input type="radio" name="filiere_id" value="{{ f.id }}" class="sr-only filiere-radio"
+                           data-nom="{{ f.nom }}" {% if loop.first %}checked{% endif %}>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold">{{ f.nom }}</p>
+                            {% if f.code %}<span class="text-xs text-slate-400">{{ f.code }}</span>{% endif %}
+                            <p class="text-xs text-slate-400 mt-1">{{ f.niveau or '' }} · {{ f.frais_inscription|int }} FCFA</p>
+                        </div>
+                        <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">{{ f.places_disponibles or 50 }} places</span>
+                    </div>
+                    {% if f.description_admission %}
+                    <p class="text-xs text-slate-400 mt-2">{{ f.description_admission[:80] }}{% if f.description_admission|length > 80 %}...{% endif %}</p>
+                    {% endif %}
+                </label>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <input type="hidden" name="programme_souhaite" id="programmeHidden" value="{{ filieres[0].nom if filieres else '' }}">
+            {% else %}
+            <select name="filiere_id" class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full text-slate-300 mb-4">
+                <option value="">Aucune filière disponible</option>
+            </select>
+            {% endif %}
+            <select name="source_lead" class="bg-white/5 border border-white/20 rounded-xl px-4 py-3 w-full text-slate-300 focus:outline-none focus:border-sky-400">
+                    <option value="site_web">Comment nous avez-vous connu ?</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="facebook">Facebook / Réseaux sociaux</option>
+                    <option value="salon">Salon / Événement</option>
+                    <option value="referral">Recommandation</option>
+                    <option value="autre">Autre</option>
+            </select>
+        </div>
+
+        <div>
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-file-upload text-emerald-400"></i> Documents
+            </h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for doc_type, doc_label in document_types %}
+                <label class="block">
+                    <span class="text-sm text-slate-400 mb-1 block">{{ doc_label }}</span>
+                    <input type="file" name="doc_{{ doc_type }}" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                           class="w-full text-sm text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-sky-500/20 file:text-sky-300">
+                </label>
+                {% endfor %}
+            </div>
+            <p class="text-xs text-slate-500 mt-3">Formats acceptés : PDF, JPG, PNG, DOC — Max 10 Mo par fichier</p>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-xl transition-all text-lg">
+            <i class="fas fa-paper-plane mr-2"></i> Soumettre ma candidature
+        </button>
+    </form>
+
+    <p class="text-center text-slate-500 text-sm mt-8">
+        Déjà inscrit ? <a href="{{ url_for('login') }}" class="text-sky-400 hover:underline">Connectez-vous</a>
+    </p>
+</div>
+<script>
+document.querySelectorAll('.filiere-radio').forEach(r => {
+    r.addEventListener('change', () => {
+        if (r.checked) document.getElementById('programmeHidden').value = r.dataset.nom || '';
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{# Catalogue des plans SaaS — consultable même bloqué #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Plans — ADSClass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-gray-800">
+
+<nav class="bg-white border-b shadow-sm sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="{{ url_for('subscription.my_subscription') }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+      <h1 class="text-xl font-bold"><i class="fas fa-tags text-indigo-600 mr-2"></i> Nos plans</h1>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 py-10">
+  <p class="text-gray-600 text-center mb-8 max-w-2xl mx-auto">
+    Choisissez le plan qui correspond à votre établissement. Tarifs en {{ plans[0].devise if plans else 'XOF' }}, contactez-nous pour un devis personnalisé.
+  </p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {% for p in plans %}
+      {% set is_current = current and current.plan_code == p.code %}
+      {% set highlight = p.code == 'STANDARD' %}
+      <div class="relative bg-white border rounded-2xl shadow-sm p-6 flex flex-col
+                  {% if highlight %}ring-2 ring-indigo-500 scale-[1.02]{% endif %}
+                  {% if is_current %}border-emerald-500 bg-emerald-50/30{% endif %}">
+
+        {% if highlight %}
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-semibold">POPULAIRE</span>
+        {% endif %}
+        {% if is_current %}
+          <span class="absolute -top-3 right-4 bg-emerald-600 text-white text-xs px-3 py-1 rounded-full font-semibold">VOTRE PLAN</span>
+        {% endif %}
+
+        <h3 class="text-xl font-bold mb-2">{{ p.nom }}</h3>
+        <div class="text-3xl font-bold text-indigo-600 mb-1">
+          {{ '{:,.0f}'.format(p.prix_mensuel or 0).replace(',', ' ') }}
+          <span class="text-sm font-normal text-gray-500">{{ p.devise }}/mois</span>
+        </div>
+        {% if p.prix_annuel %}
+          <div class="text-xs text-gray-500 mb-4">ou {{ '{:,.0f}'.format(p.prix_annuel).replace(',', ' ') }} {{ p.devise }}/an</div>
+        {% else %}
+          <div class="mb-4"></div>
+        {% endif %}
+
+        <ul class="space-y-2 text-sm mb-6 flex-1">
+          <li><i class="fas fa-users text-indigo-500 mr-2"></i> {{ p.max_students }} étudiants</li>
+          <li><i class="fas fa-user-shield text-indigo-500 mr-2"></i> {{ p.max_users }} utilisateurs</li>
+          {% if p.features and p.features is iterable and p.features is not string %}
+            {% for f in p.features %}
+              <li><i class="fas fa-check text-emerald-500 mr-2"></i> {{ f }}</li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+
+        {% if is_current %}
+          <button disabled class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium opacity-90 cursor-default">
+            <i class="fas fa-check mr-1"></i> Plan actuel
+          </button>
+        {% else %}
+          <a href="mailto:contact@adsclass.ne?subject=Demande%20plan%20{{ p.code }}"
+             class="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium">
+            <i class="fas fa-envelope mr-1"></i> Contactez-nous
+          </a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</main>
+</body>
+</html>

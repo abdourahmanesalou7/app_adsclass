@@ -1,0 +1,41 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}Documents{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-folder-open text-amber-500 mr-2"></i>Documents candidats</h2>
+<div class="glass rounded-2xl shadow-lg overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+            <tr>
+                <th class="px-4 py-3 text-left">Candidat</th>
+                <th class="px-4 py-3 text-left">Type</th>
+                <th class="px-4 py-3 text-left">Fichier</th>
+                <th class="px-4 py-3 text-left">Statut dossier</th>
+                <th class="px-4 py-3 text-left">Date</th>
+                <th class="px-4 py-3"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for d in documents %}
+            <tr class="hover:bg-amber-50/30">
+                <td class="px-4 py-3">
+                    <a href="{{ url_for('admin_admissions_candidat_detail', candidat_id=d.candidat_id) }}" class="font-semibold hover:text-indigo-600">
+                        {{ d.prenom }} {{ d.nom }}
+                    </a>
+                    <div class="text-xs text-gray-400">{{ d.reference }}</div>
+                </td>
+                <td class="px-4 py-3"><span class="text-xs bg-amber-50 text-amber-800 px-2 py-1 rounded-full">{{ d.type_document|replace('_',' ') }}</span></td>
+                <td class="px-4 py-3 text-xs">{{ d.nom_fichier }}</td>
+                <td class="px-4 py-3 text-xs">{{ stage_labels.get(d.statut, d.statut) }}</td>
+                <td class="px-4 py-3 text-xs text-gray-400">{{ d.date_upload.strftime('%d/%m/%Y') if d.date_upload else '' }}</td>
+                <td class="px-4 py-3">
+                    <a href="{{ url_for('admin_admissions_download_document', doc_id=d.id) }}" class="text-indigo-600"><i class="fas fa-download"></i></a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Aucun document</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

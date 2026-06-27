@@ -1,0 +1,90 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}Paiements Admissions{% endblock %}
+
+{% block content %}
+<div class="grid md:grid-cols-4 gap-4 mb-6">
+    <div class="glass rounded-2xl p-5 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Total enregistré</p>
+        <p class="text-2xl font-bold text-gray-800">{{ totaux.total|int }} FCFA</p>
+    </div>
+    <div class="glass rounded-2xl p-5 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Confirmé</p>
+        <p class="text-2xl font-bold text-emerald-600">{{ totaux.confirme|int }} FCFA</p>
+    </div>
+    <div class="glass rounded-2xl p-5 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Stripe</p>
+        <p class="text-sm font-bold {% if integrations.stripe.configured %}text-indigo-600{% else %}text-gray-400{% endif %}">
+            {% if integrations.stripe.configured %}✓ Actif{% else %}Non configuré{% endif %}
+        </p>
+    </div>
+    <div class="glass rounded-2xl p-5 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Mobile Money</p>
+        <p class="text-sm font-bold {% if integrations.flutterwave.configured %}text-orange-600{% else %}text-gray-400{% endif %}">
+            {% if integrations.flutterwave.configured %}✓ Flutterwave{% else %}Non configuré{% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2">
+        <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-credit-card text-amber-500 mr-2"></i>Paiements candidats</h2>
+        <div class="glass rounded-2xl shadow-lg overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Candidat</th>
+                        <th class="px-4 py-3 text-left">Montant</th>
+                        <th class="px-4 py-3 text-left">Moyen</th>
+                        <th class="px-4 py-3 text-left">Réf.</th>
+                        <th class="px-4 py-3 text-left">Statut</th>
+                        <th class="px-4 py-3 text-left">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in paiements %}
+                    <tr>
+                        <td class="px-4 py-3 font-semibold">{{ p.prenom }} {{ p.nom }}</td>
+                        <td class="px-4 py-3 font-bold">{{ p.montant|int }} FCFA</td>
+                        <td class="px-4 py-3 text-xs">{{ p.moyen_paiement|replace('_',' ')|title }}</td>
+                        <td class="px-4 py-3 text-xs font-mono">{{ p.reference_transaction or '—' }}</td>
+                        <td class="px-4 py-3">
+                            <span class="text-xs px-2 py-1 rounded-full {% if p.statut=='confirme' %}bg-emerald-50 text-emerald-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {{ p.statut }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-gray-400">{{ p.date_paiement.strftime('%d/%m/%Y') if p.date_paiement else '' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Aucun paiement</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="glass rounded-2xl p-5 shadow-lg h-fit">
+        <h3 class="font-bold text-gray-800 mb-4">Enregistrer un paiement</h3>
+        <form method="POST" action="{{ url_for('admin_admissions_create_paiement') }}" class="space-y-3">
+            <select name="candidat_id" required class="border rounded-lg px-3 py-2 w-full text-sm">
+                <option value="">Candidat</option>
+                {% for c in candidats %}
+                <option value="{{ c.id }}">{{ c.prenom }} {{ c.nom }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="montant" placeholder="Montant FCFA" required class="border rounded-lg px-3 py-2 w-full text-sm">
+            <select name="moyen_paiement" class="border rounded-lg px-3 py-2 w-full text-sm">
+                {% for val, lbl in payment_methods %}
+                <option value="{{ val }}">{{ lbl }}</option>
+                {% endfor %}
+            </select>
+            <input name="reference_transaction" placeholder="Réf. transaction (Stripe, OM...)" class="border rounded-lg px-3 py-2 w-full text-sm">
+            <select name="statut" class="border rounded-lg px-3 py-2 w-full text-sm">
+                <option value="confirme">Confirmé</option>
+                <option value="en_attente">En attente</option>
+            </select>
+            <textarea name="observation" placeholder="Observation" rows="2" class="border rounded-lg px-3 py-2 w-full text-sm"></textarea>
+            <button type="submit" class="w-full bg-amber-600 text-white py-2.5 rounded-xl font-semibold text-sm">Enregistrer</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

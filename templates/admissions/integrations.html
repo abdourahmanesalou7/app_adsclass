@@ -1,0 +1,85 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}Intégrations{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold text-gray-800 mb-6"><i class="fas fa-plug text-indigo-500 mr-2"></i>Intégrations Admissions</h2>
+
+<div class="grid md:grid-cols-3 gap-5 mb-8">
+    <!-- WhatsApp Business -->
+    <div class="glass rounded-2xl p-6 shadow-lg border-t-4 {% if status.whatsapp.connected %}border-green-500{% elif status.whatsapp.configured %}border-amber-500{% else %}border-gray-300{% endif %}">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <i class="fab fa-whatsapp text-green-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="font-bold">WhatsApp Business API</h3>
+                <p class="text-xs text-gray-500">Meta Cloud API</p>
+            </div>
+        </div>
+        {% if status.whatsapp.connected %}
+        <span class="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full mb-3">
+            <i class="fas fa-check-circle"></i> Connecté
+        </span>
+        <p class="text-sm text-gray-600">{{ status.whatsapp.name or 'Business' }} — {{ status.whatsapp.phone or '' }}</p>
+        {% elif status.whatsapp.configured %}
+        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Configuré — vérifier connexion</span>
+        {% else %}
+        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Non configuré — fallback wa.me</span>
+        {% endif %}
+        <div class="mt-4 text-xs text-gray-500 space-y-1">
+            <p><code>WHATSAPP_API_TOKEN</code></p>
+            <p><code>WHATSAPP_PHONE_NUMBER_ID</code></p>
+        </div>
+    </div>
+
+    <!-- Stripe -->
+    <div class="glass rounded-2xl p-6 shadow-lg border-t-4 {% if status.stripe.configured %}border-indigo-500{% else %}border-gray-300{% endif %}">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <i class="fab fa-stripe text-indigo-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="font-bold">Stripe</h3>
+                <p class="text-xs text-gray-500">Cartes bancaires</p>
+            </div>
+        </div>
+        {% if status.stripe.configured %}
+        <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">✓ Clé API configurée</span>
+        {% else %}
+        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">STRIPE_SECRET_KEY requis</span>
+        {% endif %}
+        <p class="text-xs text-gray-500 mt-3">Webhook: <code>/api/admissions/webhook/stripe</code></p>
+    </div>
+
+    <!-- Flutterwave -->
+    <div class="glass rounded-2xl p-6 shadow-lg border-t-4 {% if status.flutterwave.configured %}border-orange-500{% else %}border-gray-300{% endif %}">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <i class="fas fa-mobile-alt text-orange-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="font-bold">Flutterwave</h3>
+                <p class="text-xs text-gray-500">Orange · Airtel · Mobile Money</p>
+            </div>
+        </div>
+        {% if status.flutterwave.configured %}
+        <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">✓ Clés configurées</span>
+        {% else %}
+        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">FLUTTERWAVE_SECRET_KEY requis</span>
+        {% endif %}
+        <p class="text-xs text-gray-500 mt-3">Webhook: <code>/api/admissions/webhook/flutterwave</code></p>
+    </div>
+</div>
+
+<div class="glass rounded-2xl p-6 shadow-lg">
+    <h3 class="font-bold mb-4">Modèles WhatsApp disponibles</h3>
+    <div class="grid md:grid-cols-2 gap-4">
+        {% for key, tpl in whatsapp_templates.items() %}
+        <div class="bg-gray-50 rounded-xl p-4">
+            <p class="font-semibold text-sm text-indigo-700 mb-2">{{ key|replace('_',' ')|title }}</p>
+            <pre class="text-xs text-gray-600 whitespace-pre-wrap">{{ tpl.body[:200] }}...</pre>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

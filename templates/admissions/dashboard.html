@@ -1,0 +1,139 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}Pipeline Admissions{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+    <div class="glass rounded-2xl p-4 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Prospects</p>
+        <p class="text-2xl font-bold text-sky-600">{{ stats.prospects }}</p>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Candidatures</p>
+        <p class="text-2xl font-bold text-indigo-600">{{ stats.candidatures }}</p>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Entretiens</p>
+        <p class="text-2xl font-bold text-purple-600">{{ stats.entretiens }}</p>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Admis</p>
+        <p class="text-2xl font-bold text-amber-600">{{ stats.admis }}</p>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Inscrits</p>
+        <p class="text-2xl font-bold text-emerald-600">{{ stats.inscrits }}</p>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center shadow">
+        <p class="text-xs text-gray-500 uppercase">Conversion</p>
+        <p class="text-2xl font-bold text-rose-600">{{ stats.taux_conversion }}%</p>
+    </div>
+</div>
+
+<div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+    <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-columns text-indigo-500 mr-2"></i>Pipeline Kanban</h2>
+    <button onclick="document.getElementById('modalNewProspect').classList.remove('hidden')"
+            class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-lg">
+        <i class="fas fa-plus mr-1"></i> Nouveau prospect
+    </button>
+</div>
+
+<!-- Kanban -->
+<div class="overflow-x-auto pb-4">
+    <div class="flex gap-3 min-w-max">
+        {% for code, label in stages %}
+        <div class="kanban-col glass rounded-2xl p-3 shadow-lg flex flex-col"
+             data-stage="{{ code }}"
+             ondragover="event.preventDefault()"
+             ondrop="dropCard(event, '{{ code }}')">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                <span class="font-semibold text-sm text-gray-700">{{ label }}</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{{ pipeline[code]|length }}</span>
+            </div>
+            <div class="space-y-2 overflow-y-auto flex-1" id="col-{{ code }}">
+                {% for c in pipeline[code] %}
+                <div class="kanban-card bg-white rounded-xl p-3 shadow border border-gray-100 hover:shadow-md transition-shadow"
+                     draggable="true"
+                     data-id="{{ c.id }}"
+                     ondragstart="dragStart(event)">
+                    <a href="{{ url_for('admin_admissions_candidat_detail', candidat_id=c.id) }}" class="block">
+                        <p class="font-semibold text-gray-800 text-sm">{{ c.prenom }} {{ c.nom }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ c.reference }}</p>
+                        {% if c.filiere_nom or c.programme_souhaite %}
+                        <p class="text-xs text-indigo-500 mt-1 truncate">{{ c.filiere_nom or c.programme_souhaite }}</p>
+                        {% endif %}
+                        {% if c.score_ia %}
+                        <span class="inline-block mt-2 text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
+                            IA: {{ c.score_ia }}/100
+                        </span>
+                        {% endif %}
+                        {% if c.probabilite_inscription %}
+                        <span class="inline-block mt-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+                            {{ c.probabilite_inscription }}% inscription
+                        </span>
+                        {% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Nouveau Prospect -->
+<div id="modalNewProspect" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div class="glass rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <h3 class="text-lg font-bold mb-4">Nouveau prospect</h3>
+        <form method="POST" action="{{ url_for('admin_admissions_create_candidat') }}" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <input name="prenom" placeholder="Prénom *" required class="border rounded-lg px-3 py-2 text-sm w-full">
+                <input name="nom" placeholder="Nom *" required class="border rounded-lg px-3 py-2 text-sm w-full">
+            </div>
+            <input name="email" type="email" placeholder="Email *" required class="border rounded-lg px-3 py-2 text-sm w-full">
+            <input name="telephone" placeholder="Téléphone (WhatsApp)" class="border rounded-lg px-3 py-2 text-sm w-full">
+            <input name="programme_souhaite" placeholder="Programme souhaité" class="border rounded-lg px-3 py-2 text-sm w-full">
+            <select name="source_lead" class="border rounded-lg px-3 py-2 text-sm w-full">
+                {% for val, lbl in lead_sources %}
+                <option value="{{ val }}">{{ lbl }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex gap-2 pt-2">
+                <button type="submit" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-semibold text-sm">Créer</button>
+                <button type="button" onclick="document.getElementById('modalNewProspect').classList.add('hidden')"
+                        class="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let draggedId = null;
+function dragStart(e) {
+    draggedId = e.target.closest('.kanban-card').dataset.id;
+    e.target.closest('.kanban-card').classList.add('dragging');
+}
+function dropCard(e, newStage) {
+    e.preventDefault();
+    document.querySelectorAll('.kanban-card.dragging').forEach(el => el.classList.remove('dragging'));
+    if (!draggedId) return;
+    fetch('{{ url_for("api_admissions_move_stage") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({candidat_id: parseInt(draggedId), statut: newStage})
+    }).then(r => r.json()).then(data => {
+        if (!data.success) {
+            alert(data.error || 'Erreur lors du déplacement');
+            return;
+        }
+        if (data.credentials_url) {
+            window.open(data.credentials_url, '_blank', 'noopener');
+        }
+        location.reload();
+    });
+    draggedId = null;
+}
+</script>
+{% endblock %}

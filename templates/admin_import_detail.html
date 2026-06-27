@@ -1,0 +1,89 @@
+{# Détail d'un job d'import : config, mapping, lignes staging #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Détail Import #{{ job.id }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+<nav class="bg-white border-b shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
+    <a href="{{ url_for('imports.index') }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+    <h1 class="text-xl font-bold flex-1"><i class="fas fa-info-circle text-indigo-600 mr-2"></i> Détail Import #{{ job.id }}</h1>
+    {% if job.target_table in ('students', 'professeurs', 'administrateurs') and job.committed_rows %}
+    <a href="{{ url_for('imports.credentials_print', job_id=job.id) }}" target="_blank"
+       class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-lg">
+      <i class="fas fa-id-card"></i> Imprimer identifiants
+    </a>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+  <div class="bg-white rounded-xl shadow-sm border p-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div><div class="text-xs text-gray-500 uppercase">Source</div><div class="font-medium">{{ job.source_type }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Cible</div><div class="font-medium">{{ job.target_table }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Fichier</div><div class="font-medium truncate">{{ job.original_filename or '—' }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Statut</div><div class="font-medium">{{ job.status }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Lignes totales</div><div class="font-medium">{{ job.total_rows }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Valides</div><div class="font-medium text-emerald-600">{{ job.valid_rows }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Invalides</div><div class="font-medium text-red-600">{{ job.invalid_rows }}</div></div>
+      <div><div class="text-xs text-gray-500 uppercase">Commit</div><div class="font-medium text-purple-600">{{ job.committed_rows }}</div></div>
+    </div>
+    {% if job.error_message %}
+      <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-800 font-mono whitespace-pre-wrap">{{ job.error_message }}</div>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border p-6">
+    <h2 class="font-semibold mb-3"><i class="fas fa-link mr-2 text-gray-500"></i>Mapping appliqué</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+      {% for src, tgt in mapping.items() %}
+        <div class="flex items-center gap-3 p-2 bg-gray-50 rounded">
+          <span class="font-mono text-gray-600">{{ src }}</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          {% if tgt %}<span class="font-medium text-indigo-700">{{ tgt }}</span>
+          {% else %}<span class="text-gray-400 italic">ignoré</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+    <div class="px-6 py-4 border-b">
+      <h2 class="font-semibold"><i class="fas fa-table mr-2 text-gray-500"></i>Lignes staging (max 500)</h2>
+    </div>
+    <div class="overflow-x-auto max-h-[60vh]">
+      <table class="min-w-full text-xs">
+        <thead class="bg-gray-50 sticky top-0">
+          <tr>
+            <th class="px-2 py-2">#</th>
+            <th class="px-2 py-2">Valide</th>
+            <th class="px-2 py-2">Commit</th>
+            <th class="px-2 py-2 text-left">Payload mappé</th>
+            <th class="px-2 py-2 text-left">Erreurs</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for r in rows %}
+          <tr>
+            <td class="px-2 py-1 text-center text-gray-400">{{ r.row_index + 1 }}</td>
+            <td class="px-2 py-1 text-center">{% if r.is_valid %}✓{% else %}✗{% endif %}</td>
+            <td class="px-2 py-1 text-center">{% if r.committed %}<span class="text-purple-600">●</span>{% endif %}</td>
+            <td class="px-2 py-1 font-mono text-gray-600 truncate max-w-md">{{ r.mapped_payload }}</td>
+            <td class="px-2 py-1 text-red-600 truncate max-w-md">{{ r.validation_errors or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>

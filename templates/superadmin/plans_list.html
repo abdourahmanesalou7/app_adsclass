@@ -1,0 +1,45 @@
+{% extends "superadmin/_layout.html" %}
+{% block title %}Plans — Superadmin{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-3xl font-bold"><i class="fas fa-tags text-indigo-600 mr-2"></i> Plans tarifaires</h1>
+  <p class="text-gray-500 mt-1 text-sm">Catalogue des abonnements proposés aux écoles</p>
+</div>
+
+<div class="bg-white border rounded-2xl shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-xs uppercase text-gray-500 border-b">
+      <tr>
+        <th class="text-left px-4 py-3">Code</th>
+        <th class="text-left px-4 py-3">Nom</th>
+        <th class="text-right px-4 py-3">Mensuel</th>
+        <th class="text-right px-4 py-3">Annuel</th>
+        <th class="text-right px-4 py-3">Étudiants max</th>
+        <th class="text-right px-4 py-3">Users max</th>
+        <th class="text-center px-4 py-3">Actif</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in plans %}
+      <tr class="border-b last:border-0">
+        <td class="px-4 py-3"><code class="bg-slate-100 px-2 py-0.5 rounded text-xs">{{ p.code }}</code></td>
+        <td class="px-4 py-3 font-semibold">{{ p.nom }}</td>
+        <td class="px-4 py-3 text-right">{{ '{:,.0f}'.format(p.prix_mensuel or 0).replace(',', ' ') }} {{ p.devise }}</td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ '{:,.0f}'.format(p.prix_annuel or 0).replace(',', ' ') }} {{ p.devise }}</td>
+        <td class="px-4 py-3 text-right">{{ p.max_students }}</td>
+        <td class="px-4 py-3 text-right">{{ p.max_users }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if p.actif %}<i class="fas fa-check text-emerald-500"></i>{% else %}<i class="fas fa-times text-gray-400"></i>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="mt-4 text-xs text-gray-500">
+  <i class="fas fa-info-circle mr-1"></i>
+  Modification des plans : éditer <code>init_subscriptions.py</code> puis relancer <code>python init_subscriptions.py</code> (upsert idempotent).
+</p>
+{% endblock %}

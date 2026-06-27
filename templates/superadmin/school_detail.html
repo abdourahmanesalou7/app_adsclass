@@ -1,0 +1,191 @@
+{% extends "superadmin/_layout.html" %}
+{% block title %}{{ school.nom }} — Superadmin{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('superadmin.schools_list') }}" class="text-gray-500 hover:text-gray-800 text-sm"><i class="fas fa-arrow-left mr-1"></i> Toutes les écoles</a>
+  <div class="flex items-start justify-between mt-2">
+    <div>
+      <h1 class="text-3xl font-bold">{{ school.nom }}</h1>
+      <p class="text-gray-500 text-sm mt-1">{{ school.code or '—' }} · {{ school.ville or '' }} {{ school.pays }} · {{ school.devise }}</p>
+    </div>
+    <a href="{{ url_for('superadmin.school_edit', school_id=school.id) }}" class="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium">
+      <i class="fas fa-pen mr-1"></i> Modifier
+    </a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Colonne gauche : abonnement actif -->
+  <div class="lg:col-span-2 space-y-6">
+    <section class="bg-white border rounded-2xl shadow-sm p-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fas fa-crown text-amber-500 mr-2"></i> Abonnement actif</h2>
+      {% if subscription %}
+        {% set warn = days_left is not none and days_left < 15 %}
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div class="text-2xl font-bold">{{ subscription.plan_nom }}</div>
+            <div class="text-sm text-gray-500 mt-1">
+              Du {{ subscription.started_at.strftime('%d/%m/%Y') }} au
+              <strong class="{{ 'text-rose-600' if warn else '' }}">{{ subscription.ends_at.strftime('%d/%m/%Y') }}</strong>
+              ({{ days_left }}j restants)
+            </div>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold
+            {{ 'bg-emerald-100 text-emerald-700' if subscription.status=='active' else
+               'bg-amber-100 text-amber-700' if subscription.status=='trial' else
+               'bg-gray-100 text-gray-700' }}">{{ subscription.status|upper }}</span>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t text-sm">
+          <form method="POST" action="{{ url_for('superadmin.subscription_extend', school_id=school.id) }}">
+            <input type="number" name="days" value="30" min="1" class="w-full border rounded-lg px-2 py-1 mb-2">
+            <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-medium">
+              <i class="fas fa-plus mr-1"></i> Étendre
+            </button>
+          </form>
+          {% if subscription.status == 'active' %}
+            <form method="POST" action="{{ url_for('superadmin.subscription_suspend', school_id=school.id) }}">
+              <div class="h-7 mb-2"></div>
+              <button class="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-lg text-xs font-medium">
+                <i class="fas fa-pause mr-1"></i> Suspendre
+              </button>
+            </form>
+          {% else %}
+            <form method="POST" action="{{ url_for('superadmin.subscription_reactivate', school_id=school.id) }}">
+              <div class="h-7 mb-2"></div>
+              <button class="w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 py-2 rounded-lg text-xs font-medium">
+                <i class="fas fa-play mr-1"></i> Réactiver
+              </button>
+            </form>
+          {% endif %}
+          <form method="POST" action="{{ url_for('superadmin.subscription_cancel', school_id=school.id) }}"
+                onsubmit="return confirm('Annuler définitivement cet abonnement ?');">
+            <div class="h-7 mb-2"></div>
+            <button class="w-full bg-rose-100 hover:bg-rose-200 text-rose-800 py-2 rounded-lg text-xs font-medium">
+              <i class="fas fa-times mr-1"></i> Annuler
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <p class="text-gray-500 text-sm mb-4">Aucun abonnement actif.</p>
+        <form method="POST" action="{{ url_for('superadmin.subscription_create', school_id=school.id) }}" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <select name="plan_id" required class="border rounded-lg px-3 py-2">
+            <option value="">Plan…</option>
+            {% for p in plans %}<option value="{{ p.id }}">{{ p.nom }}</option>{% endfor %}
+          </select>
+          <input type="number" name="duration_days" value="30" min="1" class="border rounded-lg px-3 py-2">
+          <select name="status" class="border rounded-lg px-3 py-2">
+            <option value="active">Active</option><option value="trial">Trial</option>
+          </select>
+          <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">Créer</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <section class="bg-white border rounded-2xl shadow-sm p-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fas fa-history text-gray-400 mr-2"></i> Historique abonnements</h2>
+      {% if sub_history %}
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase text-gray-500 border-b">
+            <tr><th class="text-left py-2">Plan</th><th class="text-left">Statut</th><th class="text-left">Début</th><th class="text-left">Fin</th></tr>
+          </thead>
+          <tbody>
+          {% for h in sub_history %}
+            <tr class="border-b last:border-0">
+              <td class="py-2">{{ h.plan_nom }}</td>
+              <td>{{ h.status }}</td>
+              <td>{{ h.started_at.strftime('%d/%m/%Y') if h.started_at else '—' }}</td>
+              <td>{{ h.ends_at.strftime('%d/%m/%Y') if h.ends_at else '—' }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p class="text-gray-500 text-sm">Aucun historique.</p>{% endif %}
+    </section>
+  </div>
+
+  <!-- Colonne droite : paiements -->
+  <div class="space-y-6">
+    <section class="bg-white border rounded-2xl shadow-sm p-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fas fa-user-tie text-indigo-500 mr-2"></i> Administrateurs</h2>
+      {% if admins %}
+        <ul class="divide-y text-sm mb-4">
+        {% for a in admins %}
+          <li class="py-3">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="font-medium">{{ a.prenom }} {{ a.nom }}
+                  <span class="ml-1 text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">{{ a.role_nom or '—' }}</span>
+                </div>
+                <div class="text-xs text-gray-500">{{ a.email }} · {{ a.identifiant or '' }}</div>
+                {% if a.must_change_password %}
+                  <div class="text-xs text-amber-600 mt-1"><i class="fas fa-key mr-1"></i> Mot de passe temporaire : {{ a.password_temp }}</div>
+                {% endif %}
+              </div>
+              <form method="POST" action="{{ url_for('superadmin.admin_reset_password', school_id=school.id, user_id=a.id) }}"
+                    onsubmit="return confirm('Réinitialiser le mot de passe de cet administrateur ?');">
+                <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
+                  <i class="fas fa-rotate mr-1"></i> Réinit. MDP
+                </button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-gray-500 text-sm mb-4">Aucun administrateur pour cette école.</p>
+      {% endif %}
+
+      <details class="border-t pt-4">
+        <summary class="cursor-pointer text-sm font-medium text-indigo-600">+ Créer un Directeur</summary>
+        <form method="POST" action="{{ url_for('superadmin.director_create', school_id=school.id) }}" class="space-y-3 mt-3">
+          <input type="email" name="director_email" value="{{ suggested_director_email or '' }}"
+                 placeholder="directeur@domaine" class="w-full border rounded-lg px-3 py-2 text-sm">
+          <div class="grid grid-cols-2 gap-2">
+            <input name="director_prenom" placeholder="Prénom" class="border rounded-lg px-3 py-2 text-sm">
+            <input name="director_nom" placeholder="Nom" class="border rounded-lg px-3 py-2 text-sm">
+          </div>
+          <p class="text-xs text-gray-500">Mot de passe temporaire : <strong>Test@12345</strong></p>
+          <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-medium">
+            <i class="fas fa-user-plus mr-1"></i> Provisionner le Directeur
+          </button>
+        </form>
+      </details>
+    </section>
+
+    <section class="bg-white border rounded-2xl shadow-sm p-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fas fa-money-bill text-emerald-500 mr-2"></i> Enregistrer paiement</h2>
+      <form method="POST" action="{{ url_for('superadmin.payment_add', school_id=school.id) }}" class="space-y-3">
+        <input type="number" step="0.01" name="montant" placeholder="Montant" required class="w-full border rounded-lg px-3 py-2">
+        <select name="methode" class="w-full border rounded-lg px-3 py-2">
+          <option value="manuel">Manuel</option><option value="virement">Virement</option>
+          <option value="mobile_money">Mobile Money</option><option value="carte">Carte</option>
+        </select>
+        <input name="reference" placeholder="Référence (optionnel)" class="w-full border rounded-lg px-3 py-2">
+        <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium">
+          <i class="fas fa-check mr-1"></i> Enregistrer
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white border rounded-2xl shadow-sm p-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fas fa-receipt text-gray-400 mr-2"></i> Paiements récents</h2>
+      {% if payments %}
+        <ul class="divide-y text-sm">
+        {% for p in payments %}
+          <li class="py-2 flex justify-between">
+            <div>
+              <div class="font-medium">{{ '{:,.0f}'.format(p.montant).replace(',', ' ') }} {{ p.devise }}</div>
+              <div class="text-xs text-gray-500">{{ p.methode }} · {{ p.paid_at.strftime('%d/%m/%Y') if p.paid_at else '' }}</div>
+            </div>
+            <span class="text-xs px-2 py-1 rounded {{ 'bg-emerald-100 text-emerald-700' if p.statut=='payé' else 'bg-gray-100 text-gray-700' }}">{{ p.statut }}</span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}<p class="text-gray-500 text-sm">Aucun paiement.</p>{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

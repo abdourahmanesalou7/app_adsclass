@@ -1,0 +1,63 @@
+{# Page de blocage — abonnement expiré ou suspendu #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Accès suspendu — ADSClass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-rose-50 via-white to-amber-50 min-h-screen font-sans text-gray-800 flex items-center justify-center px-4">
+
+<div class="max-w-xl w-full bg-white border rounded-3xl shadow-xl p-10 text-center">
+
+  <div class="w-20 h-20 mx-auto bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-6">
+    <i class="fas fa-lock text-3xl"></i>
+  </div>
+
+  <h1 class="text-3xl font-bold mb-3">Accès suspendu</h1>
+
+  {% if subscription %}
+    {% if days_left is not none and days_left < 0 %}
+      <p class="text-gray-600 mb-6">
+        Votre abonnement <strong>{{ subscription.plan_nom }}</strong> est expiré depuis
+        <strong>{{ -days_left }} jour(s)</strong>.
+      </p>
+    {% else %}
+      <p class="text-gray-600 mb-6">
+        Votre abonnement <strong>{{ subscription.plan_nom }}</strong> est <strong>{{ subscription.status }}</strong>.
+      </p>
+    {% endif %}
+    <div class="bg-slate-50 rounded-xl p-4 mb-6 text-left text-sm">
+      <div class="flex justify-between mb-1"><span class="text-gray-500">Plan :</span><span class="font-semibold">{{ subscription.plan_nom }}</span></div>
+      <div class="flex justify-between mb-1"><span class="text-gray-500">Échéance :</span><span class="font-semibold">{{ subscription.ends_at.strftime('%d/%m/%Y') if subscription.ends_at else '—' }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Statut :</span><span class="font-semibold">{{ subscription.status }}</span></div>
+    </div>
+  {% else %}
+    <p class="text-gray-600 mb-6">
+      Aucun abonnement actif n'est associé à votre établissement.
+    </p>
+  {% endif %}
+
+  <p class="text-sm text-gray-500 mb-6">
+    Pour réactiver vos accès, contactez l'équipe ADSClass.
+  </p>
+
+  <div class="flex flex-col sm:flex-row gap-3 justify-center">
+    <a href="mailto:contact@adsclass.ne?subject=Renouvellement%20abonnement"
+       class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium">
+      <i class="fas fa-envelope mr-2"></i> Nous contacter
+    </a>
+    <a href="{{ url_for('subscription.plans_view') }}"
+       class="bg-white border hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium">
+      <i class="fas fa-tags mr-2"></i> Voir les plans
+    </a>
+    <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-gray-800 px-6 py-3">
+      <i class="fas fa-sign-out-alt mr-2"></i> Se déconnecter
+    </a>
+  </div>
+
+</div>
+
+</body>
+</html>

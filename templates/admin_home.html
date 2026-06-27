@@ -6,7 +6,12 @@
   <title>AdsClass Admin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Système de traduction i18n -->
+  <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
+
   <style>
     html { font-family: 'Inter', sans-serif; }
     .card-hover {
@@ -53,14 +58,62 @@
           </h1>
         </div>
         <div class="flex items-center space-x-4">
+          <!-- Sélecteur de Langue -->
+          {% include 'components/language_selector.html' %}
+
+          <!-- Sélecteur d'année académique -->
+          <div class="relative" id="yearDropdown">
+            <button onclick="toggleYearDropdown()"
+                    class="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all">
+              <i class="fas fa-calendar-alt"></i>
+              <span class="font-medium">
+                {% if current_academic_year %}
+                {{ current_academic_year.nom }}
+                {% else %}
+                Année N/A
+                {% endif %}
+              </span>
+              <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+            <div id="yearDropdownMenu" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50">
+              <div class="px-4 py-2 border-b border-gray-100">
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Changer d'année</p>
+              </div>
+              {% for year in all_academic_years %}
+              <button onclick="switchYear({{ year.id }}, '{{ year.nom }}')"
+                      class="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-center justify-between
+                             {% if current_academic_year and year.id == current_academic_year.id %}bg-emerald-50{% endif %}">
+                <span class="{% if current_academic_year and year.id == current_academic_year.id %}text-emerald-700 font-semibold{% else %}text-gray-700{% endif %}">
+                  {{ year.nom }}
+                </span>
+                {% if year.est_active %}
+                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Active</span>
+                {% elif year.est_archivee %}
+                <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Archivée</span>
+                {% endif %}
+              </button>
+              {% endfor %}
+              {% if check_permission('system.settings') %}
+              <div class="border-t border-gray-100 mt-2 pt-2">
+                <a href="{{ url_for('admin_academic_years') }}" class="flex items-center px-4 py-2 text-blue-600 hover:bg-blue-50">
+                  <i class="fas fa-cog mr-2"></i> Gérer les années
+                </a>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Sélecteur de Langue -->
+          {% include 'components/language_selector.html' %}
+
           <div class="hidden md:flex items-center space-x-2 text-gray-600">
             <i class="fas fa-user-circle text-lg"></i>
-            <span class="font-medium">Administrateur</span>
+            <span class="font-medium" data-i18n="admin.title">Administrateur</span>
           </div>
           <a href="{{ url_for('logout') }}"
              class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2">
             <i class="fas fa-sign-out-alt"></i>
-            <span>Déconnexion</span>
+            <span data-i18n="common.logout">Déconnexion</span>
           </a>
         </div>
       </div>
@@ -93,6 +146,107 @@
       </div>
     </div>
   </header>
+
+  <!-- Alertes absences temps réel -->
+  {% if absence_stats.today_absences > 0 or recent_absences %}
+  <section class="max-w-7xl mx-auto px-6 mb-8">
+    <div class="glass-effect rounded-2xl border border-red-100 overflow-hidden shadow-lg">
+      <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 text-white">
+          <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <i class="fas fa-user-clock text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg">Alertes présences</h3>
+            <p class="text-red-100 text-sm">{{ absence_stats.today_absences }} absence(s) aujourd'hui · {{ absence_stats.total_absences }} au total</p>
+          </div>
+        </div>
+        <a href="{{ url_for('admin_absences') }}" class="bg-white text-red-600 px-4 py-2 rounded-xl font-semibold text-sm hover:bg-red-50 transition-colors">
+          Voir tout <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+      </div>
+      <div id="admin-absences-feed" class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+        {% for a in recent_absences %}
+        <div class="px-6 py-3 flex items-center justify-between hover:bg-red-50/50 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full {{ 'bg-red-500' if a.statut == 'absent' else 'bg-amber-500' }}"></span>
+            <div>
+              <p class="font-semibold text-gray-900 text-sm">{{ a.prenom }} {{ a.nom }} <span class="text-gray-400 font-normal">· {{ a.filiere }}</span></p>
+              <p class="text-xs text-gray-500">{{ a.nom_cours }} — {{ a.date_cours|strftime('%d/%m/%Y') if a.date_cours else '' }}</p>
+            </div>
+          </div>
+          <span class="text-xs font-bold px-2 py-1 rounded-full {{ 'bg-red-100 text-red-700' if a.statut == 'absent' else 'bg-amber-100 text-amber-700' }}">
+            {{ 'Absent' if a.statut == 'absent' else 'Retard' }}
+          </span>
+        </div>
+        {% else %}
+        <p class="px-6 py-4 text-gray-500 text-sm text-center">Aucune absence récente</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Panneau identifiants générés (auto / manuel / import) -->
+  {% if recent_credentials %}
+  <section class="max-w-7xl mx-auto px-6 mb-8">
+    <div class="glass-effect rounded-2xl border border-amber-100 overflow-hidden shadow-lg">
+      <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 text-white">
+          <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <i class="fas fa-key text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg">Identifiants à communiquer</h3>
+            <p class="text-amber-100 text-sm">{{ credentials_pending }} compte(s) avec mot de passe temporaire en attente de remise</p>
+          </div>
+        </div>
+        <a href="{{ url_for('admin_inscription_etudiant') }}" class="bg-white text-amber-600 px-4 py-2 rounded-xl font-semibold text-sm hover:bg-amber-50 transition-colors">
+          <i class="fas fa-user-plus mr-1"></i> Inscrire un étudiant
+        </a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-xs text-slate-600 uppercase tracking-wide">
+            <tr>
+              <th class="px-4 py-3 text-left">Utilisateur</th>
+              <th class="px-4 py-3 text-left">Rôle</th>
+              <th class="px-4 py-3 text-left">Identifiant</th>
+              <th class="px-4 py-3 text-left">Mot de passe temp.</th>
+              <th class="px-4 py-3 text-left">Email</th>
+              <th class="px-4 py-3 text-right">Imprimer</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for u in recent_credentials %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-semibold text-slate-900">{{ u.prenom }} {{ u.nom }}{% if u.classe %}<span class="text-slate-400 font-normal"> · {{ u.classe }}</span>{% endif %}</td>
+              <td class="px-4 py-3">
+                {% if u.role == 'etudiant' %}<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-full font-medium border border-emerald-100">Étudiant</span>
+                {% elif u.role == 'professeur' %}<span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium border border-blue-100">Professeur</span>
+                {% elif u.role == 'admin' %}<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">Administrateur</span>
+                {% else %}<span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs rounded-full">{{ u.role }}</span>{% endif %}
+              </td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-700">{{ u.identifiant or '—' }}</td>
+              <td class="px-4 py-3"><span class="font-mono text-xs bg-amber-50 text-amber-800 px-2 py-1 rounded border border-amber-100">{{ u.password_temp }}</span></td>
+              <td class="px-4 py-3 text-slate-600 text-xs">{{ u.email }}</td>
+              <td class="px-4 py-3 text-right">
+                {% if u.role == 'etudiant' %}
+                  <a href="{{ url_for('admin_student_credentials_print', etudiant_id=u.id) }}" class="text-slate-600 hover:bg-slate-100 px-2 py-1 rounded" title="Imprimer"><i class="fas fa-print"></i></a>
+                {% elif u.role == 'professeur' %}
+                  <a href="{{ url_for('admin_professeur_credentials_print', user_id=u.id) }}" class="text-slate-600 hover:bg-slate-100 px-2 py-1 rounded" title="Imprimer"><i class="fas fa-print"></i></a>
+                {% elif u.role == 'admin' %}
+                  <a href="{{ url_for('admin_administrateur_credentials_print', user_id=u.id) }}" class="text-slate-600 hover:bg-slate-100 px-2 py-1 rounded" title="Imprimer"><i class="fas fa-print"></i></a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- Dashboard Cards -->
   <main class="flex-grow px-6 pb-20">
@@ -201,6 +355,212 @@
           </div>
         </a>
 
+        <!-- Gestion des Professeurs -->
+        <a href="{{ url_for('admin_professeurs') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-sky-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 2.7s;">
+              <i class="fas fa-chalkboard-teacher text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Gestion des Professeurs</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Créez, affectez des classes et imprimez les identifiants</p>
+            <div class="mt-6 flex items-center justify-center text-blue-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Gestion des Administrateurs -->
+        <a href="{{ url_for('admin_administrateurs') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-violet-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 2.8s;">
+              <i class="fas fa-user-tie text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Gestion des Administrateurs</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Créez des comptes admin et attribuez des rôles fonctionnels</p>
+            <div class="mt-6 flex items-center justify-center text-indigo-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Inscription manuelle étudiant -->
+        <a href="{{ url_for('admin_inscription_etudiant') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 2.9s;">
+              <i class="fas fa-user-graduate text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Inscription Étudiant</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Inscrivez un étudiant manuellement avec identifiants auto</p>
+            <div class="mt-6 flex items-center justify-center text-emerald-600 font-semibold">
+              <span>Inscrire</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Gestion des rôles et permissions -->
+        {% if check_permission('users.roles') %}
+        <a href="{{ url_for('admin_roles') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 3s;">
+              <i class="fas fa-user-shield text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Rôles & Permissions</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Gérez les rôles administratifs et leurs accès</p>
+            <div class="mt-6 flex items-center justify-center text-indigo-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+        {% endif %}
+
+        <!-- Gestion des années académiques -->
+        <a href="{{ url_for('admin_academic_years') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 3.5s;">
+              <i class="fas fa-calendar-alt text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Années Académiques</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Gérez les périodes scolaires et l'historique</p>
+            {% if current_academic_year %}
+            <div class="mt-4 inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+              <i class="fas fa-circle text-xs mr-2 animate-pulse"></i>
+              {{ current_academic_year.nom }}
+            </div>
+            {% endif %}
+            <div class="mt-4 flex items-center justify-center text-emerald-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Gestion des filières et modules -->
+        <a href="{{ url_for('admin_filieres_modules') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 4s;">
+              <i class="fas fa-graduation-cap text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Filières & Modules</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Gérez les programmes académiques et les modules d'enseignement</p>
+            <div class="mt-4 flex items-center justify-center text-purple-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Module d'Import (ETL Excel/CSV/Word/MySQL/API) -->
+        {% if check_permission('imports.view') %}
+        <a href="{{ url_for('imports.index') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 4.2s;">
+              <i class="fas fa-database text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Module d'Import</h3>
+            <p class="text-gray-600 text-sm mb-4">ETL multi-sources : Excel · CSV · Word · MySQL · API</p>
+            <div class="inline-flex items-center text-cyan-600 font-semibold text-sm group-hover:text-cyan-700">
+              <span>Importer</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+        {% endif %}
+
+        <!-- Mon Abonnement (SaaS) -->
+        <a href="{{ url_for('subscription.my_subscription') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 4.4s;">
+              <i class="fas fa-crown text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Mon Abonnement</h3>
+            <p class="text-gray-600 text-sm mb-4">
+              {% if current_subscription %}
+                {{ current_subscription.plan_nom }}
+                {% if subscription_days_left is not none %}
+                  · <span class="{{ 'text-rose-600' if subscription_days_left < 15 else 'text-emerald-600' }}">{{ subscription_days_left }}j restants</span>
+                {% endif %}
+              {% else %}
+                Aucun abonnement actif
+              {% endif %}
+            </p>
+            <div class="inline-flex items-center text-amber-600 font-semibold text-sm group-hover:text-amber-700">
+              <span>Gérer</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Admissions CRM -->
+        <a href="{{ url_for('admin_admissions') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 4.5s;">
+              <i class="fas fa-inbox text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3" data-i18n="admissions.card_title">📥 Admissions CRM</h3>
+            <p class="text-gray-600 text-sm leading-relaxed" data-i18n="admissions.card_desc">Gérez les candidats, les dossiers d'admission, les entretiens et les inscriptions</p>
+            <div class="mt-4 flex items-center justify-center text-sky-600 font-semibold">
+              <span data-i18n="common.view">Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Service Scolarité - Attestations -->
+        <a href="{{ url_for('scolarite_attestations') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 5s;">
+              <i class="fas fa-clipboard-check text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Service Scolarité</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Approuver les demandes d'attestations des étudiants</p>
+            <div class="mt-4 flex items-center justify-center text-emerald-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Direction - Signature Attestations -->
+        <a href="{{ url_for('directeur_attestations') }}"
+           class="card-hover glass-effect rounded-3xl p-8 text-center group relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 floating-animation" style="animation-delay: 6s;">
+              <i class="fas fa-signature text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">Direction</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">Signer les attestations avec blockchain sécurisée</p>
+            <div class="mt-4 flex items-center justify-center text-purple-600 font-semibold">
+              <span>Accéder</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+        </a>
+
         <!-- Quick Actions Card -->
         <div class="glass-effect rounded-3xl p-8 text-center relative overflow-hidden">
           <div class="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -241,6 +601,304 @@
       </div>
     </div>
   </footer>
+
+  <!-- 🤖 Chatbot Administrateur Intelligent -->
+  <div id="admin-chatbot" class="fixed bottom-6 right-6 z-50">
+    <!-- Bouton flottant -->
+    <button id="chatbot-toggle"
+            class="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300 group">
+      <i class="fas fa-robot text-white text-2xl group-hover:animate-bounce"></i>
+      <span class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse"></span>
+    </button>
+
+    <!-- Fenêtre du chatbot -->
+    <div id="chatbot-window" class="hidden absolute bottom-20 right-0 w-96 max-h-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+            <i class="fas fa-robot text-white text-lg"></i>
+          </div>
+          <div>
+            <h3 class="text-white font-bold">Assistant Admin</h3>
+            <p class="text-white/70 text-xs">Toujours disponible</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <a href="{{ url_for('admin_chatbot_page') }}" class="text-white/70 hover:text-white transition-colors" title="Mode plein écran">
+            <i class="fas fa-expand text-lg"></i>
+          </a>
+          <button id="chatbot-close" class="text-white/70 hover:text-white transition-colors">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div id="chatbot-messages" class="h-80 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        <!-- Message de bienvenue -->
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-robot text-white text-sm"></i>
+          </div>
+          <div class="bg-white rounded-2xl rounded-tl-none p-3 shadow-sm max-w-[80%]">
+            <p class="text-gray-700 text-sm">👋 Bonjour ! Je suis votre assistant administrateur. Comment puis-je vous aider ?</p>
+            <p class="text-gray-500 text-xs mt-2">Tapez <strong>aide</strong> pour voir les commandes disponibles.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestions rapides -->
+      <div id="chatbot-suggestions" class="px-4 py-2 bg-white border-t border-gray-100 flex flex-wrap gap-2">
+        <button class="suggestion-btn px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs hover:bg-emerald-100 transition-colors font-medium" data-query="statut paiement">
+          💰 Paiements
+        </button>
+        <button class="suggestion-btn px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-xs hover:bg-amber-100 transition-colors font-medium" data-query="notes">
+          📝 Notes
+        </button>
+        <button class="suggestion-btn px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs hover:bg-blue-100 transition-colors font-medium" data-query="Statistiques">
+          📊 Stats
+        </button>
+        <button class="suggestion-btn px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs hover:bg-purple-100 transition-colors font-medium" data-query="Liste des cours">
+          📚 Cours
+        </button>
+        <button class="suggestion-btn px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-xs hover:bg-gray-100 transition-colors font-medium" data-query="Aide">
+          ❓ Aide
+        </button>
+      </div>
+
+      <!-- Input -->
+      <div class="p-4 bg-white border-t border-gray-200">
+        <form id="chatbot-form" class="flex items-center space-x-2">
+          <input type="text"
+                 id="chatbot-input"
+                 placeholder="Posez votre question..."
+                 class="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                 autocomplete="off">
+          <button type="submit"
+                  class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center hover:opacity-90 transition-opacity">
+            <i class="fas fa-paper-plane text-white text-sm"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 🤖 Chatbot Admin Script
+    const chatbotToggle = document.getElementById('chatbot-toggle');
+    const chatbotWindow = document.getElementById('chatbot-window');
+    const chatbotClose = document.getElementById('chatbot-close');
+    const chatbotForm = document.getElementById('chatbot-form');
+    const chatbotInput = document.getElementById('chatbot-input');
+    const chatbotMessages = document.getElementById('chatbot-messages');
+    const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+
+    // Toggle chatbot
+    chatbotToggle.addEventListener('click', () => {
+      chatbotWindow.classList.toggle('hidden');
+      if (!chatbotWindow.classList.contains('hidden')) {
+        chatbotInput.focus();
+      }
+    });
+
+    chatbotClose.addEventListener('click', () => {
+      chatbotWindow.classList.add('hidden');
+    });
+
+    // Suggestions - utiliser data-query pour le texte de la requête
+    suggestionBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const query = btn.dataset.query || btn.textContent.trim();
+        chatbotInput.value = query;
+        chatbotForm.dispatchEvent(new Event('submit'));
+      });
+    });
+
+    // Envoyer message
+    chatbotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const question = chatbotInput.value.trim();
+      if (!question) return;
+
+      // Ajouter message utilisateur
+      addMessage(question, 'user');
+      chatbotInput.value = '';
+
+      // Afficher indicateur de chargement
+      const loadingId = addLoadingMessage();
+
+      try {
+        const response = await fetch('/api/admin/chatbot/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await response.json();
+        removeLoadingMessage(loadingId);
+
+        if (data.error) {
+          addMessage('❌ ' + data.error, 'bot', 'error');
+        } else {
+          addMessage(data.message, 'bot', data.type, data.buttons);
+        }
+      } catch (error) {
+        removeLoadingMessage(loadingId);
+        addMessage('❌ Erreur de connexion au serveur', 'bot', 'error');
+      }
+    });
+
+    function addMessage(text, sender, type = 'default', buttons = null) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex items-start space-x-3 ' + (sender === 'user' ? 'flex-row-reverse space-x-reverse' : '');
+
+      const avatar = sender === 'user'
+        ? '<div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-white text-sm"></i></div>'
+        : '<div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-robot text-white text-sm"></i></div>';
+
+      // Couleur de fond selon le type
+      let bgColor = 'bg-white';
+      if (sender === 'user') {
+        bgColor = 'bg-gradient-to-r from-blue-500 to-purple-500 text-white';
+      } else if (type === 'interactive') {
+        bgColor = 'bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200';
+      } else if (type === 'finance') {
+        bgColor = 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200';
+      } else if (type === 'grades') {
+        bgColor = 'bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200';
+      }
+
+      const textColor = sender === 'user' ? 'text-white' : 'text-gray-700';
+      const roundedClass = sender === 'user' ? 'rounded-tr-none' : 'rounded-tl-none';
+
+      // Convertir le markdown simple en HTML
+      let formattedText = text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/_(.+?)_/g, '<em class="text-gray-500 text-xs">$1</em>')
+        .replace(/\n/g, '<br>');
+
+      let buttonsHtml = '';
+      if (buttons && buttons.length > 0) {
+        buttonsHtml = '<div class="mt-3 flex flex-wrap gap-2">';
+        buttons.forEach(btn => {
+          if (btn.action) {
+            // Bouton qui déclenche une commande dans le chatbot
+            buttonsHtml += `<button onclick="sendChatCommand('${btn.action}')" class="inline-block px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-xs hover:from-emerald-600 hover:to-teal-600 transition-all font-medium shadow-sm">${btn.label}</button>`;
+          } else if (btn.url) {
+            // Bouton lien
+            buttonsHtml += `<a href="${btn.url}" class="inline-block px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full text-xs hover:from-blue-600 hover:to-indigo-600 transition-all font-medium shadow-sm">${btn.label}</a>`;
+          }
+        });
+        buttonsHtml += '</div>';
+      }
+
+      msgDiv.innerHTML = `
+        ${avatar}
+        <div class="${bgColor} rounded-2xl ${roundedClass} p-3 shadow-sm max-w-[80%]">
+          <p class="${textColor} text-sm">${formattedText}</p>
+          ${buttonsHtml}
+        </div>
+      `;
+
+      chatbotMessages.appendChild(msgDiv);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    }
+
+    // Fonction pour envoyer une commande au chatbot
+    function sendChatCommand(command) {
+      chatbotInput.value = command;
+      chatbotForm.dispatchEvent(new Event('submit'));
+    }
+
+    function addLoadingMessage() {
+      const id = 'loading-' + Date.now();
+      const msgDiv = document.createElement('div');
+      msgDiv.id = id;
+      msgDiv.className = 'flex items-start space-x-3';
+      msgDiv.innerHTML = `
+        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-robot text-white text-sm"></i>
+        </div>
+        <div class="bg-white rounded-2xl rounded-tl-none p-3 shadow-sm">
+          <div class="flex space-x-1">
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+          </div>
+        </div>
+      `;
+      chatbotMessages.appendChild(msgDiv);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      return id;
+    }
+
+    function removeLoadingMessage(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    // Raccourci clavier pour ouvrir le chatbot (Ctrl+K)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        chatbotWindow.classList.toggle('hidden');
+        if (!chatbotWindow.classList.contains('hidden')) {
+          chatbotInput.focus();
+        }
+      }
+    });
+
+    // Year dropdown functions
+    function toggleYearDropdown() {
+      document.getElementById('yearDropdownMenu').classList.toggle('hidden');
+    }
+
+    function switchYear(yearId, yearName) {
+      fetch('/api/switch-academic-year', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year_id: yearId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        }
+      });
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#yearDropdown')) {
+        document.getElementById('yearDropdownMenu')?.classList.add('hidden');
+      }
+    });
+
+    function refreshAdminAbsences() {
+      fetch('/api/admin/absences/recent')
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success || !data.absences) return;
+          const feed = document.getElementById('admin-absences-feed');
+          if (!feed) return;
+          if (!data.absences.length) return;
+          feed.innerHTML = data.absences.map(a => {
+            const label = a.statut === 'absent' ? 'Absent' : 'Retard';
+            const cls = a.statut === 'absent' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700';
+            const dot = a.statut === 'absent' ? 'bg-red-500' : 'bg-amber-500';
+            const d = a.date_cours ? String(a.date_cours).substring(0, 10) : '';
+            return `<div class="px-6 py-3 flex items-center justify-between hover:bg-red-50/50">
+              <div class="flex items-center gap-3"><span class="w-2 h-2 rounded-full ${dot}"></span>
+              <div><p class="font-semibold text-gray-900 text-sm">${a.prenom} ${a.nom} <span class="text-gray-400">· ${a.filiere || ''}</span></p>
+              <p class="text-xs text-gray-500">${a.nom_cours} — ${d}</p></div></div>
+              <span class="text-xs font-bold px-2 py-1 rounded-full ${cls}">${label}</span></div>`;
+          }).join('');
+        }).catch(() => {});
+    }
+    refreshAdminAbsences();
+    setInterval(refreshAdminAbsences, 45000);
+  </script>
 
 </body>
 </html>

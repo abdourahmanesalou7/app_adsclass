@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestion des Rôles - AdsClass Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .module-card {
+            transition: all 0.2s ease;
+        }
+        .module-card:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="glass-effect sticky top-0 z-50 shadow-lg border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('admin_home') }}" class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user-shield text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Rôles & Permissions</h1>
+                        <p class="text-xs text-gray-500">Gestion des accès administrateurs</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{{ url_for('admin_roles_users') }}"
+                   class="bg-white hover:bg-gray-50 text-gray-700 font-medium px-4 py-2 rounded-xl shadow-sm border border-gray-200 transition-all flex items-center space-x-2">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Administrateurs</span>
+                </a>
+                <button onclick="openModal()"
+                        class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Nouveau Rôle</span>
+                </button>
+                <a href="{{ url_for('admin_home') }}"
+                   class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2.5 rounded-xl transition-all">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass-effect rounded-2xl p-5 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Rôles</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ roles|length }}</p>
+                </div>
+                <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-tag text-indigo-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-5 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Permissions</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ permissions|length * 4 }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-key text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-5 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Modules</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ permissions|length }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-cubes text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-5 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Admins Actifs</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ roles|map(attribute='user_count')|sum }}</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-check text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roles Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for role in roles %}
+        <div class="card-hover glass-effect rounded-2xl overflow-hidden shadow-lg group">
+            <!-- Header avec couleur -->
+            <div class="h-2" style="background: {{ role.couleur }};"></div>
+
+            <div class="p-6">
+                <!-- Icon & Title -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                             style="background: linear-gradient(135deg, {{ role.couleur }}dd, {{ role.couleur }});">
+                            <i class="fas {{ role.icone }} text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">{{ role.nom }}</h3>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                                      style="background: {{ role.couleur }}20; color: {{ role.couleur }};">
+                                    <i class="fas fa-star mr-1 text-xs"></i>
+                                    Priorité {{ role.priorite }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menu dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button onclick="toggleDropdown(this)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-ellipsis-v text-gray-400"></i>
+                        </button>
+                        <div class="dropdown-menu hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-10">
+                            <a href="{{ url_for('edit_role', role_id=role.id) }}"
+                               class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-edit mr-3 text-blue-500"></i> Modifier
+                            </a>
+                            {% if role.user_count == 0 %}
+                            <form action="{{ url_for('delete_role', role_id=role.id) }}" method="POST"
+                                  onsubmit="return confirm('Supprimer ce rôle ?');">
+                                <button type="submit" class="w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50 transition-colors">
+                                    <i class="fas fa-trash mr-3"></i> Supprimer
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <p class="text-gray-500 text-sm mb-4 line-clamp-2">{{ role.description or 'Aucune description définie' }}</p>
+
+                <!-- Stats -->
+                <div class="flex items-center space-x-4 mb-4">
+                    <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                        <i class="fas fa-users text-gray-500 text-sm"></i>
+                        <span class="text-sm font-medium text-gray-700">{{ role.user_count }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-indigo-50 px-3 py-1.5 rounded-lg">
+                        <i class="fas fa-key text-indigo-500 text-sm"></i>
+                        <span class="text-sm font-medium text-indigo-700">{{ role.permissions|length }} perms</span>
+                    </div>
+                </div>
+
+                <!-- Permissions Preview -->
+                <div class="mb-4">
+                    <p class="text-xs text-gray-400 mb-2 uppercase tracking-wider">Modules autorisés</p>
+                    <div class="flex flex-wrap gap-1.5">
+                        {% set modules_seen = [] %}
+                        {% for perm in role.permissions|list %}
+                            {% set module_name = perm.split('.')[0] %}
+                            {% if module_name not in modules_seen %}
+                                {% if modules_seen.append(module_name) %}{% endif %}
+                                {% if loop.index <= 8 %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                    {{ modules_labels.get(module_name, module_name) }}
+                                </span>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <a href="{{ url_for('edit_role', role_id=role.id) }}"
+                   class="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all"
+                   style="background: {{ role.couleur }}15; color: {{ role.couleur }}; border: 1px solid {{ role.couleur }}30;"
+                   onmouseover="this.style.background='{{ role.couleur }}25'"
+                   onmouseout="this.style.background='{{ role.couleur }}15'">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurer</span>
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-3 glass-effect rounded-2xl p-12 text-center">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-user-shield text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Aucun rôle configuré</h3>
+            <p class="text-gray-500 mb-6">Créez votre premier rôle pour commencer à gérer les permissions.</p>
+            <button onclick="openModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-xl">
+                <i class="fas fa-plus mr-2"></i> Créer un rôle
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</main>
+
+<!-- Modal Création de Rôle -->
+<div id="createRoleModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+
+        <!-- Modal Content -->
+        <div class="relative inline-block w-full max-w-3xl p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+            <form action="{{ url_for('create_role') }}" method="POST">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-plus text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Créer un nouveau rôle</h3>
+                                <p class="text-indigo-200 text-sm">Définissez les permissions et les accès</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeModal()" class="text-white/80 hover:text-white p-2">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="px-8 py-6 max-h-[60vh] overflow-y-auto">
+                    <!-- Basic Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Nom du rôle *</label>
+                            <input type="text" name="nom" required
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                   placeholder="Ex: Responsable Pédagogique">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                            <textarea name="description" rows="2"
+                                      class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                      placeholder="Décrivez ce rôle..."></textarea>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Couleur</label>
+                                <input type="color" name="couleur" value="#6366f1"
+                                       class="w-full h-12 border border-gray-200 rounded-xl cursor-pointer">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Priorité</label>
+                                <input type="number" name="priorite" value="50" min="0" max="100"
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Icône</label>
+                                <select name="icone" class="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <option value="fa-user-shield">🛡️</option>
+                                    <option value="fa-crown">👑</option>
+                                    <option value="fa-building">🏢</option>
+                                    <option value="fa-graduation-cap">🎓</option>
+                                    <option value="fa-calculator">🧮</option>
+                                    <option value="fa-clipboard">📋</option>
+                                    <option value="fa-eye">👁️</option>
+                                    <option value="fa-cog">⚙️</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permissions -->
+                    <div class="border-t border-gray-100 pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-key text-indigo-500 mr-2"></i>
+                                Permissions
+                            </h4>
+                            <div class="flex space-x-2">
+                                <button type="button" onclick="selectAllPerms()"
+                                        class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors">
+                                    Tout sélectionner
+                                </button>
+                                <button type="button" onclick="deselectAllPerms()"
+                                        class="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+                                    Tout désélectionner
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {% for module, perms in permissions.items() %}
+                            <div class="module-card border border-gray-100 rounded-xl p-4">
+                                <label class="flex items-center space-x-3 cursor-pointer mb-3">
+                                    <input type="checkbox" class="module-checkbox w-5 h-5 text-indigo-600 rounded-lg border-gray-300 focus:ring-indigo-500"
+                                           data-module="{{ module }}">
+                                    <span class="font-semibold text-gray-800">{{ modules_labels.get(module, module) }}</span>
+                                    <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ perms|length }}</span>
+                                </label>
+                                <div class="ml-8 space-y-2">
+                                    {% for perm in perms %}
+                                    <label class="flex items-center space-x-2 cursor-pointer text-sm text-gray-600 hover:text-gray-900">
+                                        <input type="checkbox" name="permissions" value="{{ perm.code }}"
+                                               class="perm-checkbox perm-{{ module }} w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                        <span>{{ perm.nom }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-8 py-4 flex items-center justify-end space-x-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModal()"
+                            class="px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-xl transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2">
+                        <i class="fas fa-check"></i>
+                        <span>Créer le rôle</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script>
+// Modal functions
+function openModal() {
+    document.getElementById('createRoleModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    document.getElementById('createRoleModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Dropdown toggle
+function toggleDropdown(btn) {
+    const dropdown = btn.nextElementSibling;
+    document.querySelectorAll('.dropdown-menu').forEach(d => {
+        if (d !== dropdown) d.classList.add('hidden');
+    });
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
+    }
+});
+
+// Module checkbox handling
+document.querySelectorAll('.module-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const module = this.dataset.module;
+        document.querySelectorAll('.perm-' + module).forEach(perm => {
+            perm.checked = this.checked;
+        });
+    });
+});
+
+// Select/Deselect all
+function selectAllPerms() {
+    document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = true);
+    document.querySelectorAll('.module-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAllPerms() {
+    document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.module-checkbox').forEach(cb => cb.checked = false);
+}
+
+// ESC key to close modal
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+});
+</script>
+
+</body>
+</html>
+

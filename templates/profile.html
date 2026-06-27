@@ -249,8 +249,8 @@
                   <i class="fas fa-id-card text-white text-lg"></i>
                 </div>
                 <div class="flex-1">
-                  <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">ID Étudiant</p>
-                  <p class="text-lg font-bold text-gray-800 font-mono">#{{ email.split('@')[0].upper() }}</p>
+                  <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Identifiant</p>
+                  <p class="text-lg font-bold text-gray-800 font-mono">{{ identifiant or email.split('@')[0].upper() }}</p>
                 </div>
               </div>
             </div>
@@ -258,6 +258,59 @@
         </div>
       </div>
     </div>
+
+    {% if show_password_form or must_change_password %}
+    <div class="profile-card rounded-3xl shadow-2xl p-8 mb-8 border-2 border-amber-200">
+      <h3 class="text-xl font-bold text-gray-800 mb-2">
+        <i class="fas fa-key text-amber-600 mr-2"></i>
+        {% if must_change_password %}Changement de mot de passe requis{% else %}Modifier mon mot de passe{% endif %}
+      </h3>
+      <p class="text-sm text-gray-600 mb-6">Utilisez un mot de passe d'au moins 8 caractères.</p>
+      <form id="changePasswordForm" class="grid md:grid-cols-3 gap-4 max-w-3xl">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
+          <input type="password" id="current_password" required class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+          <input type="password" id="new_password" required minlength="8" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Confirmer</label>
+          <input type="password" id="confirm_password" required minlength="8" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm">
+        </div>
+        <div class="md:col-span-3">
+          <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-3 rounded-xl text-sm">
+            Enregistrer le nouveau mot de passe
+          </button>
+          <p id="pwdMsg" class="text-sm mt-3 hidden"></p>
+        </div>
+      </form>
+    </div>
+    <script>
+    document.getElementById('changePasswordForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const msg = document.getElementById('pwdMsg');
+      fetch('/student/change-password', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          current_password: document.getElementById('current_password').value,
+          new_password: document.getElementById('new_password').value,
+          confirm_password: document.getElementById('confirm_password').value
+        })
+      }).then(r => r.json()).then(d => {
+        msg.classList.remove('hidden');
+        msg.className = 'text-sm mt-3 ' + (d.success ? 'text-green-600' : 'text-red-600');
+        msg.textContent = d.message || (d.success ? 'Mot de passe mis à jour' : 'Erreur');
+        if (d.success) {
+          document.getElementById('changePasswordForm').reset();
+          setTimeout(() => window.location.href = '/student/dashboard', 1500);
+        }
+      });
+    });
+    </script>
+    {% endif %}
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

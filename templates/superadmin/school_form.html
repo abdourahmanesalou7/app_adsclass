@@ -1,0 +1,119 @@
+{% extends "superadmin/_layout.html" %}
+{% block title %}{{ 'Nouvelle école' if not school else 'Modifier école' }} — Superadmin{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('superadmin.schools_list') }}" class="text-gray-500 hover:text-gray-800 text-sm"><i class="fas fa-arrow-left mr-1"></i> Retour</a>
+  <h1 class="text-3xl font-bold mt-2">{{ 'Nouvelle école' if not school else 'Modifier : ' + school.nom }}</h1>
+</div>
+
+<form method="POST" class="max-w-3xl bg-white border rounded-2xl shadow-sm p-6 space-y-5">
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Nom de l'école *</label>
+      <input name="nom" required value="{{ school.nom if school else '' }}" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Code (slug court)</label>
+      <input name="code" value="{{ school.code if school else '' }}" placeholder="ECOLE_X" class="w-full border rounded-lg px-3 py-2 uppercase">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Domaine (optionnel)</label>
+      <input name="domaine" value="{{ school.domaine if school else '' }}" placeholder="ecole.example.com" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Devise</label>
+      <select name="devise" class="w-full border rounded-lg px-3 py-2">
+        {% for d in ['XOF','EUR','USD','MAD','CFA','XAF'] %}
+          <option value="{{ d }}" {{ 'selected' if school and school.devise==d else '' }}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+      <input name="pays" value="{{ school.pays if school else 'Niger' }}" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+      <input name="ville" value="{{ school.ville if school else '' }}" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div class="md:col-span-2">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+      <input name="adresse" value="{{ school.adresse if school else '' }}" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+      <input name="telephone" value="{{ school.telephone if school else '' }}" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Email contact</label>
+      <input type="email" name="email_contact" value="{{ school.email_contact if school else '' }}" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+      <select name="statut" class="w-full border rounded-lg px-3 py-2">
+        {% for st in ['active','trial','suspended','archived'] %}
+          <option value="{{ st }}" {{ 'selected' if school and school.statut==st else ('selected' if not school and st=='trial' else '') }}>{{ st }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {% if not school %}
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <h3 class="font-semibold text-amber-900 mb-3"><i class="fas fa-crown mr-2"></i> Abonnement initial (optionnel)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Plan</label>
+          <select name="initial_plan" class="w-full border rounded-lg px-3 py-2">
+            <option value="">— Aucun (création sans abonnement) —</option>
+            {% for p in plans %}
+              <option value="{{ p.code }}">{{ p.nom }} ({{ p.prix_mensuel }} {{ p.devise }}/mois)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Durée (jours)</label>
+          <input type="number" name="duration_days" value="30" min="1" max="3650" class="w-full border rounded-lg px-3 py-2">
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if not school %}
+    <div class="bg-sky-50 border border-sky-200 rounded-xl p-4">
+      <label class="flex items-center gap-2 font-semibold text-sky-900 mb-3">
+        <input type="checkbox" name="create_director" value="1" checked class="rounded">
+        <i class="fas fa-user-tie"></i> Créer le compte Directeur de l'école
+      </label>
+      <p class="text-xs text-sky-700 mb-3">
+        Si l'email est laissé vide, il sera dérivé du domaine (directeur@&lt;domaine&gt;).
+        Mot de passe temporaire : <strong>Test@12345</strong> (changement requis à la 1<sup>re</sup> connexion).
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Email directeur</label>
+          <input type="email" name="director_email" placeholder="directeur@domaine" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Prénom</label>
+          <input name="director_prenom" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Nom</label>
+          <input name="director_nom" class="w-full border rounded-lg px-3 py-2">
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="flex gap-3 pt-4 border-t">
+    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium">
+      <i class="fas fa-save mr-2"></i> {{ 'Créer' if not school else 'Enregistrer' }}
+    </button>
+    <a href="{{ url_for('superadmin.schools_list') if not school else url_for('superadmin.school_detail', school_id=school.id) }}"
+       class="px-6 py-2 text-gray-600 hover:text-gray-900">Annuler</a>
+  </div>
+</form>
+{% endblock %}

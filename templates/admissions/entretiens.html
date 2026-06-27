@@ -1,0 +1,62 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}Entretiens{% endblock %}
+
+{% block content %}
+<div class="grid lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2">
+        <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-calendar-check text-purple-500 mr-2"></i>Calendrier des entretiens</h2>
+        <div class="glass rounded-2xl shadow-lg divide-y divide-gray-100">
+            {% for e in entretiens %}
+            <div class="p-5 flex flex-wrap justify-between items-center gap-3 hover:bg-purple-50/30">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-purple-100 rounded-xl flex flex-col items-center justify-center text-purple-700">
+                        <span class="text-lg font-bold">{{ e.date_entretien.strftime('%d') if e.date_entretien else '—' }}</span>
+                        <span class="text-xs">{{ e.date_entretien.strftime('%b') if e.date_entretien else '' }}</span>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800">{{ e.prenom }} {{ e.nom }}</p>
+                        <p class="text-sm text-gray-500">{{ e.date_entretien.strftime('%H:%M') if e.date_entretien else '' }} — {{ e.lieu or 'Campus' }}</p>
+                        <p class="text-xs text-gray-400">{{ e.reference }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if e.invitation_envoyee %}
+                    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"><i class="fas fa-envelope mr-1"></i>Invitation envoyée</span>
+                    {% endif %}
+                    <span class="text-xs px-2 py-1 rounded-full bg-purple-50 text-purple-700">{{ e.statut }}</span>
+                    <a href="{{ url_for('admin_admissions_candidat_detail', candidat_id=e.candidat_id) }}"
+                       class="text-indigo-600 text-sm">Voir dossier</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-400">Aucun entretien cette semaine</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div>
+        <div class="glass rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 mb-4">Planifier un entretien</h3>
+            <form method="POST" action="{{ url_for('admin_admissions_create_entretien') }}" class="space-y-3">
+                <select name="candidat_id" required class="border rounded-lg px-3 py-2 w-full text-sm">
+                    <option value="">Choisir un candidat</option>
+                    {% for c in candidats %}
+                    <option value="{{ c.id }}">{{ c.prenom }} {{ c.nom }} ({{ c.reference }})</option>
+                    {% endfor %}
+                </select>
+                <input type="date" name="date_entretien" required class="border rounded-lg px-3 py-2 w-full text-sm">
+                <input type="time" name="heure" value="14:00" class="border rounded-lg px-3 py-2 w-full text-sm">
+                <select name="type_entretien" class="border rounded-lg px-3 py-2 w-full text-sm">
+                    <option value="presentiel">Présentiel</option>
+                    <option value="visio">Visioconférence</option>
+                    <option value="telephone">Téléphone</option>
+                </select>
+                <input name="lieu" placeholder="Lieu (ex: Salle A12)" value="Campus AdsClass" class="border rounded-lg px-3 py-2 w-full text-sm">
+                <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-xl font-semibold text-sm">
+                    <i class="fas fa-calendar-plus mr-1"></i> Planifier & inviter
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

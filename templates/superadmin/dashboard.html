@@ -1,0 +1,82 @@
+{% extends "superadmin/_layout.html" %}
+{% block title %}Dashboard — Superadmin{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl font-bold">Tableau de bord global</h1>
+  <p class="text-gray-500 mt-1">Vue cross-tenant de toutes les écoles ADSClass</p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  {% set cards = [
+    ('Écoles', kpis.nb_schools, 'school', 'indigo', 'écoles enregistrées'),
+    ('Actives', kpis.nb_active_schools, 'check-circle', 'emerald', 'statut actif'),
+    ('Abonnements actifs', kpis.nb_active_subs, 'crown', 'amber', 'non expirés'),
+    ('Expirent <30j', kpis.nb_expiring, 'hourglass-half', 'rose', 'à relancer'),
+  ] %}
+  {% for label, value, icon, color, sub in cards %}
+    <div class="bg-white border rounded-2xl shadow-sm p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-gray-500 uppercase">{{ label }}</div>
+          <div class="text-3xl font-bold mt-1">{{ value }}</div>
+          <div class="text-xs text-gray-400 mt-1">{{ sub }}</div>
+        </div>
+        <div class="w-12 h-12 bg-{{ color }}-100 text-{{ color }}-600 rounded-xl flex items-center justify-center">
+          <i class="fas fa-{{ icon }}"></i>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  <div class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl p-6">
+    <div class="text-xs uppercase opacity-80">MRR (Monthly Recurring Revenue)</div>
+    <div class="text-4xl font-bold mt-2">{{ '{:,.0f}'.format(kpis.mrr).replace(',', ' ') }}</div>
+    <div class="text-sm opacity-90 mt-1">XOF / mois</div>
+  </div>
+  <div class="bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-2xl p-6">
+    <div class="text-xs uppercase opacity-80">Revenus encaissés (30j)</div>
+    <div class="text-4xl font-bold mt-2">{{ '{:,.0f}'.format(kpis.revenue_30d).replace(',', ' ') }}</div>
+    <div class="text-sm opacity-90 mt-1">XOF</div>
+  </div>
+  <div class="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl p-6">
+    <div class="text-xs uppercase opacity-80">Utilisateurs / Étudiants</div>
+    <div class="text-4xl font-bold mt-2">{{ kpis.nb_users }} <span class="text-base opacity-70">/ {{ kpis.nb_students }}</span></div>
+    <div class="text-sm opacity-90 mt-1">tous tenants confondus</div>
+  </div>
+</div>
+
+<section class="bg-white border rounded-2xl shadow-sm p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-bold text-lg"><i class="fas fa-clock text-gray-400 mr-2"></i> Écoles récemment créées</h2>
+    <a href="{{ url_for('superadmin.schools_list') }}" class="text-indigo-600 text-sm hover:underline">Voir tout →</a>
+  </div>
+  {% if recent %}
+    <table class="w-full text-sm">
+      <thead class="text-xs uppercase text-gray-500 border-b">
+        <tr><th class="text-left py-2">Nom</th><th class="text-left">Code</th><th class="text-left">Statut</th><th class="text-left">Créée le</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for s in recent %}
+        <tr class="border-b last:border-0">
+          <td class="py-3 font-medium">{{ s.nom }}</td>
+          <td class="text-gray-600">{{ s.code or '—' }}</td>
+          <td>
+            <span class="px-2 py-1 rounded-full text-xs
+              {{ 'bg-emerald-100 text-emerald-700' if s.statut=='active' else
+                 'bg-amber-100 text-amber-700' if s.statut=='trial' else
+                 'bg-gray-100 text-gray-700' }}">{{ s.statut }}</span>
+          </td>
+          <td class="text-gray-500">{{ s.date_creation.strftime('%d/%m/%Y') if s.date_creation else '—' }}</td>
+          <td><a href="{{ url_for('superadmin.school_detail', school_id=s.id) }}" class="text-indigo-600 hover:underline">Détails →</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-gray-500 text-sm">Aucune école.</p>
+  {% endif %}
+</section>
+{% endblock %}

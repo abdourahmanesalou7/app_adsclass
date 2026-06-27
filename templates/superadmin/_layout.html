@@ -1,0 +1,58 @@
+{# Layout partagé du portail superadmin #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Superadmin — ADSClass{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-gray-800">
+
+<aside class="fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-100 z-40 flex flex-col">
+  <div class="p-6 border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-rose-600 rounded-xl flex items-center justify-center">
+        <i class="fas fa-shield-halved text-white"></i>
+      </div>
+      <div>
+        <div class="font-bold text-sm">SUPERADMIN</div>
+        <div class="text-xs text-slate-400">ADSClass Console</div>
+      </div>
+    </div>
+  </div>
+  <nav class="flex-1 p-4 space-y-1 text-sm">
+    {% set active = request.endpoint or '' %}
+    <a href="{{ url_for('superadmin.dashboard') }}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg {{ 'bg-slate-800 text-white' if active=='superadmin.dashboard' else 'hover:bg-slate-800' }}">
+      <i class="fas fa-chart-line w-5"></i> Dashboard
+    </a>
+    <a href="{{ url_for('superadmin.schools_list') }}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg {{ 'bg-slate-800 text-white' if active.startswith('superadmin.school') else 'hover:bg-slate-800' }}">
+      <i class="fas fa-school w-5"></i> Écoles
+    </a>
+    <a href="{{ url_for('superadmin.plans_list') }}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg {{ 'bg-slate-800 text-white' if active=='superadmin.plans_list' else 'hover:bg-slate-800' }}">
+      <i class="fas fa-tags w-5"></i> Plans
+    </a>
+  </nav>
+  <div class="p-4 border-t border-slate-800 text-xs">
+    <div class="text-slate-400">Connecté en tant que</div>
+    <div class="text-slate-200 truncate">{{ session.prenom }} {{ session.nom }}</div>
+    <a href="{{ url_for('logout') }}" class="mt-2 inline-block text-slate-400 hover:text-white">
+      <i class="fas fa-sign-out-alt mr-1"></i> Déconnexion
+    </a>
+  </div>
+</aside>
+
+<main class="ml-64 p-8">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}
+      {% set color = {'success':'emerald','danger':'rose','warning':'amber','info':'sky'}.get(cat,'gray') %}
+      <div class="mb-4 px-4 py-3 rounded-lg bg-{{ color }}-50 border border-{{ color }}-200 text-{{ color }}-800 text-sm">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

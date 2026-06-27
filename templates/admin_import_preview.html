@@ -1,0 +1,93 @@
+{# Wizard step 3 : preview validé + confirmation commit #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Aperçu — Import #{{ job.id }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+<nav class="bg-white border-b shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
+    <a href="{{ url_for('imports.mapping', job_id=job.id) }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+    <h1 class="text-xl font-bold"><i class="fas fa-eye text-indigo-600 mr-2"></i> Aperçu validation — Import #{{ job.id }}</h1>
+    <span class="ml-auto text-sm text-gray-500">Cible : <strong>{{ schema.label }}</strong></span>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white p-5 rounded-xl shadow-sm border">
+      <div class="text-xs text-gray-500 uppercase">Total lignes</div>
+      <div class="text-3xl font-bold text-gray-700 mt-1">{{ total }}</div>
+    </div>
+    <div class="bg-emerald-50 p-5 rounded-xl border border-emerald-200">
+      <div class="text-xs text-emerald-700 uppercase">Valides ✓</div>
+      <div class="text-3xl font-bold text-emerald-600 mt-1">{{ total_valid }}</div>
+    </div>
+    <div class="bg-red-50 p-5 rounded-xl border border-red-200">
+      <div class="text-xs text-red-700 uppercase">Avec erreurs ✗</div>
+      <div class="text-3xl font-bold text-red-600 mt-1">{{ total_invalid }}</div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b flex items-center justify-between">
+      <h2 class="font-semibold"><i class="fas fa-list mr-2 text-gray-500"></i>Échantillon (200 premières lignes)</h2>
+      <div class="text-xs text-gray-500">Légende : <span class="text-emerald-600">✓ valide</span> · <span class="text-red-600">✗ erreur</span></div>
+    </div>
+    <div class="overflow-x-auto max-h-[60vh]">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 text-gray-600 uppercase text-xs sticky top-0">
+          <tr>
+            <th class="px-3 py-2 text-center">#</th>
+            <th class="px-3 py-2 text-center">Statut</th>
+            {% for f in schema.fields.keys() %}
+              <th class="px-3 py-2 text-left">{{ f }}</th>
+            {% endfor %}
+            <th class="px-3 py-2 text-left">Erreurs</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for v in validated %}
+          <tr class="{{ 'bg-red-50/40' if not v.is_valid else '' }}">
+            <td class="px-3 py-2 text-center text-gray-400">{{ v.row_index + 1 }}</td>
+            <td class="px-3 py-2 text-center">
+              {% if v.is_valid %}<span class="text-emerald-600"><i class="fas fa-check-circle"></i></span>
+              {% else %}<span class="text-red-600"><i class="fas fa-times-circle"></i></span>{% endif %}
+            </td>
+            {% for f in schema.fields.keys() %}
+              <td class="px-3 py-2 text-gray-700 truncate max-w-[10rem]">{{ v.mapped.get(f) if v.mapped.get(f) is not none else '—' }}</td>
+            {% endfor %}
+            <td class="px-3 py-2 text-xs text-red-600">
+              {% for e in v.errors %}<div><strong>{{ e.field }}</strong> : {{ e.message }}</div>{% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form method="POST" class="bg-white rounded-xl shadow-sm border p-6 flex items-center justify-between">
+    <div class="text-sm text-gray-700">
+      <i class="fas fa-info-circle text-indigo-500 mr-1"></i>
+      Seules les <strong class="text-emerald-600">{{ total_valid }}</strong> lignes valides seront commit dans la base.
+      Les <strong class="text-red-600">{{ total_invalid }}</strong> lignes en erreur restent dans le staging pour correction ultérieure.
+    </div>
+    <div class="flex gap-2">
+      <a href="{{ url_for('imports.mapping', job_id=job.id) }}" class="px-4 py-2 rounded-lg border hover:bg-gray-100">← Revoir mapping</a>
+      <input type="hidden" name="confirm" value="yes">
+      <button type="submit" {% if total_valid==0 %}disabled{% endif %}
+              class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-medium">
+        <i class="fas fa-database mr-1"></i> Confirmer et commit ({{ total_valid }})
+      </button>
+    </div>
+  </form>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Classes - AdsClass</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .class-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .class-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .class-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="glass-effect fixed top-0 left-0 right-0 z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-800">AdsClass</h1>
+                        <p class="text-xs text-gray-500">Administration</p>
+                    </div>
+                </div>
+                
+                <a href="{{ url_for('admin_home') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                    <i class="fas fa-arrow-left text-xs"></i>
+                    Retour
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ page_title }}</h1>
+            <p class="text-gray-600">Sélectionnez une classe pour {{ 'gérer les notes' if mode == 'notes' else 'voir les étudiants' }}</p>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="glass-effect rounded-xl p-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="flex-1">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchInput" placeholder="Rechercher une classe..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm">
+                    </div>
+                </div>
+                <select id="filiereFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm">
+                    <option value="">Toutes les filières</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Classes Grid -->
+        {% if classes_par_filiere and classes_par_filiere|length > 0 %}
+            <div class="space-y-8">
+                {% for filiere, classes in classes_par_filiere.items() %}
+                    <section class="filiere-section" data-filiere="{{ filiere }}">
+                        <!-- Filiere Header -->
+                        <div class="glass-effect rounded-xl p-5 mb-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                        <i class="fas fa-graduation-cap text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-xl font-bold text-gray-800">{{ filiere }}</h2>
+                                        <p class="text-sm text-gray-600">{{ classes|length }} classe(s)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Classes Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {% for classe in classes %}
+                                {% set filiere_encoded = filiere|urlencode %}
+                                {% set niveau_encoded = classe.niveau|urlencode %}
+                                {% set is_empty = classe.count == 0 %}
+
+                                <a href="{{ url_for('admin_class_students', filiere=filiere_encoded, niveau=niveau_encoded, mode=mode) }}"
+                                   class="class-card glass-effect rounded-xl p-5 card-hover {{ 'opacity-60' if is_empty else '' }}"
+                                   data-classe="{{ classe.nom_classe }}">
+                                    <div class="flex items-start justify-between mb-4">
+                                        <div class="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-users text-indigo-600 text-lg"></i>
+                                        </div>
+                                        {% if not is_empty %}
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check-circle"></i>
+                                                In Progress
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-info">
+                                                <i class="fas fa-clock"></i>
+                                                Vide
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <h3 class="text-lg font-bold text-gray-800 mb-2">{{ classe.nom_classe }}</h3>
+
+                                    <div class="space-y-2 text-sm text-gray-600">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-calendar text-gray-400"></i>
+                                            <span>{{ classe.niveau }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-user-graduate text-gray-400"></i>
+                                            <span>{{ classe.count }} étudiant(s)</span>
+                                        </div>
+                                        {% if mode == 'notes' %}
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-book text-gray-400"></i>
+                                            <span>1 Course</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mt-4 pt-4 border-t border-gray-200">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="text-gray-500">
+                                                <i class="fas fa-calendar-alt mr-1"></i>
+                                                08/28 - 07/26
+                                            </span>
+                                            <i class="fas fa-arrow-right text-indigo-600"></i>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="glass-effect rounded-xl p-12 text-center">
+                <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-600 mb-2">Aucune filière active</h3>
+                <p class="text-gray-500 mb-4">Créez des filières dans <a href="{{ url_for('admin_filieres_modules') }}" class="text-indigo-600 font-medium underline">Filières & Modules</a> pour afficher les classes.</p>
+            </div>
+        {% endif %}
+    </main>
+
+    <script>
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const filiereFilter = document.getElementById('filiereFilter');
+
+        // Populate filiere filter
+        const filieres = new Set();
+        document.querySelectorAll('.filiere-section').forEach(section => {
+            filieres.add(section.dataset.filiere);
+        });
+
+        filieres.forEach(filiere => {
+            const option = document.createElement('option');
+            option.value = filiere;
+            option.textContent = filiere;
+            filiereFilter.appendChild(option);
+        });
+
+        // Filter function
+        function filterClasses() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedFiliere = filiereFilter.value;
+
+            document.querySelectorAll('.filiere-section').forEach(section => {
+                const filiere = section.dataset.filiere;
+                let sectionVisible = false;
+
+                if (selectedFiliere && filiere !== selectedFiliere) {
+                    section.style.display = 'none';
+                    return;
+                }
+
+                section.querySelectorAll('.class-card').forEach(card => {
+                    const className = card.dataset.classe.toLowerCase();
+                    const matches = className.includes(searchTerm);
+
+                    card.style.display = matches ? 'block' : 'none';
+                    if (matches) sectionVisible = true;
+                });
+
+                section.style.display = sectionVisible ? 'block' : 'none';
+            });
+        }
+
+        searchInput.addEventListener('input', filterClasses);
+        filiereFilter.addEventListener('change', filterClasses);
+    </script>
+</body>
+</html>
+

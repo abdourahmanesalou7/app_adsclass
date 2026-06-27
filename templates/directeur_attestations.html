@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Attestations - Directeur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="glass-effect sticky top-0 z-50 shadow-lg border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-signature text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">Direction</h1>
+                    <p class="text-xs text-gray-500">Signature des attestations</p>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_home') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-xl transition-all">
+                <i class="fas fa-home mr-2"></i> Tableau de bord
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="max-w-7xl mx-auto px-6 pt-4">
+    {% for category, message in messages %}
+    <div class="p-4 rounded-xl mb-2 {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Total</p>
+            <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">À signer</p>
+            <p class="text-3xl font-bold text-orange-600">{{ stats.a_signer }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Signées</p>
+            <p class="text-3xl font-bold text-purple-600">{{ stats.signees }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Délivrées</p>
+            <p class="text-3xl font-bold text-emerald-600">{{ stats.delivrees }}</p>
+        </div>
+    </div>
+
+    <!-- Liste des demandes -->
+    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Attestations à signer</h2>
+        
+        {% if demandes %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b-2 border-gray-200">
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Numéro</th>
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Étudiant</th>
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Type</th>
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Approuvé par</th>
+                        <th class="text-center py-4 px-4 text-sm font-semibold text-gray-600">Statut</th>
+                        <th class="text-center py-4 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for demande in demandes %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <span class="font-mono text-sm font-semibold text-blue-600">{{ demande.numero_attestation }}</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="font-semibold text-gray-800">{{ demande.nom }} {{ demande.prenom }}</div>
+                            <div class="text-xs text-gray-500">{{ demande.filiere }} - {{ demande.niveau }}</div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="font-semibold text-gray-800">{{ demande.type_attestation }}</div>
+                        </td>
+                        <td class="py-4 px-4">
+                            {% if demande.scolarite_nom %}
+                            <div class="text-sm text-gray-600">{{ demande.scolarite_nom }} {{ demande.scolarite_prenom }}</div>
+                            <div class="text-xs text-gray-500">{{ demande.date_approbation_scolarite.strftime('%d/%m/%Y') }}</div>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if demande.statut == 'approuve_scolarite' %}
+                            <span class="px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-hourglass-half"></i> À signer
+                            </span>
+                            {% elif demande.statut == 'signe_directeur' %}
+                            <span class="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-signature"></i> Signée
+                            </span>
+                            {% elif demande.statut == 'delivre' %}
+                            <span class="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-check-double"></i> Délivrée
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center justify-center space-x-2">
+                                {% if demande.statut == 'approuve_scolarite' %}
+                                <button onclick="signerDemande({{ demande.id }})"
+                                        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all text-sm font-semibold">
+                                    <i class="fas fa-signature"></i> Signer
+                                </button>
+                                {% elif demande.statut == 'signe_directeur' %}
+                                <button onclick="delivrerDemande({{ demande.id }})"
+                                        class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all text-sm font-semibold">
+                                    <i class="fas fa-check-double"></i> Délivrer
+                                </button>
+                                <a href="{{ url_for('imprimer_attestation', demande_id=demande.id) }}" target="_blank"
+                                   class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm font-semibold">
+                                    <i class="fas fa-print"></i> Aperçu
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('imprimer_attestation', demande_id=demande.id) }}" target="_blank"
+                                   class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm font-semibold">
+                                    <i class="fas fa-print"></i> Imprimer
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-inbox text-gray-400 text-3xl"></i>
+            </div>
+            <p class="text-gray-500">Aucune attestation à signer pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</main>
+
+<!-- Modal: Signer -->
+<div id="signerModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4">
+        <form id="signerForm" method="POST">
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Signature Blockchain</h3>
+                        <p class="text-purple-100 text-sm">Signer numériquement l'attestation</p>
+                    </div>
+                    <button type="button" onclick="closeSignerModal()" class="text-white/80 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="px-8 py-6 space-y-4">
+                <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-shield-alt text-purple-600 text-2xl mt-1"></i>
+                        <div class="text-sm text-purple-800">
+                            <p class="font-semibold mb-2">Signature sécurisée par Blockchain</p>
+                            <ul class="space-y-1 text-xs">
+                                <li><i class="fas fa-check mr-1"></i> Hash SHA-256 unique</li>
+                                <li><i class="fas fa-check mr-1"></i> Horodatage cryptographique</li>
+                                <li><i class="fas fa-check mr-1"></i> Vérification d'authenticité</li>
+                                <li><i class="fas fa-check mr-1"></i> Protection anti-falsification</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Commentaire (optionnel)</label>
+                    <textarea name="commentaire" rows="3"
+                              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500"
+                              placeholder="Ajouter une note..."></textarea>
+                </div>
+            </div>
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeSignerModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 font-semibold">
+                    <i class="fas fa-signature mr-2"></i> Signer avec Blockchain
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentDemandeId = null;
+
+function signerDemande(id) {
+    currentDemandeId = id;
+    document.getElementById('signerForm').action = `/directeur/attestations/${id}/signer`;
+    document.getElementById('signerModal').classList.remove('hidden');
+}
+
+function closeSignerModal() {
+    document.getElementById('signerModal').classList.add('hidden');
+}
+
+function delivrerDemande(id) {
+    if (confirm('Marquer cette attestation comme délivrée à l\'étudiant ?')) {
+        fetch(`/directeur/attestations/${id}/delivrer`, {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Erreur');
+            }
+        });
+    }
+}
+
+// Soumettre signature
+document.getElementById('signerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeSignerModal();
+            alert('✅ Attestation signée avec succès!\n\n🔐 Signature blockchain: ' + data.signature);
+            location.reload();
+        } else {
+            alert(data.message || 'Erreur');
+        }
+    });
+});
+</script>
+
+</body>
+</html>
+

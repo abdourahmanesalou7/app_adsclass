@@ -1,0 +1,88 @@
+{# Wizard step 2 : mapping colonnes source → champs cible #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mapping — Import #{{ job.id }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+<nav class="bg-white border-b shadow-sm">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-3">
+    <a href="{{ url_for('imports.index') }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+    <h1 class="text-xl font-bold"><i class="fas fa-link text-indigo-600 mr-2"></i> Mapping — Import #{{ job.id }}</h1>
+    <span class="ml-auto text-sm text-gray-500">Cible : <strong>{{ schema.label }}</strong></span>
+  </div>
+</nav>
+
+<main class="max-w-6xl mx-auto px-6 py-8">
+
+  <div class="mb-6 flex items-center justify-center gap-3 text-sm">
+    <div class="flex items-center gap-2 text-gray-400"><i class="fas fa-check-circle"></i> Source</div>
+    <div class="w-10 h-px bg-gray-300"></div>
+    <div class="flex items-center gap-2 text-indigo-600 font-medium"><i class="fas fa-circle"></i> Mapping</div>
+    <div class="w-10 h-px bg-gray-300"></div>
+    <div class="flex items-center gap-2 text-gray-400"><i class="fas fa-circle"></i> Aperçu</div>
+    <div class="w-10 h-px bg-gray-300"></div>
+    <div class="flex items-center gap-2 text-gray-400"><i class="fas fa-circle"></i> Commit</div>
+  </div>
+
+  <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-4 mb-6 text-sm">
+    <i class="fas fa-magic mr-1"></i> Mapping automatique appliqué. Vérifie et ajuste si besoin. Les colonnes marquées <em>« Ignorer »</em> ne seront pas importées.
+  </div>
+
+  <form method="POST" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+        <tr>
+          <th class="px-4 py-3 text-left">Colonne source</th>
+          <th class="px-4 py-3 text-left">→</th>
+          <th class="px-4 py-3 text-left">Champ cible ({{ schema.target_tables|join(', ') }})</th>
+          <th class="px-4 py-3 text-left">Aperçu données</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for src, current in mapping.items() %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-mono text-gray-700">{{ src }}</td>
+          <td class="px-4 py-3 text-gray-300"><i class="fas fa-arrow-right"></i></td>
+          <td class="px-4 py-3">
+            <select name="map__{{ src }}" class="border rounded-lg px-3 py-1.5 w-full">
+              <option value="__ignore__" {% if not current %}selected{% endif %}>— Ignorer —</option>
+              {% for f in available_fields %}
+                {% set fdef = schema.fields[f] %}
+                <option value="{{ f }}" {% if current==f %}selected{% endif %}>
+                  {{ f }} ({{ fdef.type }}{% if fdef.required %} *{% endif %})
+                </option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-4 py-3 text-gray-500 text-xs">
+            {% for r in sample_rows %}
+              {% set raw = r.raw_payload if r.raw_payload is mapping else (r.raw_payload | tojson | fromjson if false else r.raw_payload) %}
+              <div class="truncate max-w-xs">· {{ (raw[src] if raw is mapping else '') if raw else '' }}</div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t">
+      <div class="text-sm text-gray-600">
+        <strong>{{ job.total_rows }}</strong> ligne(s) en staging · Champs requis : 
+        {% for f, def in schema.fields.items() %}{% if def.required %}<code class="px-1 bg-amber-100 rounded text-xs mr-1">{{ f }}</code>{% endif %}{% endfor %}
+      </div>
+      <div class="flex gap-2">
+        <a href="{{ url_for('imports.index') }}" class="px-4 py-2 rounded-lg border hover:bg-gray-100">Annuler</a>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium">
+          Valider mapping <i class="fas fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+  </form>
+
+</main>
+</body>
+</html>

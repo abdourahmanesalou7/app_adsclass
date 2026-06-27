@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdsClass AI Admin — Assistant Intelligent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #3b82f6, #8b5cf6); border-radius: 3px; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes typing { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+    @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+    .animate-fade-in-up { animation: fadeInUp .3s ease-out; }
+    .typing-dot { animation: typing 1.4s ease-in-out infinite; }
+    .typing-dot:nth-child(2) { animation-delay: .2s; }
+    .typing-dot:nth-child(3) { animation-delay: .4s; }
+
+    .ads-gradient {
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+      background-size: 200% 200%;
+      animation: gradient-shift 8s ease infinite;
+    }
+    .ads-gradient-text {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .sidebar-gradient { background: linear-gradient(180deg, #1e3a5f 0%, #1e40af 45%, #4c1d95 100%); }
+    .message-user { background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%); }
+    .message-bot { background: #fff; border: 1px solid #e5e7eb; }
+    .sidebar-item:hover { background: rgba(255,255,255,.1); }
+    .input-glow:focus-within { box-shadow: 0 0 0 3px rgba(59,130,246,.25); }
+    .bot-message p { margin-bottom: .75rem; line-height: 1.7; }
+    .bot-message strong { font-weight: 600; color: #1e40af; }
+    .bot-message h3 { font-weight: 700; font-size: 1rem; margin: .75rem 0 .5rem; }
+    .bot-message h4 { font-weight: 600; font-size: .9rem; margin: .5rem 0 .25rem; color: #374151; }
+    .bot-message li { margin-bottom: .25rem; }
+    .bot-message code { background: #eff6ff; color: #3b82f6; padding: .125rem .375rem; border-radius: 4px; font-size: .875rem; }
+    .action-btn { transition: all .2s ease; background: linear-gradient(135deg, #eff6ff, #f5f3ff); }
+    .action-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,.2); }
+    .modal-backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(4px); }
+    .modal-content { animation: fadeInUp .3s ease-out; }
+  </style>
+</head>
+<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/40">
+  <div class="flex h-full">
+    
+    <!-- Sidebar -->
+    <aside class="w-72 sidebar-gradient text-white flex flex-col shadow-xl">
+      <div class="p-4 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 ads-gradient rounded-xl flex items-center justify-center shadow-lg">
+            <i class="fas fa-shield-halved text-white"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg">AdsClass AI</h1>
+            <p class="text-xs text-blue-200">Admin · Propulsé par Groq</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- New Chat Button -->
+      <div class="p-3">
+        <button onclick="startNewConversation()" class="w-full flex items-center gap-3 px-4 py-3 bg-white/10 hover:bg-white/15 rounded-xl transition-all text-sm font-medium">
+          <i class="fas fa-plus"></i>
+          <span>Nouvelle conversation</span>
+        </button>
+      </div>
+      
+      <!-- Conversations History -->
+      <div class="flex-1 overflow-y-auto px-3 py-2">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Historique</p>
+        <div id="conversations-list" class="space-y-1">
+          <!-- Conversations will be loaded here -->
+        </div>
+      </div>
+      
+      <div class="p-3 border-t border-white/10">
+        <p class="text-xs text-blue-200 uppercase tracking-wider mb-2 px-2">Actions rapides</p>
+        <div id="sidebar-suggestions" class="space-y-1">
+          <button onclick="sendCommand('Ajouter un paiement')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-blue-100 hover:text-white">
+            <i class="fas fa-plus-circle text-emerald-400 w-5"></i><span>Ajouter paiement</span>
+          </button>
+          <button onclick="sendCommand('Programmer un cours')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-blue-100 hover:text-white">
+            <i class="fas fa-calendar-plus text-amber-400 w-5"></i><span>Programmer cours</span>
+          </button>
+          <button onclick="sendCommand('Statistiques financières')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-blue-100 hover:text-white">
+            <i class="fas fa-chart-pie text-blue-300 w-5"></i><span>Finances</span>
+          </button>
+          <button onclick="sendCommand('Liste des étudiants IA Master 2')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-blue-100 hover:text-white">
+            <i class="fas fa-users text-purple-300 w-5"></i><span>Étudiants</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- User Profile -->
+      <div class="p-3 border-t border-white/10">
+        <a href="{{ url_for('admin_home') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all">
+          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold">
+            {{ session.get('prenom', 'A')[0] }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium truncate">{{ session.get('prenom', 'Admin') }} {{ session.get('nom', '') }}</p>
+            <p class="text-xs text-gray-400">Administrateur</p>
+          </div>
+          <i class="fas fa-arrow-left text-gray-400"></i>
+        </a>
+      </div>
+    </aside>
+    
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col bg-white/90 backdrop-blur-sm">
+      <header class="px-6 py-4 ads-gradient">
+        <div class="flex items-center justify-between max-w-4xl mx-auto w-full">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <i class="fas fa-shield-halved text-white"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white" id="conversation-title">AdsClass AI Admin</h2>
+              <p class="text-xs text-white/80 flex items-center gap-1.5">
+                <span id="status-dot" class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                <span id="status-text">Chargement...</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="clearConversation()" class="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg" title="Effacer">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button onclick="exportConversation()" class="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg" title="Exporter">
+              <i class="fas fa-download"></i>
+            </button>
+            <a href="{{ url_for('admin_home') }}" class="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg" title="Fermer">
+              <i class="fas fa-times"></i>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Messages Container -->
+      <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-6">
+        <div class="max-w-4xl mx-auto space-y-6" id="messages-list">
+          <!-- Welcome Message -->
+          <div class="flex gap-4 animate-fade-in-up">
+            <div class="w-11 h-11 ads-gradient rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+              <i class="fas fa-shield-halved text-white"></i>
+            </div>
+            <div class="flex-1">
+              <div class="message-bot rounded-2xl rounded-tl-none p-5 max-w-3xl shadow-sm">
+                <div class="bot-message text-gray-700">
+                  <p class="text-lg font-semibold mb-3 ads-gradient-text">Bienvenue, {{ session.get('prenom', 'Admin') }} !</p>
+                  <p>Je suis <strong>AdsClass AI Admin</strong>, votre assistant intelligent propulsé par <strong>Groq</strong>. Parlez naturellement — je comprends vos demandes et j'exécute les actions.</p>
+                  <div class="grid grid-cols-2 gap-2 mt-4">
+                    <div class="bg-blue-50 rounded-lg p-3 border border-blue-100 text-center"><i class="fas fa-credit-card text-blue-600"></i><p class="text-xs font-medium mt-1">Paiements</p></div>
+                    <div class="bg-purple-50 rounded-lg p-3 border border-purple-100 text-center"><i class="fas fa-calendar-plus text-purple-600"></i><p class="text-xs font-medium mt-1">Cours</p></div>
+                    <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-100 text-center"><i class="fas fa-users text-indigo-600"></i><p class="text-xs font-medium mt-1">Étudiants</p></div>
+                    <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100 text-center"><i class="fas fa-chart-line text-emerald-600"></i><p class="text-xs font-medium mt-1">Finances</p></div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-2 mt-3" id="welcome-suggestions"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="border-t border-gray-200 bg-gray-50 p-4">
+        <div class="max-w-4xl mx-auto">
+          <form id="chat-form" class="relative">
+            <div class="input-glow flex items-end gap-3 bg-white rounded-2xl border border-gray-300 p-2 transition-all">
+              <textarea
+                id="chat-input"
+                rows="1"
+                placeholder="Tapez votre message... (Ex: Ajouter un paiement pour Jean Dupont)"
+                class="flex-1 resize-none bg-transparent px-4 py-3 text-gray-700 focus:outline-none text-sm leading-relaxed"
+                style="max-height: 200px;"
+              ></textarea>
+              <button type="submit" id="send-btn" class="p-3 ads-gradient text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-50 shadow-md">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+            <p class="text-center text-xs text-gray-400 mt-2">
+              <kbd class="px-1.5 py-0.5 bg-gray-200 rounded">Entrée</kbd> envoyer ·
+              <kbd class="px-1.5 py-0.5 bg-gray-200 rounded">Shift+Entrée</kbd> nouvelle ligne ·
+              <span class="text-blue-500">Groq AI</span>
+            </p>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal pour formulaire de paiement -->
+  <div id="payment-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closePaymentModal()"></div>
+    <div class="modal-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-5">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+          <i class="fas fa-credit-card"></i>
+          <span id="modal-title">Ajouter un paiement</span>
+        </h3>
+      </div>
+      <form id="payment-form" class="p-6 space-y-4">
+        <input type="hidden" id="payment-id" value="">
+        <input type="hidden" id="payment-etudiant-id" value="">
+
+        <!-- Recherche étudiant -->
+        <div id="student-search-section">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Étudiant</label>
+          <div class="relative">
+            <input type="text" id="student-search" placeholder="Rechercher un étudiant..."
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                   autocomplete="off">
+            <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          </div>
+          <div id="student-results" class="mt-2 max-h-40 overflow-y-auto bg-white border border-gray-200 rounded-xl hidden"></div>
+          <div id="selected-student" class="hidden mt-2 p-3 bg-blue-50 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm" id="student-avatar"></div>
+              <span class="font-medium text-blue-800" id="student-name"></span>
+            </div>
+            <button type="button" onclick="clearStudentSelection()" class="text-blue-600 hover:text-blue-800">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" id="payment-date" required
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Montant (FCFA)</label>
+            <input type="number" id="payment-amount" required min="0" step="1"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                   placeholder="Ex: 50000">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Moyen de paiement</label>
+          <select id="payment-method" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="Espèces">💵 Espèces</option>
+            <option value="Virement">🏦 Virement bancaire</option>
+            <option value="Mobile Money">📱 Mobile Money</option>
+            <option value="Chèque">📝 Chèque</option>
+            <option value="Carte bancaire">💳 Carte bancaire</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Observation (optionnel)</label>
+          <textarea id="payment-observation" rows="2"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    placeholder="Notes ou commentaires..."></textarea>
+        </div>
+
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="closePaymentModal()" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all">
+            Annuler
+          </button>
+          <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
+            <i class="fas fa-check"></i>
+            <span id="submit-btn-text">Enregistrer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // === STATE ===
+    let conversationHistory = [];
+    let selectedStudentId = null;
+    let isEditing = false;
+
+    // === DOM Elements ===
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const messagesList = document.getElementById('messages-list');
+    const messagesContainer = document.getElementById('messages-container');
+    const paymentModal = document.getElementById('payment-modal');
+    const paymentForm = document.getElementById('payment-form');
+    const studentSearch = document.getElementById('student-search');
+    const studentResults = document.getElementById('student-results');
+
+    // === AUTO-RESIZE TEXTAREA ===
+    chatInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+    });
+
+    // === HANDLE ENTER KEY ===
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // === SEND MESSAGE ===
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      addUserMessage(message);
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+
+      const loadingId = addLoadingMessage();
+
+      try {
+        const response = await fetch('/api/admin/chatbot/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: message })
+        });
+
+        const data = await response.json();
+        removeLoadingMessage(loadingId);
+
+        if (data.error) {
+          addBotMessage('❌ ' + data.error, 'error');
+        } else {
+          addBotMessage(data.message, data.type, data.buttons, data.form, data);
+        }
+      } catch (error) {
+        removeLoadingMessage(loadingId);
+        addBotMessage('❌ Erreur de connexion au serveur', 'error');
+      }
+    });
+
+    // === ADD USER MESSAGE ===
+    function addUserMessage(text) {
+      const div = document.createElement('div');
+      div.className = 'flex gap-4 justify-end animate-fade-in-up';
+      div.innerHTML = `
+        <div class="flex-1 flex justify-end">
+          <div class="message-user rounded-2xl rounded-tr-none p-4 max-w-3xl text-white">
+            <p class="text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>
+          </div>
+        </div>
+        <div class="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <i class="fas fa-user text-white"></i>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      scrollToBottom();
+
+      conversationHistory.push({ role: 'user', content: text });
+    }
+
+    // === ADD BOT MESSAGE ===
+    function addBotMessage(text, type = 'text', buttons = null, form = null, meta = null) {
+      const div = document.createElement('div');
+      div.className = 'flex gap-4 animate-fade-in-up';
+
+      let aiBadge = '';
+      if (meta && meta.ai_powered) {
+        const model = meta.model || 'Groq AI';
+        aiBadge = `<div class="flex items-center gap-2 mb-3 pb-2 border-b border-blue-100">
+          <span class="px-2.5 py-1 ads-gradient text-white text-xs font-semibold rounded-full shadow-sm">
+            <i class="fas fa-bolt"></i> ${escapeHtml(model)}
+          </span>
+          <span class="text-xs text-gray-500">Réponse générée par IA</span>
+        </div>`;
+      }
+
+      let formattedText = formatMessage(text);
+      let buttonsHtml = '';
+      let formHtml = '';
+
+      if (buttons && buttons.length > 0) {
+        buttonsHtml = '<div class="flex flex-wrap gap-2 mt-3">';
+        buttons.forEach(btn => {
+          if (btn.action) {
+            buttonsHtml += `<button onclick="sendCommand('${btn.action}')" class="action-btn px-4 py-2 rounded-full text-sm font-medium text-blue-700 border border-blue-200">${btn.label}</button>`;
+          } else if (btn.url) {
+            buttonsHtml += `<a href="${btn.url}" target="_blank" class="action-btn px-4 py-2 rounded-full text-sm font-medium text-blue-700 border border-blue-200 inline-flex items-center gap-1">${btn.label} <i class="fas fa-external-link-alt text-xs"></i></a>`;
+          } else if (btn.print) {
+            buttonsHtml += `<button onclick="window.open('${btn.print}', '_blank')" class="action-btn px-4 py-2 rounded-full text-sm font-medium text-green-700 border border-green-200 inline-flex items-center gap-1"><i class="fas fa-print"></i> ${btn.label}</button>`;
+          }
+        });
+        buttonsHtml += '</div>';
+      }
+
+      // Handle forms for payment actions
+      if (form) {
+        if (form.type === 'add_payment') {
+          formHtml = `<button onclick="openPaymentModal()" class="mt-3 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium hover:opacity-90 transition-all inline-flex items-center gap-2"><i class="fas fa-plus"></i> Ouvrir le formulaire</button>`;
+        } else if (form.type === 'edit_payment') {
+          formHtml = `<button onclick="openEditPaymentModal(${form.etudiant_id}, ${form.paiement_id})" class="mt-3 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium hover:opacity-90 transition-all inline-flex items-center gap-2"><i class="fas fa-edit"></i> Modifier le paiement</button>`;
+        }
+      }
+
+      div.innerHTML = `
+        <div class="w-11 h-11 ads-gradient rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <i class="fas fa-shield-halved text-white"></i>
+        </div>
+        <div class="flex-1">
+          <div class="message-bot rounded-2xl rounded-tl-none p-5 max-w-3xl shadow-sm">
+            ${aiBadge}
+            <div class="bot-message text-gray-700 text-sm leading-relaxed">${formattedText}</div>
+          </div>
+          ${buttonsHtml}
+          ${formHtml}
+          <div class="flex items-center gap-2 mt-2 ml-1 text-xs text-gray-400">
+            <span>${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+            <button onclick="copyMessage(this)" class="hover:text-blue-600" title="Copier"><i class="fas fa-copy"></i></button>
+          </div>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      scrollToBottom();
+
+      conversationHistory.push({ role: 'assistant', content: text });
+    }
+
+    // === LOADING MESSAGE ===
+    function addLoadingMessage() {
+      const id = 'loading-' + Date.now();
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = 'flex gap-4 animate-fade-in-up';
+      div.innerHTML = `
+        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <i class="fas fa-robot text-white"></i>
+        </div>
+        <div class="flex-1">
+          <div class="message-bot rounded-2xl rounded-tl-none p-4 inline-block">
+            <div class="flex gap-1">
+              <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+              <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+              <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      scrollToBottom();
+      return id;
+    }
+
+    function removeLoadingMessage(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    // === FORMAT MESSAGE ===
+    function formatMessage(text) {
+      if (!text) return '';
+      let html = text
+        .replace(/^### (.*?)$/gm, '<h4 class="font-semibold text-gray-800 mt-3 mb-2">$1</h4>')
+        .replace(/^## (.*?)$/gm, '<h3 class="font-bold ads-gradient-text mt-2 mb-3">$1</h3>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^[•\-]\s+(.*?)$/gm, '<li class="ml-2 flex gap-2 py-1"><span class="text-blue-500">▸</span><span>$1</span></li>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^---$/gm, '<hr class="my-3 border-gray-200">');
+      html = html.replace(/((?:<li[^>]*>.*?<\/li>\s*)+)/g, '<ul class="my-2">$1</ul>');
+      html = html.replace(/\n\n/g, '</p><p class="mb-2">').replace(/\n/g, '<br>');
+      return '<p class="mb-2">' + html + '</p>';
+    }
+
+    function copyMessage(btn) {
+      const msg = btn.closest('.flex-1').querySelector('.bot-message');
+      if (msg) {
+        navigator.clipboard.writeText(msg.innerText);
+        btn.innerHTML = '<i class="fas fa-check text-green-500"></i>';
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+      }
+    }
+
+    async function loadAIStatus() {
+      try {
+        const res = await fetch('/api/admin/chatbot/status');
+        const data = await res.json();
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        if (data.ai_available) {
+          dot.className = 'w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse';
+          text.textContent = `Groq actif · ${data.model || 'IA'}`;
+        } else {
+          dot.className = 'w-1.5 h-1.5 bg-amber-400 rounded-full';
+          text.textContent = data.groq_configured ? 'Groq configuré — connexion...' : 'Mode commandes';
+        }
+      } catch (e) {}
+    }
+
+    async function loadSuggestions() {
+      try {
+        const res = await fetch('/api/admin/chatbot/suggestions');
+        const data = await res.json();
+        const el = document.getElementById('welcome-suggestions');
+        if (el && data.suggestions) {
+          el.innerHTML = data.suggestions.slice(0, 4).map(s =>
+            `<button onclick="sendCommand(${JSON.stringify(s)})" class="action-btn px-4 py-2 rounded-full text-sm font-medium text-blue-700 border border-blue-200">${escapeHtml(s)}</button>`
+          ).join('');
+        }
+      } catch (e) {}
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // === SEND COMMAND ===
+    function sendCommand(command) {
+      chatInput.value = command;
+      chatForm.dispatchEvent(new Event('submit'));
+    }
+
+    // === PAYMENT MODAL ===
+    function openPaymentModal() {
+      isEditing = false;
+      document.getElementById('modal-title').textContent = 'Ajouter un paiement';
+      document.getElementById('submit-btn-text').textContent = 'Enregistrer';
+      document.getElementById('payment-id').value = '';
+      document.getElementById('payment-etudiant-id').value = '';
+      document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('payment-amount').value = '';
+      document.getElementById('payment-method').value = 'Espèces';
+      document.getElementById('payment-observation').value = '';
+      document.getElementById('student-search-section').classList.remove('hidden');
+      document.getElementById('student-search').value = '';
+      document.getElementById('student-results').classList.add('hidden');
+      document.getElementById('selected-student').classList.add('hidden');
+      selectedStudentId = null;
+      paymentModal.classList.remove('hidden');
+    }
+
+    async function openEditPaymentModal(etudiantId, paiementId) {
+      isEditing = true;
+      document.getElementById('modal-title').textContent = 'Modifier le paiement';
+      document.getElementById('submit-btn-text').textContent = 'Modifier';
+      document.getElementById('student-search-section').classList.add('hidden');
+
+      try {
+        const response = await fetch(`/admin/api/etudiant/${etudiantId}/paiements/${paiementId}`);
+        const paiement = await response.json();
+
+        document.getElementById('payment-id').value = paiementId;
+        document.getElementById('payment-etudiant-id').value = etudiantId;
+        document.getElementById('payment-date').value = paiement.date;
+        document.getElementById('payment-amount').value = paiement.montant;
+        document.getElementById('payment-method').value = paiement.moyen || 'Espèces';
+        document.getElementById('payment-observation').value = paiement.observation || '';
+        selectedStudentId = etudiantId;
+
+        paymentModal.classList.remove('hidden');
+      } catch (error) {
+        addBotMessage('❌ Erreur lors du chargement du paiement', 'error');
+      }
+    }
+
+    function closePaymentModal() {
+      paymentModal.classList.add('hidden');
+    }
+
+    // === STUDENT SEARCH ===
+    let searchTimeout;
+    studentSearch.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      const query = this.value.trim();
+
+      if (query.length < 2) {
+        studentResults.classList.add('hidden');
+        return;
+      }
+
+      searchTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch(`/api/admin/chatbot/search-students?q=${encodeURIComponent(query)}`);
+          const data = await response.json();
+
+          if (data.students && data.students.length > 0) {
+            studentResults.innerHTML = data.students.map(s => `
+              <div onclick="selectStudent(${s.id}, '${s.nom}', '${s.prenom}')"
+                   class="p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0">
+                <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">${s.prenom[0]}${s.nom[0]}</div>
+                <div>
+                  <p class="font-medium text-gray-800">${s.prenom} ${s.nom}</p>
+                  <p class="text-xs text-gray-500">${s.filiere || ''} - ${s.niveau || ''}</p>
+                </div>
+              </div>
+            `).join('');
+            studentResults.classList.remove('hidden');
+          } else {
+            studentResults.innerHTML = '<p class="p-3 text-gray-500 text-sm">Aucun étudiant trouvé</p>';
+            studentResults.classList.remove('hidden');
+          }
+        } catch (error) {
+          console.error('Erreur recherche étudiant:', error);
+        }
+      }, 300);
+    });
+
+    function selectStudent(id, nom, prenom) {
+      selectedStudentId = id;
+      document.getElementById('payment-etudiant-id').value = id;
+      document.getElementById('student-avatar').textContent = prenom[0] + nom[0];
+      document.getElementById('student-name').textContent = prenom + ' ' + nom;
+      document.getElementById('selected-student').classList.remove('hidden');
+      document.getElementById('student-search').classList.add('hidden');
+      studentResults.classList.add('hidden');
+    }
+
+    function clearStudentSelection() {
+      selectedStudentId = null;
+      document.getElementById('payment-etudiant-id').value = '';
+      document.getElementById('selected-student').classList.add('hidden');
+      document.getElementById('student-search').classList.remove('hidden');
+      document.getElementById('student-search').value = '';
+    }
+
+    // === PAYMENT FORM SUBMIT ===
+    paymentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const etudiantId = document.getElementById('payment-etudiant-id').value;
+      const paiementId = document.getElementById('payment-id').value;
+      const date = document.getElementById('payment-date').value;
+      const montant = document.getElementById('payment-amount').value;
+      const moyen = document.getElementById('payment-method').value;
+      const observation = document.getElementById('payment-observation').value;
+
+      if (!etudiantId) {
+        alert('Veuillez sélectionner un étudiant');
+        return;
+      }
+
+      if (!date || !montant) {
+        alert('La date et le montant sont obligatoires');
+        return;
+      }
+
+      try {
+        let response;
+        if (isEditing && paiementId) {
+          response = await fetch(`/admin/api/etudiant/${etudiantId}/paiements/${paiementId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, montant: parseFloat(montant), moyen, observation })
+          });
+        } else {
+          response = await fetch(`/api/admin/chatbot/add-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ etudiant_id: etudiantId, date, montant: parseFloat(montant), moyen, observation })
+          });
+        }
+
+        const result = await response.json();
+        closePaymentModal();
+
+        if (response.ok) {
+          if (isEditing) {
+            addBotMessage(`✅ **Paiement modifié avec succès !**\n\n📅 Date: ${date}\n💰 Montant: ${parseInt(montant).toLocaleString()} FCFA\n💳 Moyen: ${moyen}`, 'success', [
+              { print: `/admin/etudiant/paiement/${paiementId}/recu/pro`, label: '🖨️ Imprimer le reçu' }
+            ]);
+          } else {
+            addBotMessage(`✅ **Paiement ajouté avec succès !**\n\n📅 Date: ${date}\n💰 Montant: ${parseInt(montant).toLocaleString()} FCFA\n💳 Moyen: ${moyen}`, 'success', result.paiement_id ? [
+              { print: `/admin/etudiant/paiement/${result.paiement_id}/recu/pro`, label: '🖨️ Imprimer le reçu' }
+            ] : []);
+          }
+        } else {
+          addBotMessage('❌ ' + (result.error || 'Erreur lors de l\'enregistrement'), 'error');
+        }
+      } catch (error) {
+        closePaymentModal();
+        addBotMessage('❌ Erreur de connexion au serveur', 'error');
+      }
+    });
+
+    // === CONVERSATION MANAGEMENT ===
+    function startNewConversation() {
+      conversationHistory = [];
+      messagesList.innerHTML = `
+        <div class="flex gap-4 animate-fade-in-up">
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+            <i class="fas fa-robot text-white"></i>
+          </div>
+          <div class="flex-1">
+            <div class="message-bot rounded-2xl rounded-tl-none p-4 max-w-3xl">
+              <div class="bot-message text-gray-700">
+                <p class="text-lg font-semibold mb-3">👋 Nouvelle conversation !</p>
+                <p>Comment puis-je vous aider ?</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('conversation-title').textContent = 'Nouvelle conversation';
+    }
+
+    function clearConversation() {
+      if (confirm('Voulez-vous vraiment effacer cette conversation ?')) {
+        startNewConversation();
+      }
+    }
+
+    function exportConversation() {
+      const text = conversationHistory.map(m => `${m.role === 'user' ? 'Vous' : 'Assistant'}: ${m.content}`).join('\n\n');
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `conversation-${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // === LOAD CONVERSATIONS HISTORY ===
+    function loadConversationsHistory() {
+      const saved = localStorage.getItem('admin_chat_history');
+      const list = document.getElementById('conversations-list');
+
+      if (saved) {
+        const history = JSON.parse(saved);
+        list.innerHTML = history.slice(0, 10).map((conv, i) => `
+          <button onclick="loadConversation(${i})" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all text-left">
+            <i class="fas fa-message text-gray-500 w-5"></i>
+            <span class="truncate">${conv.title || 'Conversation ' + (i + 1)}</span>
+          </button>
+        `).join('');
+      } else {
+        list.innerHTML = '<p class="text-xs text-gray-500 px-3">Aucune conversation</p>';
+      }
+    }
+
+    // Save conversation periodically
+    setInterval(() => {
+      if (conversationHistory.length > 0) {
+        const saved = JSON.parse(localStorage.getItem('admin_chat_history') || '[]');
+        const title = conversationHistory[0]?.content?.substring(0, 30) || 'Conversation';
+        saved.unshift({ title, messages: conversationHistory, date: new Date().toISOString() });
+        localStorage.setItem('admin_chat_history', JSON.stringify(saved.slice(0, 20)));
+      }
+    }, 30000);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadConversationsHistory();
+      loadAIStatus();
+      loadSuggestions();
+    });
+  </script>
+</body>
+</html>
+

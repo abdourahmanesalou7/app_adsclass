@@ -23,7 +23,7 @@
         }
         
         .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -67,7 +67,7 @@
         }
         
         .day-header.today {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
         }
         
@@ -178,14 +178,14 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center space-x-4">
-                        <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
                             {{ (prenom[0] if prenom else 'P') + (nom[0] if nom else 'R') }}
                         </div>
                         <div>
                             <h1 class="text-2xl font-bold text-gray-900">Bienvenue,</h1>
                             <h2 class="text-3xl font-bold gradient-text">{{ prenom }} {{ nom }}</h2>
                             <div class="flex items-center space-x-3 mt-2">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
                                     <i class="fas fa-chalkboard-teacher mr-1.5"></i>Professeur Adsclass
                                 </span>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
@@ -197,7 +197,7 @@
                     <div class="flex items-center space-x-4">
                         <div class="relative flex-1 max-w-md">
                             <input type="text" placeholder="Rechercher une matière..." 
-                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
                         </div>
                         <a href="{{ url_for('logout') }}" 
@@ -277,12 +277,12 @@
                         <div>
                             <p class="text-sm font-medium text-gray-600 mb-1">Notes à saisir</p>
                             <p class="text-3xl font-bold text-gray-900">-</p>
-                            <p class="text-xs text-purple-600 mt-1 flex items-center">
+                            <p class="text-xs text-blue-600 mt-1 flex items-center">
                                 <i class="fas fa-check-circle mr-1"></i>En cours
                             </p>
                         </div>
-                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-clipboard-list text-purple-600 text-xl"></i>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clipboard-list text-blue-600 text-xl"></i>
                         </div>
                     </div>
                 </div>
@@ -292,7 +292,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                     <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
                             <i class="fas fa-calendar-alt text-white text-xl"></i>
                         </div>
                         <div>
@@ -310,7 +310,7 @@
                     </div>
                     <div class="flex items-center space-x-3">
                         <div class="flex items-center bg-gray-100 rounded-lg p-1">
-                            <button class="px-4 py-2 bg-white text-purple-600 font-semibold rounded-md shadow-sm text-sm">Semaine</button>
+                            <button class="px-4 py-2 bg-white text-blue-600 font-semibold rounded-md shadow-sm text-sm">Semaine</button>
                             <button class="px-4 py-2 text-gray-600 font-medium rounded-md text-sm hover:bg-gray-50">Jour</button>
                             <button class="px-4 py-2 text-gray-600 font-medium rounded-md text-sm hover:bg-gray-50">Liste</button>
                         </div>
@@ -340,7 +340,7 @@
                         <span class="text-lg font-bold text-gray-800 ml-4" id="week-display">Chargement...</span>
                     </div>
                     <div class="flex items-center bg-gray-100 rounded-lg p-1">
-                        <button class="px-4 py-2 bg-white text-purple-600 font-semibold rounded-md shadow-sm text-sm">Semaine</button>
+                        <button class="px-4 py-2 bg-white text-blue-600 font-semibold rounded-md shadow-sm text-sm">Semaine</button>
                         <button class="px-4 py-2 text-gray-600 font-medium rounded-md text-sm hover:bg-gray-50">Jour</button>
                         <button class="px-4 py-2 text-gray-600 font-medium rounded-md text-sm hover:bg-gray-50">Liste</button>
                     </div>

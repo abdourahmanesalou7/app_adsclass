@@ -317,8 +317,11 @@
       <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
       </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
-      <p class="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer le cours <strong id="courseName"></strong> ? Cette action est irréversible.</p>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Annuler / supprimer le cours</h3>
+      <p class="text-gray-600 mb-4">Le cours <strong id="courseName"></strong> sera retiré de l'emploi du temps. Les étudiants et le professeur seront notifiés par email et WhatsApp.</p>
+      <label class="block text-left text-sm font-medium text-gray-700 mb-2" for="cancelMotif">Motif d'annulation (optionnel)</label>
+      <textarea id="cancelMotif" rows="3" placeholder="Ex. : Professeur indisponible, salle en travaux..."
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-6 focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none resize-none"></textarea>
       <div class="flex space-x-4">
         <button onclick="closeDeleteModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-xl font-semibold transition-colors">
           Annuler
@@ -517,7 +520,12 @@ document.getElementById('filterFiliere').addEventListener('change', function() {
 // Enhanced delete confirmation
 function confirmDelete(courseName, deleteUrl) {
   document.getElementById('courseName').textContent = courseName;
-  document.getElementById('confirmDeleteBtn').onclick = () => window.location.href = deleteUrl;
+  document.getElementById('cancelMotif').value = '';
+  document.getElementById('confirmDeleteBtn').onclick = () => {
+    const motif = encodeURIComponent(document.getElementById('cancelMotif').value.trim());
+    const sep = deleteUrl.includes('?') ? '&' : '?';
+    window.location.href = motif ? `${deleteUrl}${sep}motif=${motif}` : deleteUrl;
+  };
   document.getElementById('deleteModal').classList.remove('hidden');
   document.getElementById('deleteModal').classList.add('flex');
 }

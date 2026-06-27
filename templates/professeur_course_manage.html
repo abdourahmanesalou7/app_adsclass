@@ -3,158 +3,320 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion Module - {{ course.nom_cours }}</title>
+    <title>{{ course.nom_cours }} - Gestion Module</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        * {
-            scroll-behavior: smooth;
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
         }
-        
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
+
+        * { scroll-behavior: smooth; }
+
+        .tab-content { display: none; animation: fadeIn 0.25s ease; }
+        .tab-content.active { display: block; }
+
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .nav-tab {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-bottom: 3px solid transparent;
             position: relative;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
         }
-        
+
         .nav-tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-bottom-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #f5f3ff;
         }
-        
+
         .nav-tab:not(.active):hover {
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            transform: translateY(-2px);
+            background: #f9fafb;
+            color: #374151;
         }
-        
-        .table-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
         }
-        
-        .input-modern {
-            transition: all 0.2s;
-        }
-        
-        .input-modern:focus {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-        }
-        
-        .card-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
+
         .card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
-        
-        .badge-status {
+
+        .btn {
             display: inline-flex;
             align-items: center;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
         }
-        
-        .badge-present {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+        .btn-secondary:hover { background: #e5e7eb; }
+
+        .btn-ghost { background: transparent; color: #6b7280; }
+        .btn-ghost:hover { background: #f3f4f6; color: #374151; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
-        
-        .badge-absent {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
+
+        .badge-present { background: #d1fae5; color: #065f46; }
+        .badge-absent { background: #fee2e2; color: #991b1b; }
+        .badge-retard { background: #fef3c7; color: #92400e; }
+        .badge-excuse { background: #e0e7ff; color: #3730a3; }
+
+        .input-field {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
         }
-        
-        .badge-retard {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
-        
-        .badge-excuse {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
+
+        .stat-box {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border: 1px solid #e0e7ff;
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
         }
-        
-        .select-modern {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
         }
-        
-        .stat-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+
+        .modal.active { opacity: 1; visibility: visible; }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95);
+            transition: transform 0.3s;
         }
-        
-        .loading-spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
+
+        .modal.active .modal-content { transform: scale(1); }
+
+        .grade-input {
+            width: 60px;
+            text-align: center;
+            padding: 6px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.875rem;
         }
-        
+
+        .grade-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+        }
+
+        .grade-good { background: #d1fae5; color: #065f46; }
+        .grade-warning { background: #fef3c7; color: #92400e; }
+        .grade-bad { background: #fee2e2; color: #991b1b; }
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
-        
-        .empty-state {
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 200;
+            transform: translateY(100px);
+            opacity: 0;
             transition: all 0.3s;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        /* Présences — UI pro */
+        .presence-mode-btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            border: 2px solid transparent;
         }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            transition: all 0.3s;
+        .presence-mode-btn.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
         }
-        
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        .presence-mode-btn:not(.active) {
+            background: #f3f4f6;
+            color: #6b7280;
         }
+        .presence-mode-btn:not(.active):hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #e5e7eb;
+            border-radius: 28px;
+            transition: 0.25s;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .student-presence-row {
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .student-presence-row.is-present {
+            border-left-color: #10b981;
+            background: linear-gradient(90deg, #ecfdf5 0%, #ffffff 100%);
+        }
+        .student-presence-row.is-absent {
+            border-left-color: #ef4444;
+            background: linear-gradient(90deg, #fef2f2 0%, #ffffff 100%);
+        }
+        .student-presence-row.is-retard {
+            border-left-color: #f59e0b;
+            background: linear-gradient(90deg, #fffbeb 0%, #ffffff 100%);
+        }
+        .student-presence-row.is-excuse {
+            border-left-color: #6366f1;
+            background: linear-gradient(90deg, #eef2ff 0%, #ffffff 100%);
+        }
+
+        .stat-presence {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        .stat-presence .value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .qr-embed-panel {
+            background: linear-gradient(145deg, #f8f9fa, #eef2ff);
+            border: 3px solid #818cf8;
+            border-radius: 1.25rem;
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-pill {
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+        }
+        .status-pill.active { box-shadow: 0 0 0 2px currentColor; }
+        .status-pill.present { background: #d1fae5; color: #065f46; }
+        .status-pill.absent { background: #fee2e2; color: #991b1b; }
+        .status-pill.retard { background: #fef3c7; color: #92400e; }
+        .status-pill.excuse { background: #e0e7ff; color: #3730a3; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen">
@@ -206,6 +368,12 @@
                                 <i class="fas fa-graduation-cap text-blue-600 mr-2"></i>
                                 <span class="font-semibold">{{ course.filiere }}</span>
                             </div>
+                            {% if course.niveau %}
+                            <div class="flex items-center text-gray-700 bg-amber-50 px-4 py-2 rounded-lg">
+                                <i class="fas fa-layer-group text-amber-600 mr-2"></i>
+                                <span class="font-semibold">{{ course.niveau }}</span>
+                            </div>
+                            {% endif %}
                             <div class="flex items-center text-gray-700 bg-indigo-50 px-4 py-2 rounded-lg">
                                 <i class="fas fa-door-open text-indigo-600 mr-2"></i>
                                 <span>{{ course.salle or 'Non définie' }}</span>
@@ -227,123 +395,31 @@
         <!-- Onglets de navigation améliorés -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-6 border border-gray-100">
             <div class="flex flex-wrap border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <button onclick="showTab('general')" class="nav-tab active px-6 py-4 font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-users mr-2.5"></i>General
+                <button onclick="showTab('lectures', this)" class="nav-tab active px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-book-open mr-2.5"></i>Séances
                 </button>
-                <button onclick="showTab('lectures')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-book-open mr-2.5"></i>Lectures
+                <button onclick="showTab('presences', this)" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center" id="tab-presences">
+                    <i class="fas fa-user-check mr-2.5"></i>Présences
+                    <span class="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{{ etudiants|length }}</span>
                 </button>
-                <button onclick="showTab('exams')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-file-alt mr-2.5"></i>Exams
+                <button onclick="showTab('exams', this)" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-file-alt mr-2.5"></i>Examens
                 </button>
-                <button onclick="showTab('ressources')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                <button onclick="showTab('ressources', this)" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
                     <i class="fas fa-folder-open mr-2.5"></i>Ressources
                 </button>
-                <button onclick="showTab('assignments')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-tasks mr-2.5"></i>Assignments
+                <button onclick="showTab('assignments', this)" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-tasks mr-2.5"></i>Devoirs
                 </button>
-                <button onclick="showTab('gradebook')" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-table mr-2.5"></i>Gradebook
+                <button onclick="showTab('gradebook', this)" class="nav-tab px-6 py-4 font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-table mr-2.5"></i>Notes
                 </button>
             </div>
 
             <!-- Contenu des onglets -->
             <div class="p-8">
-                <!-- ONGLET 1: GENERAL -->
-                <div id="general-content" class="tab-content active">
-                    <div class="flex gap-6">
-                        <!-- Barre latérale gauche -->
-                        <div class="w-48 flex-shrink-0">
-                            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-                                <div class="p-4">
-                                    <nav class="space-y-1">
-                                        <a href="#" class="block px-4 py-3 bg-blue-50 border-l-4 border-blue-600 text-blue-700 font-medium text-sm">
-                                            Attendance
-                                        </a>
-                                        <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium text-sm">
-                                            Assignments
-                                        </a>
-                                        <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium text-sm">
-                                            Resources
-                                        </a>
-                                    </nav>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Zone principale -->
-                        <div class="flex-1">
-                            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-                                <!-- En-tête avec recherche et Mark all as -->
-                                <div class="p-4 border-b border-gray-200">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex-1"></div>
-                                        <div class="flex items-center space-x-3">
-                                            <div class="relative">
-                                                <input type="text" id="search-students-general" placeholder="Search Students" 
-                                                       class="border border-gray-300 rounded-md px-4 py-2 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-48">
-                                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <span class="text-sm text-gray-700 whitespace-nowrap">Mark all as:</span>
-                                                <select id="mark-all-status-general" 
-                                                        class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                                    <option value="present">Present</option>
-                                                    <option value="absent">Absent</option>
-                                                    <option value="retard">Late</option>
-                                                    <option value="excuse">Excused</option>
-                                                </select>
-                                                <button onclick="markAllAsGeneral()" 
-                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-all">
-                                                    Apply
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Liste des étudiants -->
-                                <div class="p-4">
-                                    <div id="etudiants-list-general" class="space-y-3">
-                                        {% for etudiant in etudiants %}
-                                        <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                                            <div class="flex items-center space-x-4 flex-1">
-                                                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                                    <i class="fas fa-user text-gray-600 text-sm"></i>
-                                                </div>
-                                                <div class="flex-1">
-                                                    <div class="font-medium text-gray-900 text-sm">{{ etudiant.nom }} {{ etudiant.prenom }}</div>
-                                                    <div class="text-xs text-gray-500">{{ etudiant.email }}</div>
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center space-x-4">
-                                                <span class="text-xs text-gray-500 min-w-[100px]" id="status-{{ etudiant.id }}">Unspecified</span>
-                                                <input type="text" 
-                                                       class="presence-input-general border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white w-24" 
-                                                       data-etudiant-id="{{ etudiant.id }}"
-                                                       placeholder=""
-                                                       onchange="updatePresenceGeneral(this)"
-                                                       oninput="updatePresenceGeneral(this)">
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-
-                                <!-- Bouton de sauvegarde -->
-                                <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
-                                    <button onclick="savePresencesGeneral()" 
-                                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-all">
-                                        Save Attendance
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ONGLET 2: LECTURES -->
-                <div id="lectures-content" class="tab-content">
+                <!-- ONGLET 1: LECTURES -->
+                <div id="lectures-content" class="tab-content active">
                     <div class="flex justify-between items-center mb-8">
                         <div class="flex items-center">
                             <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
@@ -407,6 +483,178 @@
                             </button>
                         </div>
                         {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ONGLET PRÉSENCES -->
+                <div id="presences-content" class="tab-content">
+                    <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-user-check text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-bold text-gray-900">Appel & Présences</h3>
+                                <p class="text-gray-600 mt-1">
+                                    Classe : <strong>{{ course.filiere }}</strong>
+                                    {% if course.niveau %} · <strong>{{ course.niveau }}</strong>{% endif %}
+                                    — {{ etudiants|length }} étudiant{{ 's' if etudiants|length != 1 else '' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <label class="text-sm font-medium text-gray-600">Date du cours :</label>
+                            <input type="date" id="date-cours" value="{{ today }}" class="input-field w-auto" onchange="onPresenceDateChange()">
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="stat-presence">
+                            <div class="value text-green-600" id="stat-presents">0</div>
+                            <div class="text-xs text-gray-500 mt-1 font-medium">Présents</div>
+                        </div>
+                        <div class="stat-presence">
+                            <div class="value text-red-500" id="stat-absents">0</div>
+                            <div class="text-xs text-gray-500 mt-1 font-medium">Absents</div>
+                        </div>
+                        <div class="stat-presence">
+                            <div class="value text-indigo-600" id="stat-total">{{ etudiants|length }}</div>
+                            <div class="text-xs text-gray-500 mt-1 font-medium">Total</div>
+                        </div>
+                        <div class="stat-presence">
+                            <div class="value text-purple-600" id="stat-rate">0%</div>
+                            <div class="text-xs text-gray-500 mt-1 font-medium">Taux</div>
+                        </div>
+                    </div>
+
+                    <!-- Mode switcher -->
+                    <div class="flex flex-wrap gap-2 mb-6 p-1.5 bg-gray-100 rounded-xl w-fit">
+                        <button onclick="setPresenceMode('manual')" id="mode-manual" class="presence-mode-btn active">
+                            <i class="fas fa-list-check mr-2"></i>Appel manuel
+                        </button>
+                        <button onclick="setPresenceMode('qr')" id="mode-qr" class="presence-mode-btn">
+                            <i class="fas fa-qrcode mr-2"></i>QR Code
+                        </button>
+                    </div>
+
+                    <!-- MODE MANUEL -->
+                    <div id="presence-manual-panel">
+                        <div class="flex flex-wrap gap-3 mb-5 items-center justify-between">
+                            <div class="relative flex-1 min-w-[200px] max-w-md">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="search-students-presence" placeholder="Rechercher un étudiant..."
+                                       class="input-field pl-10" oninput="filterPresenceList()">
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="markAllPresent()" class="btn btn-success text-sm">
+                                    <i class="fas fa-check-double mr-1.5"></i>Tous présents
+                                </button>
+                                <button onclick="markAllAbsent()" class="btn btn-danger text-sm">
+                                    <i class="fas fa-times mr-1.5"></i>Tous absents
+                                </button>
+                                <button onclick="savePresences()" class="btn btn-primary text-sm shadow-lg">
+                                    <i class="fas fa-save mr-1.5"></i>Enregistrer
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="presence-students-list" class="space-y-2">
+                            {% for etudiant in etudiants %}
+                            {% set pkey = etudiant.id|string + '_' + today %}
+                            {% set p = presences.get(pkey) %}
+                            {% set statut = p.statut if p else 'unspecified' %}
+                            <div class="student-presence-row card p-4 flex items-center justify-between gap-4 {{ 'is-present' if statut == 'present' else 'is-absent' if statut == 'absent' else 'is-retard' if statut == 'retard' else 'is-excuse' if statut == 'excuse' else '' }}"
+                                 data-etudiant-id="{{ etudiant.id }}"
+                                 data-search="{{ etudiant.nom|lower }} {{ etudiant.prenom|lower }} {{ etudiant.email|lower }}">
+                                <div class="flex items-center gap-4 flex-1 min-w-0">
+                                    <div class="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                        {{ etudiant.prenom[0]|upper }}{{ etudiant.nom[0]|upper }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-semibold text-gray-900 truncate">{{ etudiant.prenom }} {{ etudiant.nom }}</div>
+                                        <div class="text-xs text-gray-500 truncate">{{ etudiant.email }}{% if etudiant.niveau %} · {{ etudiant.niveau }}{% endif %}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 flex-shrink-0">
+                                    <div class="hidden sm:flex gap-1 status-pills" data-etudiant-id="{{ etudiant.id }}">
+                                        <span class="status-pill present {{ 'active' if statut == 'present' else '' }}" onclick="setStudentStatus({{ etudiant.id }}, 'present')">Présent</span>
+                                        <span class="status-pill absent {{ 'active' if statut == 'absent' else '' }}" onclick="setStudentStatus({{ etudiant.id }}, 'absent')">Absent</span>
+                                        <span class="status-pill retard {{ 'active' if statut == 'retard' else '' }}" onclick="setStudentStatus({{ etudiant.id }}, 'retard')">Retard</span>
+                                        <span class="status-pill excuse {{ 'active' if statut == 'excuse' else '' }}" onclick="setStudentStatus({{ etudiant.id }}, 'excuse')">Excusé</span>
+                                    </div>
+                                    <label class="toggle-switch" title="Présent / Absent">
+                                        <input type="checkbox" class="presence-toggle"
+                                               data-etudiant-id="{{ etudiant.id }}"
+                                               {{ 'checked' if statut == 'present' else '' }}
+                                               onchange="onTogglePresence(this)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <input type="hidden" class="presence-status-input" data-etudiant-id="{{ etudiant.id }}"
+                                           value="{{ statut if statut != 'unspecified' else 'absent' }}">
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-16 text-gray-500">
+                                <i class="fas fa-users text-5xl mb-4 text-gray-300"></i>
+                                <p class="text-lg font-medium">Aucun étudiant pour cette classe</p>
+                                <p class="text-sm mt-2">Filière : {{ course.filiere }}{% if course.niveau %} · Niveau : {{ course.niveau }}{% endif %}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- MODE QR CODE -->
+                    <div id="presence-qr-panel" class="hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- QR Display -->
+                            <div class="card p-6">
+                                <h4 class="text-lg font-bold text-gray-900 mb-2 flex items-center">
+                                    <i class="fas fa-tv text-purple-600 mr-2"></i>QR Code à l'entrée
+                                </h4>
+                                <p class="text-sm text-gray-500 mb-4">Affichez ce QR à l'écran — les étudiants scannent pour marquer leur présence automatiquement.</p>
+                                <div class="qr-embed-panel mb-4" id="qr-embed-container">
+                                    <div class="text-center text-gray-500">
+                                        <div class="spinner mx-auto mb-3"></div>
+                                        <p class="text-sm">Génération du QR code...</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button onclick="refreshEmbeddedQR()" class="btn btn-primary text-sm flex-1">
+                                        <i class="fas fa-sync-alt mr-1.5"></i>Actualiser QR
+                                    </button>
+                                    <button onclick="openQrFullscreen()" class="btn btn-secondary text-sm flex-1">
+                                        <i class="fas fa-expand mr-1.5"></i>Plein écran
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-3 text-center">
+                                    <i class="fas fa-shield-alt mr-1"></i>QR sécurisé — renouvelé toutes les 30 secondes
+                                </p>
+                            </div>
+
+                            <!-- Live list -->
+                            <div class="card p-6">
+                                <h4 class="text-lg font-bold text-gray-900 mb-2 flex items-center">
+                                    <i class="fas fa-satellite-dish text-green-600 mr-2"></i>Suivi en temps réel
+                                </h4>
+                                <p class="text-sm text-gray-500 mb-4">Liste mise à jour automatiquement à chaque scan.</p>
+                                <div id="qr-live-list" class="space-y-2 max-h-[400px] overflow-y-auto">
+                                    <div class="text-center py-8 text-gray-400">
+                                        <div class="spinner mx-auto mb-2"></div>
+                                        <p class="text-sm">Chargement...</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-4 border-t flex flex-wrap gap-2">
+                                    <a href="{{ url_for('professeur_scan_qr', course_id=course.id) }}"
+                                       class="btn btn-primary text-sm flex-1 text-center">
+                                        <i class="fas fa-camera mr-1.5"></i>Scanner les cartes
+                                    </a>
+                                    <button onclick="finalizePresenceSession()" class="btn btn-danger text-sm flex-1">
+                                        <i class="fas fa-flag-checkered mr-1.5"></i>Clôturer l'appel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -729,230 +977,236 @@
         </div>
     </div>
 
+    <!-- Modal QR plein écran (intégré, pas de page dupliquée) -->
+    <div id="qr-fullscreen-modal" class="modal" onclick="if(event.target===this)closeQrFullscreen()">
+        <div class="modal-content max-w-lg p-8 text-center">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">{{ course.nom_cours }}</h3>
+            <p class="text-sm text-gray-500 mb-4">{{ course.filiere }}{% if course.niveau %} · {{ course.niveau }}{% endif %}</p>
+            <div id="qr-fullscreen-container" class="qr-embed-panel mb-4 min-h-[320px]"></div>
+            <div class="flex gap-2 justify-center">
+                <button onclick="refreshQrFullscreen()" class="btn btn-primary text-sm"><i class="fas fa-sync-alt mr-1"></i>Actualiser</button>
+                <button onclick="closeQrFullscreen()" class="btn btn-secondary text-sm"><i class="fas fa-times mr-1"></i>Fermer</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const courseId = {{ course.id }};
-        
-        function showTab(tabName) {
-            // Masquer tous les contenus avec animation
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.style.animation = 'fadeOut 0.2s ease-out';
-                setTimeout(() => {
-                    content.classList.remove('active');
-                }, 200);
-            });
-            
-            // Désactiver tous les tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active', 'bg-gradient-to-r', 'from-purple-600', 'to-purple-700', 'text-white', 'shadow-lg');
-                tab.classList.add('text-gray-700');
-            });
-            
-            // Activer le tab et contenu sélectionnés
-            setTimeout(() => {
-                const content = document.getElementById(tabName + '-content');
-                content.classList.add('active');
-                content.style.animation = 'fadeIn 0.3s ease-in-out';
-                
-                event.target.classList.add('active', 'bg-gradient-to-r', 'from-purple-600', 'to-purple-700', 'text-white', 'shadow-lg');
-                event.target.classList.remove('text-gray-700');
-            }, 200);
+        const etudiantsCount = {{ etudiants|length }};
+        let presenceMode = 'manual';
+        let qrRefreshInterval = null;
+        let qrStatsInterval = null;
+        let qrCountdownInterval = null;
+        let qrCountdown = 30;
+
+        function showTab(tabName, btn) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            const content = document.getElementById(tabName + '-content');
+            if (content) content.classList.add('active');
+            const activeBtn = btn || (typeof event !== 'undefined' && event.target);
+            if (activeBtn) activeBtn.classList.add('active');
+            if (tabName === 'presences') initPresencesTab();
+            else stopQrPolling();
         }
 
-        function updatePresenceBadge(select) {
-            const value = select.value;
-            // Vous pouvez ajouter un badge visuel ici si nécessaire
+        function initPresencesTab() {
+            updatePresenceStats();
+            loadPresencesForDate(document.getElementById('date-cours').value, false);
         }
 
-        // Fonctions pour l'onglet General (nouveau format)
-        function updatePresenceGeneral(input) {
-            // Mettre à jour le statut "Unspecified" selon la valeur saisie
-            const etudiantId = input.getAttribute('data-etudiant-id');
-            const statusSpan = document.getElementById(`status-${etudiantId}`);
-            const value = input.value.trim().toLowerCase();
-            
-            if (value === '' || value === 'present' || value === 'p' || value === 'présent') {
-                statusSpan.textContent = 'Present';
-                statusSpan.className = 'text-xs text-green-600 min-w-[100px]';
-            } else if (value === 'absent' || value === 'a') {
-                statusSpan.textContent = 'Absent';
-                statusSpan.className = 'text-xs text-red-600 min-w-[100px]';
-            } else if (value === 'late' || value === 'retard' || value === 'l' || value === 'r') {
-                statusSpan.textContent = 'Late';
-                statusSpan.className = 'text-xs text-yellow-600 min-w-[100px]';
-            } else if (value === 'excused' || value === 'excuse' || value === 'e') {
-                statusSpan.textContent = 'Excused';
-                statusSpan.className = 'text-xs text-blue-600 min-w-[100px]';
-            } else if (value !== '') {
-                // Si une valeur est saisie mais ne correspond à rien, garder Unspecified
-                statusSpan.textContent = 'Unspecified';
-                statusSpan.className = 'text-xs text-gray-500 min-w-[100px]';
-            } else {
-                statusSpan.textContent = 'Unspecified';
-                statusSpan.className = 'text-xs text-gray-500 min-w-[100px]';
-            }
+        function onPresenceDateChange() {
+            loadPresencesForDate(document.getElementById('date-cours').value, true);
         }
 
-        function markAllAsGeneral() {
-            const status = document.getElementById('mark-all-status-general').value;
-            const inputs = document.querySelectorAll('.presence-input-general');
-            
-            inputs.forEach(input => {
-                if (status === 'present') {
-                    input.value = 'P';
-                } else if (status === 'absent') {
-                    input.value = 'A';
-                } else if (status === 'retard') {
-                    input.value = 'L';
-                } else if (status === 'excuse') {
-                    input.value = 'E';
-                }
-                updatePresenceGeneral(input);
-            });
-        }
-
-
-        function savePresencesGeneral() {
-            const date = new Date().toISOString().split('T')[0]; // Date du jour par défaut
-            const presences = [];
-            
-            document.querySelectorAll('.presence-input-general').forEach(input => {
-                const etudiantId = input.getAttribute('data-etudiant-id');
-                const value = input.value.trim().toLowerCase();
-                let statut = 'present';
-                
-                if (value === '' || value === 'present' || value === 'p') {
-                    statut = 'present';
-                } else if (value === 'absent' || value === 'a') {
-                    statut = 'absent';
-                } else if (value === 'late' || value === 'retard' || value === 'l') {
-                    statut = 'retard';
-                } else if (value === 'excused' || value === 'excuse' || value === 'e') {
-                    statut = 'excuse';
-                }
-                
-                presences.push({
-                    etudiant_id: parseInt(etudiantId),
-                    statut: statut,
-                    commentaire: ''
-                });
-            });
-
-            const button = event.target;
-            const originalHTML = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
-            button.disabled = true;
-
-            fetch(`/professeur/course/${courseId}/presences/save`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({date: date, presences: presences})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Présences enregistrées avec succès!', 'success');
-                } else {
-                    showNotification('Erreur: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                showNotification('Erreur lors de la sauvegarde', 'error');
-            })
-            .finally(() => {
-                button.innerHTML = originalHTML;
-                button.disabled = false;
-            });
-        }
-
-        // Recherche d'étudiants dans l'onglet General
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search-students-general');
-            if (searchInput) {
-                searchInput.addEventListener('input', function(e) {
-                    const search = e.target.value.toLowerCase();
-                    const items = document.querySelectorAll('#etudiants-list-general > div');
-                    items.forEach(item => {
-                        const text = item.textContent.toLowerCase();
-                        item.style.display = text.includes(search) ? 'flex' : 'none';
-                    });
-                });
-            }
-
-        });
-
-        function loadPresences() {
-            const date = document.getElementById('date-cours').value;
-            const button = event.target;
-            const originalHTML = button.innerHTML;
-            
-            button.innerHTML = '<div class="loading-spinner"></div>';
-            button.disabled = true;
-            
+        function loadPresencesForDate(date, notify) {
             fetch(`/professeur/course/${courseId}/presences?date=${date}`)
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        data.presences.forEach(p => {
-                            const select = document.querySelector(`.presence-select[data-etudiant-id="${p.etudiant_id}"]`);
-                            const comment = document.querySelector(`.comment-input[data-etudiant-id="${p.etudiant_id}"]`);
-                            if (select) select.value = p.statut;
-                            if (comment) comment.value = p.commentaire || '';
-                        });
-                        showNotification('Présences chargées avec succès!', 'success');
-                    }
+                    if (!data.success) return;
+                    const map = {};
+                    data.presences.forEach(p => { map[p.etudiant_id] = p; });
+                    document.querySelectorAll('.student-presence-row').forEach(row => {
+                        const id = parseInt(row.dataset.etudiantId);
+                        const p = map[id];
+                        setStudentStatusUI(id, p ? p.statut : 'absent');
+                    });
+                    updatePresenceStats();
+                    if (notify) showNotification('Présences chargées', 'success');
                 })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    showNotification('Erreur lors du chargement', 'error');
-                })
-                .finally(() => {
-                    button.innerHTML = originalHTML;
-                    button.disabled = false;
-                });
+                .catch(err => console.error(err));
+        }
+
+        function setPresenceMode(mode) {
+            presenceMode = mode;
+            document.getElementById('mode-manual').classList.toggle('active', mode === 'manual');
+            document.getElementById('mode-qr').classList.toggle('active', mode === 'qr');
+            document.getElementById('presence-manual-panel').classList.toggle('hidden', mode !== 'manual');
+            document.getElementById('presence-qr-panel').classList.toggle('hidden', mode !== 'qr');
+            if (mode === 'qr') startQrMode(); else stopQrPolling();
+        }
+
+        function onTogglePresence(checkbox) {
+            setStudentStatusUI(parseInt(checkbox.dataset.etudiantId), checkbox.checked ? 'present' : 'absent');
+            updatePresenceStats();
+        }
+
+        function setStudentStatus(etudiantId, statut) {
+            setStudentStatusUI(etudiantId, statut);
+            updatePresenceStats();
+        }
+
+        function setStudentStatusUI(etudiantId, statut) {
+            const row = document.querySelector(`.student-presence-row[data-etudiant-id="${etudiantId}"]`);
+            if (!row) return;
+            row.classList.remove('is-present', 'is-absent', 'is-retard', 'is-excuse');
+            if (statut === 'present') row.classList.add('is-present');
+            else if (statut === 'absent') row.classList.add('is-absent');
+            else if (statut === 'retard') row.classList.add('is-retard');
+            else if (statut === 'excuse') row.classList.add('is-excuse');
+            const toggle = row.querySelector('.presence-toggle');
+            if (toggle) toggle.checked = (statut === 'present');
+            const hidden = row.querySelector('.presence-status-input');
+            if (hidden) hidden.value = statut;
+            row.querySelectorAll('.status-pill').forEach(pill => {
+                pill.classList.remove('active');
+                if (pill.classList.contains(statut)) pill.classList.add('active');
+            });
+        }
+
+        function updatePresenceStats() {
+            let presents = 0, other = 0;
+            document.querySelectorAll('.presence-status-input').forEach(input => {
+                if (input.value === 'present') presents++; else other++;
+            });
+            const total = etudiantsCount || document.querySelectorAll('.presence-status-input').length;
+            document.getElementById('stat-presents').textContent = presents;
+            document.getElementById('stat-absents').textContent = other;
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-rate').textContent = (total > 0 ? Math.round(presents / total * 100) : 0) + '%';
+        }
+
+        function filterPresenceList() {
+            const q = document.getElementById('search-students-presence').value.toLowerCase();
+            document.querySelectorAll('.student-presence-row').forEach(row => {
+                row.style.display = (row.dataset.search || '').includes(q) ? '' : 'none';
+            });
+        }
+
+        function markAllPresent() {
+            document.querySelectorAll('.presence-status-input').forEach(i => setStudentStatusUI(parseInt(i.dataset.etudiantId), 'present'));
+            updatePresenceStats();
+            showNotification('Tous marqués présents', 'success');
+        }
+
+        function markAllAbsent() {
+            document.querySelectorAll('.presence-status-input').forEach(i => setStudentStatusUI(parseInt(i.dataset.etudiantId), 'absent'));
+            updatePresenceStats();
+            showNotification('Tous marqués absents', 'success');
         }
 
         function savePresences() {
             const date = document.getElementById('date-cours').value;
             const presences = [];
-            
-            document.querySelectorAll('.presence-select').forEach(select => {
-                const etudiantId = select.getAttribute('data-etudiant-id');
-                const commentInput = document.querySelector(`.comment-input[data-etudiant-id="${etudiantId}"]`);
-                presences.push({
-                    etudiant_id: etudiantId,
-                    statut: select.value,
-                    commentaire: commentInput ? commentInput.value : ''
-                });
+            document.querySelectorAll('.presence-status-input').forEach(input => {
+                presences.push({ etudiant_id: parseInt(input.dataset.etudiantId), statut: input.value || 'absent', commentaire: '' });
             });
-
-            const button = event.target;
-            const originalHTML = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enregistrement...';
-            button.disabled = true;
-
+            const btn = document.querySelector('#presence-manual-panel .btn-primary');
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>...'; btn.disabled = true; }
             fetch(`/professeur/course/${courseId}/presences/save`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({date: date, presences: presences})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Présences enregistrées avec succès!', 'success');
-                } else {
-                    showNotification('Erreur: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                showNotification('Erreur lors de la sauvegarde', 'error');
-            })
-            .finally(() => {
-                button.innerHTML = originalHTML;
-                button.disabled = false;
-            });
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({date, presences})
+            }).then(r => r.json()).then(data => {
+                showNotification(data.success ? '✅ Présences enregistrées !' : ('Erreur: ' + data.message), data.success ? 'success' : 'error');
+            }).catch(() => showNotification('Erreur sauvegarde', 'error'))
+            .finally(() => { if (btn) { btn.innerHTML = orig; btn.disabled = false; } });
         }
+
+        function loadQrInto(container) {
+            if (!container) return;
+            fetch(`/api/generate-course-qr/${courseId}`).then(r => r.json()).then(data => {
+                if (data.success) {
+                    qrCountdown = 30;
+                    container.innerHTML = `<div class="text-center p-4"><img src="${data.qr_code}" class="max-w-[280px] mx-auto rounded-lg shadow-lg" alt="QR"><div class="mt-3 inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold"><i class="fas fa-clock"></i><span class="qr-countdown-el">30</span>s</div></div>`;
+                } else container.innerHTML = `<p class="text-red-500 text-sm p-4">${data.message || 'Erreur'}</p>`;
+            }).catch(() => { container.innerHTML = '<p class="text-red-500 text-sm p-4">Erreur QR</p>'; });
+        }
+
+        function refreshEmbeddedQR() {
+            loadQrInto(document.getElementById('qr-embed-container'));
+        }
+
+        function openQrFullscreen() {
+            document.getElementById('qr-fullscreen-modal').classList.add('active');
+            refreshQrFullscreen();
+        }
+
+        function closeQrFullscreen() {
+            document.getElementById('qr-fullscreen-modal').classList.remove('active');
+        }
+
+        function refreshQrFullscreen() {
+            loadQrInto(document.getElementById('qr-fullscreen-container'));
+        }
+
+        function startQrMode() {
+            refreshEmbeddedQR();
+            loadQrLiveList();
+            stopQrPolling();
+            qrRefreshInterval = setInterval(refreshEmbeddedQR, 30000);
+            qrStatsInterval = setInterval(loadQrLiveList, 5000);
+            if (qrCountdownInterval) clearInterval(qrCountdownInterval);
+            qrCountdownInterval = setInterval(() => {
+                qrCountdown--;
+                document.querySelectorAll('.qr-countdown-el').forEach(el => { el.textContent = qrCountdown; });
+                if (qrCountdown <= 0) qrCountdown = 30;
+            }, 1000);
+        }
+
+        function stopQrPolling() {
+            [qrRefreshInterval, qrStatsInterval, qrCountdownInterval].forEach((iv, i) => {
+                if (iv) clearInterval(iv);
+            });
+            qrRefreshInterval = qrStatsInterval = qrCountdownInterval = null;
+        }
+
+        function loadQrLiveList() {
+            fetch(`/api/course/${courseId}/students-presence`).then(r => r.json()).then(data => {
+                if (!data.success) return;
+                document.getElementById('stat-presents').textContent = data.nb_presents;
+                document.getElementById('stat-absents').textContent = data.nb_absents;
+                document.getElementById('stat-total').textContent = data.total;
+                document.getElementById('stat-rate').textContent = data.taux_presence + '%';
+                const list = document.getElementById('qr-live-list');
+                const all = [...(data.presents || []), ...(data.absents || [])].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
+                const presentIds = new Set((data.presents || []).map(s => s.id));
+                if (!all.length) { list.innerHTML = '<p class="text-center text-gray-400 py-6">Aucun étudiant</p>'; return; }
+                list.innerHTML = all.map(s => {
+                    const ok = presentIds.has(s.id);
+                    return `<div class="flex items-center justify-between p-3 rounded-lg border ${ok ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full ${ok ? 'bg-green-500' : 'bg-gray-300'} flex items-center justify-center text-white text-xs font-bold">${(s.prenom||'')[0]||''}${(s.nom||'')[0]||''}</div><div><div class="font-medium text-sm">${s.prenom} ${s.nom}</div>${s.heure_scan ? `<div class="text-xs text-green-600"><i class="fas fa-clock mr-1"></i>${s.heure_scan}</div>` : ''}</div></div><span class="text-xs font-bold px-2 py-1 rounded-full ${ok ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}">${ok ? '✓ Présent' : 'En attente'}</span></div>`;
+                }).join('');
+            }).catch(err => console.error(err));
+        }
+
+        function finalizePresenceSession() {
+            if (!confirm('Clôturer l\'appel ? Les non-scannés seront absents.')) return;
+            fetch('/api/finalize-presence', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({course_id: courseId}) })
+                .then(r => r.json()).then(data => {
+                    if (data.success) { showNotification(`Clôturé: ${data.presents}/${data.total} (${data.taux_presence}%)`, 'success'); loadQrLiveList(); }
+                    else showNotification(data.message || 'Erreur', 'error');
+                }).catch(() => showNotification('Erreur clôture', 'error'));
+        }
+
+        function loadPresences() { loadPresencesForDate(document.getElementById('date-cours').value, true); }
+        function updatePresenceBadge(select) { /* legacy */ }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (new URLSearchParams(window.location.search).get('tab') === 'presences') {
+                showTab('presences', document.getElementById('tab-presences'));
+            }
+            updatePresenceStats();
+        });
 
 
         function showNotification(message, type) {
@@ -969,16 +1223,188 @@
             }, 3000);
         }
 
-        function showLectureModal() {
-            alert('Fonctionnalité à implémenter');
+        function showLectureModal(editData = null) {
+            const modal = document.getElementById('lecture-modal');
+            const form = document.getElementById('lecture-form');
+            const title = document.getElementById('lecture-modal-title');
+
+            if (editData) {
+                title.textContent = 'Modifier la séance';
+                document.getElementById('lecture-id').value = editData.id;
+                document.getElementById('lecture-titre').value = editData.titre;
+                document.getElementById('lecture-date').value = editData.date_seance || '';
+                document.getElementById('lecture-description').value = editData.description || '';
+                document.getElementById('lecture-contenu').value = editData.contenu || '';
+            } else {
+                title.textContent = 'Ajouter une séance';
+                form.reset();
+                document.getElementById('lecture-id').value = '';
+            }
+            modal.classList.add('active');
         }
 
-        function showExamModal() {
-            alert('Fonctionnalité à implémenter');
+        function closeLectureModal() {
+            document.getElementById('lecture-modal').classList.remove('active');
         }
 
-        function showAssignmentModal() {
-            alert('Fonctionnalité à implémenter');
+        function saveLecture() {
+            const id = document.getElementById('lecture-id').value;
+            const data = {
+                titre: document.getElementById('lecture-titre').value,
+                date_seance: document.getElementById('lecture-date').value,
+                description: document.getElementById('lecture-description').value,
+                contenu: document.getElementById('lecture-contenu').value
+            };
+
+            if (!data.titre) {
+                showNotification('Le titre est requis', 'error');
+                return;
+            }
+
+            const url = id ? `/professeur/course/${courseId}/lecture/${id}/edit` : `/professeur/course/${courseId}/lecture/add`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(id ? 'Séance modifiée!' : 'Séance ajoutée!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la sauvegarde', 'error');
+            });
+        }
+
+        function showExamModal(editData = null) {
+            const modal = document.getElementById('exam-modal');
+            const form = document.getElementById('exam-form');
+            const title = document.getElementById('exam-modal-title');
+
+            if (editData) {
+                title.textContent = 'Modifier l\'examen';
+                document.getElementById('exam-id').value = editData.id;
+                document.getElementById('exam-titre').value = editData.titre;
+                document.getElementById('exam-type').value = editData.type_examen || 'Partiel';
+                document.getElementById('exam-date').value = editData.date_examen || '';
+                document.getElementById('exam-coefficient').value = editData.coefficient || 1;
+                document.getElementById('exam-description').value = editData.description || '';
+            } else {
+                title.textContent = 'Créer un examen';
+                form.reset();
+                document.getElementById('exam-id').value = '';
+            }
+            modal.classList.add('active');
+        }
+
+        function closeExamModal() {
+            document.getElementById('exam-modal').classList.remove('active');
+        }
+
+        function saveExam() {
+            const id = document.getElementById('exam-id').value;
+            const data = {
+                titre: document.getElementById('exam-titre').value,
+                type_examen: document.getElementById('exam-type').value,
+                date_examen: document.getElementById('exam-date').value,
+                coefficient: parseFloat(document.getElementById('exam-coefficient').value) || 1,
+                description: document.getElementById('exam-description').value
+            };
+
+            if (!data.titre) {
+                showNotification('Le titre est requis', 'error');
+                return;
+            }
+
+            const url = id ? `/professeur/course/${courseId}/exam/${id}/edit` : `/professeur/course/${courseId}/exam/add`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(id ? 'Examen modifié!' : 'Examen créé!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la sauvegarde', 'error');
+            });
+        }
+
+        function showAssignmentModal(editData = null) {
+            const modal = document.getElementById('assignment-modal');
+            const form = document.getElementById('assignment-form');
+            const title = document.getElementById('assignment-modal-title');
+
+            if (editData) {
+                title.textContent = 'Modifier le devoir';
+                document.getElementById('assignment-id').value = editData.id;
+                document.getElementById('assignment-titre').value = editData.titre;
+                document.getElementById('assignment-type').value = editData.type_assignment || 'TD';
+                document.getElementById('assignment-date-pub').value = editData.date_publication || '';
+                document.getElementById('assignment-date-limite').value = editData.date_limite || '';
+                document.getElementById('assignment-description').value = editData.description || '';
+            } else {
+                title.textContent = 'Publier un devoir';
+                form.reset();
+                document.getElementById('assignment-id').value = '';
+            }
+            modal.classList.add('active');
+        }
+
+        function closeAssignmentModal() {
+            document.getElementById('assignment-modal').classList.remove('active');
+        }
+
+        function saveAssignment() {
+            const id = document.getElementById('assignment-id').value;
+            const data = {
+                titre: document.getElementById('assignment-titre').value,
+                type_assignment: document.getElementById('assignment-type').value,
+                date_publication: document.getElementById('assignment-date-pub').value,
+                date_limite: document.getElementById('assignment-date-limite').value,
+                description: document.getElementById('assignment-description').value
+            };
+
+            if (!data.titre) {
+                showNotification('Le titre est requis', 'error');
+                return;
+            }
+
+            const url = id ? `/professeur/course/${courseId}/assignment/${id}/edit` : `/professeur/course/${courseId}/assignment/add`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(id ? 'Devoir modifié!' : 'Devoir publié!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la sauvegarde', 'error');
+            });
         }
 
         function addGradebookNote() {
@@ -1061,36 +1487,117 @@
         }
 
         function editLecture(id) {
-            alert('Fonctionnalité à implémenter');
+            fetch(`/professeur/course/${courseId}/lecture/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showLectureModal(data.lecture);
+                    } else {
+                        showNotification('Erreur lors du chargement', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors du chargement', 'error');
+                });
         }
 
         function deleteLecture(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer cette séance?')) {
-                alert('Fonctionnalité à implémenter');
+                fetch(`/professeur/course/${courseId}/lecture/${id}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Séance supprimée!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors de la suppression', 'error');
+                });
             }
         }
 
         function editExam(id) {
-            alert('Fonctionnalité à implémenter');
+            fetch(`/professeur/course/${courseId}/exam/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showExamModal(data.exam);
+                    } else {
+                        showNotification('Erreur lors du chargement', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors du chargement', 'error');
+                });
         }
 
         function deleteExam(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer cet examen?')) {
-                alert('Fonctionnalité à implémenter');
+                fetch(`/professeur/course/${courseId}/exam/${id}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Examen supprimé!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors de la suppression', 'error');
+                });
             }
         }
 
         function viewSubmissions(id) {
-            alert('Fonctionnalité à implémenter');
+            window.location.href = `/professeur/course/${courseId}/assignment/${id}/submissions`;
         }
 
         function editAssignment(id) {
-            alert('Fonctionnalité à implémenter');
+            fetch(`/professeur/course/${courseId}/assignment/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAssignmentModal(data.assignment);
+                    } else {
+                        showNotification('Erreur lors du chargement', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors du chargement', 'error');
+                });
         }
 
         function deleteAssignment(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce devoir?')) {
-                alert('Fonctionnalité à implémenter');
+                fetch(`/professeur/course/${courseId}/assignment/${id}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Devoir supprimé!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors de la suppression', 'error');
+                });
             }
         }
 
@@ -1158,11 +1665,28 @@
         }
 
 
+        function applyGradeColor(input) {
+            const value = parseFloat(input.value);
+            input.classList.remove('grade-good', 'grade-warning', 'grade-bad');
+            if (!isNaN(value)) {
+                if (value >= 14) {
+                    input.classList.add('grade-good');
+                } else if (value >= 10) {
+                    input.classList.add('grade-warning');
+                } else {
+                    input.classList.add('grade-bad');
+                }
+            }
+        }
+
         function updateGradebookNote(input) {
             const etudiantId = input.getAttribute('data-etudiant-id');
             const typeNote = input.getAttribute('data-type');
             const coefficient = input.getAttribute('data-coefficient');
             const note = input.value;
+
+            // Appliquer la couleur conditionnelle
+            applyGradeColor(input);
 
             fetch(`/professeur/course/${courseId}/gradebook/update`, {
                 method: 'POST',
@@ -1177,10 +1701,14 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Recalculer la moyenne
                     calculateStudentAverage(etudiantId);
+                    // Petit feedback visuel
+                    input.style.boxShadow = '0 0 0 2px #10b981';
+                    setTimeout(() => { input.style.boxShadow = ''; }, 500);
                 } else {
                     showNotification('Erreur lors de la mise à jour', 'error');
+                    input.style.boxShadow = '0 0 0 2px #ef4444';
+                    setTimeout(() => { input.style.boxShadow = ''; }, 500);
                 }
             })
             .catch(error => {
@@ -1193,7 +1721,7 @@
             const inputs = document.querySelectorAll(`.gb-input[data-etudiant-id="${etudiantId}"]`);
             let total = 0;
             let totalCoef = 0;
-            
+
             inputs.forEach(input => {
                 const value = parseFloat(input.value);
                 const coef = parseFloat(input.getAttribute('data-coefficient'));
@@ -1202,10 +1730,167 @@
                     totalCoef += coef;
                 }
             });
-            
-            const moyenne = totalCoef > 0 ? (total / totalCoef).toFixed(2) : '-';
-            document.getElementById(`gb-moy-${etudiantId}`).textContent = moyenne;
+
+            const moyenneSpan = document.getElementById(`gb-moy-${etudiantId}`);
+            if (totalCoef > 0) {
+                const moyenne = (total / totalCoef).toFixed(2);
+                moyenneSpan.textContent = moyenne;
+                // Couleur de la moyenne
+                moyenneSpan.classList.remove('text-green-600', 'text-yellow-600', 'text-red-600', 'text-blue-600');
+                if (moyenne >= 14) {
+                    moyenneSpan.classList.add('text-green-600');
+                } else if (moyenne >= 10) {
+                    moyenneSpan.classList.add('text-yellow-600');
+                } else {
+                    moyenneSpan.classList.add('text-red-600');
+                }
+            } else {
+                moyenneSpan.textContent = '-';
+                moyenneSpan.classList.add('text-blue-600');
+            }
         }
+
+        // Appliquer les couleurs au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.gb-input').forEach(input => {
+                applyGradeColor(input);
+            });
+        });
     </script>
+
+    <!-- Modal Lecture -->
+    <div id="lecture-modal" class="modal" onclick="if(event.target===this) closeLectureModal()">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 id="lecture-modal-title" class="text-xl font-bold text-gray-900">Ajouter une séance</h3>
+                    <button onclick="closeLectureModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <form id="lecture-form" class="p-6 space-y-4">
+                <input type="hidden" id="lecture-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                    <input type="text" id="lecture-titre" class="input-field" placeholder="Titre de la séance" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" id="lecture-date" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="lecture-description" class="input-field" rows="2" placeholder="Description courte"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
+                    <textarea id="lecture-contenu" class="input-field" rows="4" placeholder="Contenu détaillé de la séance"></textarea>
+                </div>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeLectureModal()" class="btn btn-secondary">Annuler</button>
+                <button onclick="saveLecture()" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Exam -->
+    <div id="exam-modal" class="modal" onclick="if(event.target===this) closeExamModal()">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 id="exam-modal-title" class="text-xl font-bold text-gray-900">Créer un examen</h3>
+                    <button onclick="closeExamModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <form id="exam-form" class="p-6 space-y-4">
+                <input type="hidden" id="exam-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                    <input type="text" id="exam-titre" class="input-field" placeholder="Titre de l'examen" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                        <select id="exam-type" class="input-field">
+                            <option value="Partiel">Partiel</option>
+                            <option value="Final">Final</option>
+                            <option value="Contrôle">Contrôle</option>
+                            <option value="Quiz">Quiz</option>
+                            <option value="Rattrapage">Rattrapage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
+                        <input type="number" id="exam-coefficient" class="input-field" value="1" min="0.5" step="0.5">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" id="exam-date" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="exam-description" class="input-field" rows="3" placeholder="Instructions ou description"></textarea>
+                </div>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeExamModal()" class="btn btn-secondary">Annuler</button>
+                <button onclick="saveExam()" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Assignment -->
+    <div id="assignment-modal" class="modal" onclick="if(event.target===this) closeAssignmentModal()">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 id="assignment-modal-title" class="text-xl font-bold text-gray-900">Publier un devoir</h3>
+                    <button onclick="closeAssignmentModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <form id="assignment-form" class="p-6 space-y-4">
+                <input type="hidden" id="assignment-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                    <input type="text" id="assignment-titre" class="input-field" placeholder="Titre du devoir" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select id="assignment-type" class="input-field">
+                        <option value="TD">TD</option>
+                        <option value="TP">TP</option>
+                        <option value="Projet">Projet</option>
+                        <option value="Exercice">Exercice</option>
+                        <option value="Devoir maison">Devoir maison</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date de publication</label>
+                        <input type="date" id="assignment-date-pub" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date limite</label>
+                        <input type="date" id="assignment-date-limite" class="input-field">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="assignment-description" class="input-field" rows="4" placeholder="Instructions du devoir"></textarea>
+                </div>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeAssignmentModal()" class="btn btn-secondary">Annuler</button>
+                <button onclick="saveAssignment()" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ nom_classe }} - Notes - AdsClass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+  <!-- Header -->
+  <header class="glass-effect fixed top-0 left-0 right-0 z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <i class="fas fa-graduation-cap text-white text-lg"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-gray-800">{{ nom_classe }}</h1>
+            <p class="text-xs text-gray-500">{{ filiere }} - {{ niveau }}</p>
+          </div>
+        </div>
+        
+        <a href="{{ url_for('admin_grades') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+          <i class="fas fa-arrow-left text-xs"></i>
+          Retour
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+    <!-- Page Header -->
+    <div class="glass-effect rounded-xl p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">Gestion des Notes</h2>
+          <p class="text-gray-600">{{ etudiants|length }} étudiant(s) dans cette classe</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="bg-indigo-50 px-4 py-2 rounded-lg">
+            <p class="text-sm text-gray-600">Filière</p>
+            <p class="font-bold text-indigo-600">{{ filiere }}</p>
+          </div>
+          <div class="bg-purple-50 px-4 py-2 rounded-lg">
+            <p class="text-sm text-gray-600">Niveau</p>
+            <p class="font-bold text-purple-600">{{ niveau }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students Table -->
+    {% if etudiants and etudiants|length > 0 %}
+    <div class="glass-effect rounded-xl shadow-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-gray-800">
+          <thead class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase">#</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase">
+                <i class="fas fa-user mr-1"></i>Nom
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase">
+                <i class="fas fa-user-tag mr-1"></i>Prénom
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase">
+                <i class="fas fa-envelope mr-1"></i>Email
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase">
+                <i class="fas fa-chart-bar mr-1"></i>Moyenne
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-bold uppercase">
+                <i class="fas fa-cogs mr-1"></i>Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for etu in etudiants %}
+            {% set moyenne_generale = 0 %}
+            {% set nb_notes = 0 %}
+            {% if notes_par_etudiant[etu.id] is defined %}
+              {% for note in notes_par_etudiant[etu.id] %}
+                {% set moyenne_cours = ((note.CC1 + note.CC2 + note.Participation + note.Examen) / 4) %}
+                {% set moyenne_generale = moyenne_generale + moyenne_cours %}
+                {% set nb_notes = nb_notes + 1 %}
+              {% endfor %}
+              {% if nb_notes > 0 %}
+                {% set moyenne_generale = (moyenne_generale / nb_notes) | round(2) %}
+              {% endif %}
+            {% endif %}
+
+            <tr class="bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer group"
+                onclick="toggleHistorique('historique-{{ etu.id }}')"
+                title="Cliquer pour afficher/masquer l'historique des notes">
+              <td class="px-4 py-3">
+                <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  {{ loop.index }}
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                    {{ etu.nom[0] }}
+                  </div>
+                  <span class="font-bold text-gray-900">{{ etu.nom }}</span>
+                </div>
+              </td>
+              <td class="px-4 py-3 font-semibold text-gray-800">{{ etu.prenom }}</td>
+              <td class="px-4 py-3">
+                <span class="text-gray-600 text-sm truncate max-w-xs" title="{{ etu.email }}">{{ etu.email }}</span>
+              </td>
+              <td class="px-4 py-3">
+                {% if moyenne_generale > 0 %}
+                  <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                                {% if moyenne_generale >= 16 %}bg-green-100 text-green-800
+                                {% elif moyenne_generale >= 14 %}bg-blue-100 text-blue-800
+                                {% elif moyenne_generale >= 10 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                      {{ moyenne_generale }}
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-gray-400 text-sm">-</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <a href="{{ url_for('saisir_notes', etudiant_id=etu.id) }}"
+                     class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1">
+                    <i class="fas fa-edit"></i>
+                    Saisir
+                  </a>
+                  <a href="{{ url_for('admin_bulletin', etudiant_id=etu.id) }}"
+                     class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1">
+                    <i class="fas fa-file-alt"></i>
+                    Bulletin
+                  </a>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Historique des notes (caché par défaut) -->
+            <tr id="historique-{{ etu.id }}" class="hidden bg-gradient-to-r from-gray-50 to-indigo-50">
+              <td colspan="6" class="px-4 py-4">
+                <div class="bg-white rounded-lg p-4 shadow-inner">
+                  <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fas fa-history text-indigo-600"></i>
+                    Historique des notes - {{ etu.prenom }} {{ etu.nom }}
+                  </h4>
+
+                  {% if notes_par_etudiant[etu.id] is defined and notes_par_etudiant[etu.id]|length > 0 %}
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                          <tr>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-gray-700">Cours</th>
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">CC1</th>
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">CC2</th>
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Participation</th>
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Examen</th>
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Moyenne</th>
+                            {% if semestre_exists %}
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Semestre</th>
+                            {% endif %}
+                            {% if visible_exists %}
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Visible</th>
+                            {% endif %}
+                            <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                          {% for note in notes_par_etudiant[etu.id] %}
+                          {% set moy = ((note.CC1 + note.CC2 + note.Participation + note.Examen) / 4) | round(2) %}
+                          <tr class="hover:bg-gray-50">
+                            <td class="px-3 py-2 font-medium text-gray-800">{{ note.nom_cours }}</td>
+                            <td class="px-3 py-2 text-center text-gray-700">{{ note.CC1 }}</td>
+                            <td class="px-3 py-2 text-center text-gray-700">{{ note.CC2 }}</td>
+                            <td class="px-3 py-2 text-center text-gray-700">{{ note.Participation }}</td>
+                            <td class="px-3 py-2 text-center text-gray-700">{{ note.Examen }}</td>
+                            <td class="px-3 py-2 text-center">
+                              <span class="font-bold
+                                {% if moy >= 16 %}text-green-600
+                                {% elif moy >= 14 %}text-blue-600
+                                {% elif moy >= 10 %}text-yellow-600
+                                {% else %}text-red-600{% endif %}">
+                                {{ moy }}
+                              </span>
+                            </td>
+                            {% if semestre_exists %}
+                            <td class="px-3 py-2 text-center">
+                              <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs font-medium">
+                                S{{ note.semestre }}
+                              </span>
+                            </td>
+                            {% endif %}
+                            {% if visible_exists %}
+                            <td class="px-3 py-2 text-center">
+                              <button onclick="toggleNoteVisible({{ note.id }}, this)"
+                                      class="toggle-visible-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 {% if note.visible == 1 %}bg-green-100 text-green-800 hover:bg-green-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                                <i class="fas {% if note.visible == 1 %}fa-eye{% else %}fa-eye-slash{% endif %} mr-1"></i>
+                                {% if note.visible == 1 %}Visible{% else %}Masquée{% endif %}
+                              </button>
+                            </td>
+                            {% endif %}
+                            <td class="px-3 py-2 text-center">
+                              <a href="{{ url_for('modifier_note', note_id=note.id) }}"
+                                 class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors text-xs font-medium">
+                                <i class="fas fa-edit"></i>
+                                Modifier
+                              </a>
+                            </td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  {% else %}
+                    <p class="text-gray-500 text-sm italic">Aucune note enregistrée pour cet étudiant.</p>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="glass-effect rounded-xl p-12 text-center">
+      <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+      <h3 class="text-xl font-bold text-gray-600 mb-2">Aucun étudiant dans cette classe</h3>
+      <p class="text-gray-500">Les étudiants apparaîtront ici une fois inscrits.</p>
+    </div>
+    {% endif %}
+  </main>
+
+  <script>
+    function toggleHistorique(id) {
+      const element = document.getElementById(id);
+      if (element.classList.contains('hidden')) {
+        element.classList.remove('hidden');
+      } else {
+        element.classList.add('hidden');
+      }
+    }
+
+    function toggleNoteVisible(noteId, button) {
+      fetch(`/admin/notes/${noteId}/toggle_visible`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mettre à jour l'apparence du bouton
+          if (data.visible == 1) {
+            button.className = 'toggle-visible-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 bg-green-100 text-green-800 hover:bg-green-200';
+            button.innerHTML = '<i class="fas fa-eye mr-1"></i>Visible';
+          } else {
+            button.className = 'toggle-visible-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 bg-gray-100 text-gray-600 hover:bg-gray-200';
+            button.innerHTML = '<i class="fas fa-eye-slash mr-1"></i>Masquée';
+          }
+        } else {
+          alert('Erreur lors de la modification de la visibilité: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la modification de la visibilité');
+      });
+    }
+  </script>
+</body>
+</html>
+{% endblock %}
+

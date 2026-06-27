@@ -123,15 +123,14 @@
   {% endwith %}
 
   <form method="POST" action="{{ url_for('login') }}">
-    <label for="email">Email institutionnel (@adsclass.ne)</label>
+    <label for="email">Identifiant ou email</label>
     <input
-      type="email"
+      type="text"
       id="email"
       name="email"
-      placeholder="exemple@adsclass.ne"
+      placeholder="Ex: DS-L1-2026-0001 ou prenom.nom@votre-ecole.ne"
       required
-      pattern="^[a-zA-Z0-9._%+-]+@adsclass\.ne$"
-      title="L’email doit se terminer par @adsclass.ne"
+      value="{{ email or '' }}"
     />
 
     <label for="password">Mot de passe</label>

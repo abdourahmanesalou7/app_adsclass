@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestion Filières & Modules - AdsClass Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="glass-effect sticky top-0 z-50 shadow-lg border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('admin_home') }}" class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Filières & Modules</h1>
+                        <p class="text-xs text-gray-500">Gestion des programmes académiques</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="openFiliereModal()" 
+                        class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Nouvelle Filière</span>
+                </button>
+                <a href="{{ url_for('admin_home') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2.5 rounded-xl transition-all">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="max-w-7xl mx-auto px-6 pt-4">
+    {% for category, message in messages %}
+    <div class="p-4 rounded-xl mb-2 {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+        <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Filières</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ filieres|length }}</p>
+                </div>
+                <div class="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-graduation-cap text-purple-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Filières Actives</p>
+                    <p class="text-3xl font-bold text-emerald-600">
+                        {{ filieres|selectattr('est_active')|list|length }}
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-emerald-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Modules</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ modules|length }}</p>
+                </div>
+                <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-book text-blue-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Modules Actifs</p>
+                    <p class="text-3xl font-bold text-indigo-600">
+                        {{ modules|selectattr('est_actif')|list|length }}
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-book-open text-indigo-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="glass-effect rounded-2xl p-2 mb-6 shadow-lg">
+        <div class="flex space-x-2">
+            <button onclick="switchTab('filieres')" id="tab-filieres" class="tab-button active flex-1 px-6 py-3 rounded-xl font-semibold">
+                <i class="fas fa-graduation-cap mr-2"></i> Filières
+            </button>
+            <button onclick="switchTab('modules')" id="tab-modules" class="tab-button flex-1 px-6 py-3 rounded-xl font-semibold text-gray-600">
+                <i class="fas fa-book mr-2"></i> Modules
+            </button>
+        </div>
+    </div>
+
+    <!-- Filières Tab -->
+    <div id="content-filieres" class="tab-content">
+        {% if filieres %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for filiere in filieres %}
+            <div class="glass-effect rounded-2xl p-6 shadow-lg card-hover">
+                <!-- Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <h3 class="text-xl font-bold text-gray-800">{{ filiere.nom }}</h3>
+                            {% if filiere.est_active %}
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-check-circle"></i> Active
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-pause-circle"></i> Inactive
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if filiere.code %}
+                        <p class="text-sm text-gray-500 font-mono">Code: {{ filiere.code }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="space-y-2 mb-4">
+                    {% if filiere.niveau %}
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-layer-group w-5"></i>
+                        <span>{{ filiere.niveau }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-calendar w-5"></i>
+                        <span>{{ filiere.duree_annees }} an(s)</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-book w-5"></i>
+                        <span>{{ filiere.nb_modules }} module(s) - {{ filiere.nb_modules_actifs }} actif(s)</span>
+                    </div>
+                </div>
+
+                {% if filiere.description %}
+                <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ filiere.description }}</p>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="flex items-center space-x-2 pt-4 border-t border-gray-200">
+                    <button onclick="openEditFiliereModal({{ filiere.id }}, '{{ filiere.nom }}', '{{ filiere.code or '' }}', '{{ filiere.description or '' }}', '{{ filiere.niveau or '' }}', {{ filiere.duree_annees }})"
+                            class="flex-1 px-3 py-2 bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition-colors font-medium text-sm">
+                        <i class="fas fa-edit"></i> Modifier
+                    </button>
+                    <form action="{{ url_for('toggle_filiere', filiere_id=filiere.id) }}" method="POST" class="flex-1">
+                        <button type="submit" class="w-full px-3 py-2 {% if filiere.est_active %}bg-gray-100 text-gray-600 hover:bg-gray-200{% else %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200{% endif %} rounded-xl transition-colors font-medium text-sm">
+                            <i class="fas fa-{% if filiere.est_active %}pause{% else %}play{% endif %}"></i>
+                        </button>
+                    </form>
+                    <button onclick="confirmDeleteFiliere({{ filiere.id }}, '{{ filiere.nom }}')"
+                            class="px-3 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium text-sm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass-effect rounded-2xl p-12 text-center">
+            <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-graduation-cap text-purple-600 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Aucune filière</h3>
+            <p class="text-gray-500 mb-6">Créez votre première filière pour commencer.</p>
+            <button onclick="openFiliereModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-xl">
+                <i class="fas fa-plus mr-2"></i> Créer une filière
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modules Tab -->
+    <div id="content-modules" class="tab-content hidden">
+        <div class="glass-effect rounded-2xl p-6 mb-6 shadow-lg">
+            <button onclick="openModuleModal()"
+                    class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all flex items-center space-x-2">
+                <i class="fas fa-plus"></i>
+                <span>Nouveau Module</span>
+            </button>
+        </div>
+
+        {% if modules %}
+        <!-- Group modules by filiere -->
+        {% set modules_by_filiere = {} %}
+        {% for module in modules %}
+            {% if module.filiere_nom not in modules_by_filiere %}
+                {% set _ = modules_by_filiere.update({module.filiere_nom: []}) %}
+            {% endif %}
+            {% set _ = modules_by_filiere[module.filiere_nom].append(module) %}
+        {% endfor %}
+
+        {% for filiere_nom, filiere_modules in modules_by_filiere.items() %}
+        <div class="glass-effect rounded-2xl p-6 mb-6 shadow-lg">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-graduation-cap text-purple-600 mr-2"></i>
+                {{ filiere_nom }}
+                <span class="ml-3 px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-lg">
+                    {{ filiere_modules|length }} module(s)
+                </span>
+            </h3>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Module</th>
+                            <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Code</th>
+                            <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Semestre</th>
+                            <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Crédits</th>
+                            <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Coef.</th>
+                            <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Type</th>
+                            <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Statut</th>
+                            <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for module in filiere_modules %}
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <td class="py-3 px-4">
+                                <div class="font-semibold text-gray-800">{{ module.nom }}</div>
+                                {% if module.description %}
+                                <div class="text-xs text-gray-500 mt-1">{{ module.description[:50] }}{% if module.description|length > 50 %}...{% endif %}</div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4">
+                                {% if module.code %}
+                                <span class="font-mono text-sm text-gray-600">{{ module.code }}</span>
+                                {% else %}
+                                <span class="text-gray-400 text-sm">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">S{{ module.semestre }}</span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="font-semibold text-gray-700">{{ module.credits }}</span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="font-semibold text-gray-700">{{ module.coefficient }}</span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                {% if module.est_obligatoire %}
+                                <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">Obligatoire</span>
+                                {% else %}
+                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded">Optionnel</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                {% if module.est_actif %}
+                                <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded">
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded">
+                                    <i class="fas fa-pause-circle"></i> Inactif
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <button onclick="openEditModuleModal({{ module.id }}, {{ module.filiere_id }}, '{{ module.nom }}', '{{ module.code or '' }}', '{{ module.description or '' }}', {{ module.credits }}, {{ module.coefficient }}, {{ module.semestre }}, '{{ module.niveau or '' }}', {{ 'true' if module.est_obligatoire else 'false' }})"
+                                            class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors text-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form action="{{ url_for('toggle_module', module_id=module.id) }}" method="POST">
+                                        <button type="submit" class="px-3 py-1.5 {% if module.est_actif %}bg-gray-100 text-gray-600 hover:bg-gray-200{% else %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200{% endif %} rounded-lg transition-colors text-sm">
+                                            <i class="fas fa-{% if module.est_actif %}pause{% else %}play{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <button onclick="confirmDeleteModule({{ module.id }}, '{{ module.nom }}')"
+                                            class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="glass-effect rounded-2xl p-12 text-center">
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-book text-blue-600 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Aucun module</h3>
+            <p class="text-gray-500 mb-6">Créez votre premier module pour commencer.</p>
+            <button onclick="openModuleModal()" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-xl">
+                <i class="fas fa-plus mr-2"></i> Créer un module
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+</main>
+
+<!-- Modal: Créer Filière -->
+<div id="createFiliereModal" class="modal">
+    <div class="relative inline-block w-full max-w-2xl p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+        <form action="{{ url_for('create_filiere') }}" method="POST">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Nouvelle Filière</h3>
+                            <p class="text-purple-100 text-sm">Créez une nouvelle filière académique</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeFiliereModal()" class="text-white/80 hover:text-white p-2">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="px-8 py-6 space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nom de la filière *</label>
+                        <input type="text" name="nom" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                               placeholder="Ex: Intelligence Artificielle">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Code</label>
+                        <input type="text" name="code"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                               placeholder="Ex: IA">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Niveau</label>
+                        <select name="niveau" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <option value="">Sélectionner...</option>
+                            <option value="Licence">Licence</option>
+                            <option value="Master">Master</option>
+                            <option value="Doctorat">Doctorat</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Durée (années)</label>
+                        <input type="number" name="duree_annees" value="1" min="1" max="10"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                  placeholder="Description de la filière..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeFiliereModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold transition-colors">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 font-semibold transition-all shadow-lg">
+                    <i class="fas fa-plus mr-2"></i> Créer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Modifier Filière -->
+<div id="editFiliereModal" class="modal">
+    <div class="relative inline-block w-full max-w-2xl p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+        <form id="editFiliereForm" method="POST">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-amber-600 to-orange-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-edit text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Modifier Filière</h3>
+                            <p class="text-amber-100 text-sm">Modifiez les informations de la filière</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeEditFiliereModal()" class="text-white/80 hover:text-white p-2">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="px-8 py-6 space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nom de la filière *</label>
+                        <input type="text" name="nom" id="edit_filiere_nom" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Code</label>
+                        <input type="text" name="code" id="edit_filiere_code"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Niveau</label>
+                        <select name="niveau" id="edit_filiere_niveau" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            <option value="">Sélectionner...</option>
+                            <option value="Licence">Licence</option>
+                            <option value="Master">Master</option>
+                            <option value="Doctorat">Doctorat</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Durée (années)</label>
+                        <input type="number" name="duree_annees" id="edit_filiere_duree" min="1" max="10"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" id="edit_filiere_description" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeEditFiliereModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold transition-colors">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 font-semibold transition-all shadow-lg">
+                    <i class="fas fa-save mr-2"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Créer Module -->
+<div id="createModuleModal" class="modal">
+    <div class="relative inline-block w-full max-w-3xl p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+        <form action="{{ url_for('create_module') }}" method="POST">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-book text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Nouveau Module</h3>
+                            <p class="text-blue-100 text-sm">Créez un nouveau module pour une filière</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeModuleModal()" class="text-white/80 hover:text-white p-2">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="px-8 py-6 space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Filière *</label>
+                        <select name="filiere_id" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Sélectionner une filière...</option>
+                            {% for filiere in filieres %}
+                            <option value="{{ filiere.id }}">{{ filiere.nom }} {% if filiere.code %}({{ filiere.code }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nom du module *</label>
+                        <input type="text" name="nom" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Ex: Apprentissage Automatique">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Code</label>
+                        <input type="text" name="code"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Ex: ML101">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Semestre *</label>
+                        <select name="semestre" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="1">Semestre 1</option>
+                            <option value="2">Semestre 2</option>
+                            <option value="3">Semestre 3</option>
+                            <option value="4">Semestre 4</option>
+                            <option value="5">Semestre 5</option>
+                            <option value="6">Semestre 6</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Crédits</label>
+                        <input type="number" name="credits" value="0" min="0" max="30"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Coefficient</label>
+                        <input type="number" name="coefficient" value="1.0" min="0" max="10" step="0.5"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Niveau</label>
+                        <input type="text" name="niveau"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Ex: Master 1, Licence 2...">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" name="est_obligatoire" checked class="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                            <span class="text-sm font-semibold text-gray-700">Module obligatoire</span>
+                        </label>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="Description du module..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeModuleModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold transition-colors">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-semibold transition-all shadow-lg">
+                    <i class="fas fa-plus mr-2"></i> Créer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Modifier Module -->
+<div id="editModuleModal" class="modal">
+    <div class="relative inline-block w-full max-w-3xl p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+        <form id="editModuleForm" method="POST">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-amber-600 to-orange-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-edit text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Modifier Module</h3>
+                            <p class="text-amber-100 text-sm">Modifiez les informations du module</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeEditModuleModal()" class="text-white/80 hover:text-white p-2">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="px-8 py-6 space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nom du module *</label>
+                        <input type="text" name="nom" id="edit_module_nom" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Code</label>
+                        <input type="text" name="code" id="edit_module_code"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Semestre *</label>
+                        <select name="semestre" id="edit_module_semestre" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            <option value="1">Semestre 1</option>
+                            <option value="2">Semestre 2</option>
+                            <option value="3">Semestre 3</option>
+                            <option value="4">Semestre 4</option>
+                            <option value="5">Semestre 5</option>
+                            <option value="6">Semestre 6</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Crédits</label>
+                        <input type="number" name="credits" id="edit_module_credits" min="0" max="30"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Coefficient</label>
+                        <input type="number" name="coefficient" id="edit_module_coefficient" min="0" max="10" step="0.5"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Niveau</label>
+                        <input type="text" name="niveau" id="edit_module_niveau"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" name="est_obligatoire" id="edit_module_obligatoire" class="w-5 h-5 text-amber-600 rounded focus:ring-2 focus:ring-amber-500">
+                            <span class="text-sm font-semibold text-gray-700">Module obligatoire</span>
+                        </label>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" id="edit_module_description" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeEditModuleModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold transition-colors">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 font-semibold transition-all shadow-lg">
+                    <i class="fas fa-save mr-2"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Tab switching
+function switchTab(tab) {
+    // Update buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('text-gray-600');
+    });
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab).classList.remove('text-gray-600');
+
+    // Update content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById('content-' + tab).classList.remove('hidden');
+}
+
+// Filière Modals
+function openFiliereModal() {
+    document.getElementById('createFiliereModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFiliereModal() {
+    document.getElementById('createFiliereModal').classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+function openEditFiliereModal(id, nom, code, description, niveau, duree) {
+    document.getElementById('editFiliereForm').action = `/admin/filieres/${id}/edit`;
+    document.getElementById('edit_filiere_nom').value = nom;
+    document.getElementById('edit_filiere_code').value = code;
+    document.getElementById('edit_filiere_description').value = description;
+    document.getElementById('edit_filiere_niveau').value = niveau;
+    document.getElementById('edit_filiere_duree').value = duree;
+    document.getElementById('editFiliereModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditFiliereModal() {
+    document.getElementById('editFiliereModal').classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+function confirmDeleteFiliere(id, nom) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la filière "${nom}" ?\n\nTous les modules associés seront également supprimés.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/filieres/${id}/delete`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Module Modals
+function openModuleModal() {
+    document.getElementById('createModuleModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModuleModal() {
+    document.getElementById('createModuleModal').classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+function openEditModuleModal(id, filiereId, nom, code, description, credits, coefficient, semestre, niveau, estObligatoire) {
+    document.getElementById('editModuleForm').action = `/admin/modules/${id}/edit`;
+    document.getElementById('edit_module_nom').value = nom;
+    document.getElementById('edit_module_code').value = code;
+    document.getElementById('edit_module_description').value = description;
+    document.getElementById('edit_module_credits').value = credits;
+    document.getElementById('edit_module_coefficient').value = coefficient;
+    document.getElementById('edit_module_semestre').value = semestre;
+    document.getElementById('edit_module_niveau').value = niveau;
+    document.getElementById('edit_module_obligatoire').checked = estObligatoire;
+    document.getElementById('editModuleModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModuleModal() {
+    document.getElementById('editModuleModal').classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+function confirmDeleteModule(id, nom) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le module "${nom}" ?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/modules/${id}/delete`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Close modals on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFiliereModal();
+        closeEditFiliereModal();
+        closeModuleModal();
+        closeEditModuleModal();
+    }
+});
+
+// Close modals on background click
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+</script>
+
+</body>
+</html>
+

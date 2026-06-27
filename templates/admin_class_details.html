@@ -188,6 +188,13 @@
                         </h2>
                         <div class="flex items-center gap-4">
                             <span class="text-sm text-gray-600">Total: <span class="font-bold text-teal-600">{{ etudiants|length }}</span></span>
+                            {% set filiere_enc = filiere|urlencode %}
+                            {% set niveau_enc = niveau|urlencode %}
+                            <a href="{{ url_for('admin_class_credentials_print', filiere=filiere_enc, niveau=niveau_enc) }}"
+                               target="_blank"
+                               class="text-xs font-semibold bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800">
+                                <i class="fas fa-print mr-1"></i> Imprimer identifiants
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -199,6 +206,8 @@
                             <tr>
                                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nom complet</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Identifiant</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mot de passe</th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Téléphone</th>
                                 {% if classe_exists %}
@@ -224,9 +233,20 @@
                                         </div>
                                         <div>
                                             <div class="text-sm font-bold text-gray-900">{{ etudiant.nom }} {{ etudiant.prenom }}</div>
-                                            <div class="text-xs text-gray-500">ID: {{ etudiant.id }}</div>
                                         </div>
                                     </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <code class="text-sm font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-1 rounded">{{ etudiant.identifiant or '—' }}</code>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if etudiant.password_temp %}
+                                    <code class="text-sm font-mono text-amber-800 bg-amber-50 px-2 py-1 rounded border border-amber-200">{{ etudiant.password_temp }}</code>
+                                    {% elif etudiant.must_change_password %}
+                                    <span class="text-xs text-gray-400">Modifié par l'étudiant</span>
+                                    {% else %}
+                                    <span class="text-xs text-gray-400">—</span>
+                                    {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center text-sm text-gray-700">
@@ -254,6 +274,11 @@
                                 {% endif %}
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex items-center gap-3">
+                                        <a href="{{ url_for('admin_student_credentials_print', etudiant_id=etudiant.id) }}"
+                                           target="_blank"
+                                           class="text-slate-700 hover:text-slate-900" title="Imprimer identifiants">
+                                            <i class="fas fa-print"></i>
+                                        </a>
                                         <a href="{{ url_for('admin_bulletin', etudiant_id=etudiant.id) }}" 
                                            class="text-teal-600 hover:text-teal-800 transition-colors" 
                                            title="Voir le bulletin">

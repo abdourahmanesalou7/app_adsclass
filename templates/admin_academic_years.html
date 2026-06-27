@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Années Académiques - AdsClass Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+        }
+        .timeline-connector {
+            position: absolute;
+            left: 28px;
+            top: 80px;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #6366f1, #a855f7);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="glass-effect sticky top-0 z-50 shadow-lg border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('admin_home') }}" class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-calendar-alt text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Années Académiques</h1>
+                        <p class="text-xs text-gray-500">Gestion des périodes scolaires</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="openModal()" 
+                        class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Nouvelle Année</span>
+                </button>
+                <a href="{{ url_for('admin_home') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2.5 rounded-xl transition-all">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="max-w-7xl mx-auto px-6 pt-4">
+    {% for category, message in messages %}
+    <div class="p-4 rounded-xl mb-2 {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+        <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Années</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ years|length }}</p>
+                </div>
+                <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-layer-group text-blue-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Année Active</p>
+                    <p class="text-2xl font-bold text-emerald-600">
+                        {% for y in years if y.est_active %}{{ y.nom }}{% endfor %}
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-emerald-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Archivées</p>
+                    <p class="text-3xl font-bold text-gray-800">
+                        {{ years|selectattr('est_archivee')|list|length }}
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-archive text-gray-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline des années -->
+    <div class="glass-effect rounded-3xl p-8 shadow-xl">
+        <h2 class="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+            <i class="fas fa-history text-emerald-600 mr-3"></i>
+            Historique des Années Académiques
+        </h2>
+        
+        <div class="space-y-6 relative">
+            {% for year in years %}
+            <div class="relative pl-16">
+                <!-- Timeline dot -->
+                <div class="absolute left-0 top-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg
+                    {% if year.est_active %}bg-gradient-to-br from-emerald-500 to-teal-500
+                    {% elif year.est_archivee %}bg-gray-300
+                    {% else %}bg-gradient-to-br from-blue-500 to-indigo-500{% endif %}">
+                    <i class="fas {% if year.est_active %}fa-play{% elif year.est_archivee %}fa-archive{% else %}fa-calendar{% endif %} text-white text-xl"></i>
+                </div>
+                
+                <!-- Connector line -->
+                {% if not loop.last %}
+                <div class="absolute left-7 top-20 bottom-0 w-0.5 bg-gradient-to-b from-gray-300 to-transparent h-16"></div>
+                {% endif %}
+                
+                <!-- Year Card -->
+                <div class="card-hover bg-white rounded-2xl p-6 shadow-lg border 
+                    {% if year.est_active %}border-emerald-200 ring-2 ring-emerald-100{% else %}border-gray-100{% endif %}">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h3 class="text-xl font-bold text-gray-800">{{ year.nom }}</h3>
+                                {% if year.est_active %}
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full animate-pulse">
+                                    <i class="fas fa-circle text-xs mr-1"></i> ACTIVE
+                                </span>
+                                {% endif %}
+                                {% if year.est_archivee %}
+                                <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full">
+                                    <i class="fas fa-archive mr-1"></i> Archivée
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-gray-500 text-sm mb-3">
+                                <i class="fas fa-calendar-day mr-2"></i>
+                                {{ year.date_debut.strftime('%d/%m/%Y') if year.date_debut else 'N/A' }} 
+                                <i class="fas fa-arrow-right mx-2 text-xs"></i>
+                                {{ year.date_fin.strftime('%d/%m/%Y') if year.date_fin else 'N/A' }}
+                            </p>
+                            {% if year.description %}
+                            <p class="text-gray-600 text-sm">{{ year.description }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div class="flex items-center space-x-4">
+                            <div class="text-center px-4 py-2 bg-blue-50 rounded-xl">
+                                <p class="text-2xl font-bold text-blue-600">{{ year.nb_cours or 0 }}</p>
+                                <p class="text-xs text-gray-500">Cours</p>
+                            </div>
+                            <div class="text-center px-4 py-2 bg-green-50 rounded-xl">
+                                <p class="text-2xl font-bold text-green-600">{{ year.nb_paiements or 0 }}</p>
+                                <p class="text-xs text-gray-500">Paiements</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="flex items-center space-x-2">
+                            {% if not year.est_active and not year.est_archivee %}
+                            <form action="{{ url_for('activate_academic_year', year_id=year.id) }}" method="POST" class="inline">
+                                <button type="submit" class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors font-medium text-sm">
+                                    <i class="fas fa-play mr-1"></i> Activer
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if not year.est_active and not year.est_archivee %}
+                            <form action="{{ url_for('archive_academic_year', year_id=year.id) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('Archiver cette année ? Les données resteront accessibles en lecture seule.');">
+                                <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm">
+                                    <i class="fas fa-archive mr-1"></i> Archiver
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if not year.est_archivee %}
+                            <button onclick="openEditModal({{ year.id }}, '{{ year.nom }}', '{{ year.date_debut.strftime('%Y-%m-%d') if year.date_debut else '' }}', '{{ year.date_fin.strftime('%Y-%m-%d') if year.date_fin else '' }}', '{{ year.description or '' }}')"
+                                    class="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition-colors font-medium text-sm">
+                                <i class="fas fa-edit mr-1"></i> Modifier
+                            </button>
+                            {% endif %}
+                            <a href="#" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors font-medium text-sm">
+                                <i class="fas fa-eye mr-1"></i> Consulter
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-calendar-plus text-gray-400 text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Aucune année académique</h3>
+                <p class="text-gray-500 mb-6">Créez votre première année pour commencer.</p>
+                <button onclick="openModal()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold px-6 py-3 rounded-xl">
+                    <i class="fas fa-plus mr-2"></i> Créer une année
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+
+<!-- Modal Création -->
+<div id="createYearModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+
+        <div class="relative inline-block w-full max-w-lg p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+            <form action="{{ url_for('create_academic_year') }}" method="POST">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-calendar-plus text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Nouvelle Année Académique</h3>
+                                <p class="text-emerald-100 text-sm">Créez une nouvelle période scolaire</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeModal()" class="text-white/80 hover:text-white p-2">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="px-8 py-6 space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nom de l'année *</label>
+                        <input type="text" name="nom" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                               placeholder="Ex: 2024-2025" pattern="\d{4}-\d{4}">
+                        <p class="text-xs text-gray-400 mt-1">Format: AAAA-AAAA (ex: 2024-2025)</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date début *</label>
+                            <input type="date" name="date_debut" required
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date fin *</label>
+                            <input type="date" name="date_fin" required
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" rows="2"
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                  placeholder="Description optionnelle..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-8 py-4 flex items-center justify-end space-x-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModal()"
+                            class="px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-xl transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2">
+                        <i class="fas fa-check"></i>
+                        <span>Créer</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modification -->
+<div id="editYearModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeEditModal()"></div>
+
+        <div class="relative inline-block w-full max-w-lg p-0 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl">
+            <form id="editYearForm" method="POST">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-edit text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Modifier l'Année Académique</h3>
+                                <p class="text-amber-100 text-sm">Modifiez les informations de la période</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeEditModal()" class="text-white/80 hover:text-white p-2">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="px-8 py-6 space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nom de l'année *</label>
+                        <input type="text" name="nom" id="edit_nom" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                               placeholder="Ex: 2024-2025" pattern="\d{4}-\d{4}">
+                        <p class="text-xs text-gray-400 mt-1">Format: AAAA-AAAA (ex: 2024-2025)</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date début *</label>
+                            <input type="date" name="date_debut" id="edit_date_debut" required
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date fin *</label>
+                            <input type="date" name="date_fin" id="edit_date_fin" required
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" id="edit_description" rows="2"
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                  placeholder="Description optionnelle..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-8 py-4 flex items-center justify-end space-x-3 border-t border-gray-100">
+                    <button type="button" onclick="closeEditModal()"
+                            class="px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-xl transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2">
+                        <i class="fas fa-save"></i>
+                        <span>Enregistrer</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openModal() {
+    document.getElementById('createYearModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    // Auto-fill dates based on current year
+    const now = new Date();
+    const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+    document.querySelector('#createYearModal input[name="date_debut"]').value = `${year}-09-01`;
+    document.querySelector('#createYearModal input[name="date_fin"]').value = `${year + 1}-08-31`;
+    document.querySelector('#createYearModal input[name="nom"]').value = `${year}-${year + 1}`;
+}
+
+function closeModal() {
+    document.getElementById('createYearModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function openEditModal(yearId, nom, dateDebut, dateFin, description) {
+    document.getElementById('editYearForm').action = `/admin/academic-years/${yearId}/edit`;
+    document.getElementById('edit_nom').value = nom;
+    document.getElementById('edit_date_debut').value = dateDebut;
+    document.getElementById('edit_date_fin').value = dateFin;
+    document.getElementById('edit_description').value = description;
+    document.getElementById('editYearModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+    document.getElementById('editYearModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+        closeEditModal();
+    }
+});
+</script>
+
+</body>
+</html>
+

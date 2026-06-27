@@ -1,0 +1,109 @@
+{# Wizard step 1 : choisir source + cible + paramètres #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Nouvel import — ADSClass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+<nav class="bg-white border-b shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
+    <a href="{{ url_for('imports.index') }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+    <h1 class="text-xl font-bold"><i class="fas fa-plus-circle text-indigo-600 mr-2"></i> Nouvel import</h1>
+  </div>
+</nav>
+
+<main class="max-w-5xl mx-auto px-6 py-8">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-800 border border-red-200">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="bg-white rounded-xl shadow-sm border p-6">
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">1. Type de source</label>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {% for st, lbl, ico in [('excel','Excel','fa-file-excel'),('csv','CSV','fa-file-csv'),('word','Word','fa-file-word'),('mysql','MySQL','fa-database'),('api','API REST','fa-cloud')] %}
+          <label class="cursor-pointer">
+            <input type="radio" name="source_type" value="{{ st }}" class="peer hidden" required onchange="showPanel('{{ st }}')">
+            <div class="border-2 border-gray-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 rounded-xl p-4 text-center transition">
+              <i class="fas {{ ico }} text-2xl text-gray-500"></i>
+              <div class="text-sm font-medium mt-2">{{ lbl }}</div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">2. Schéma cible</label>
+        <select name="target_schema" required class="w-full border rounded-lg px-3 py-2">
+          <option value="">— Choisir —</option>
+          {% for key, label, desc in schemas %}
+            <option value="{{ key }}">{{ label }} — {{ desc }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="panel-file" class="hidden border-t pt-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">3. Fichier à importer</label>
+        <input type="file" name="file" accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt,.docx" class="w-full border rounded-lg px-3 py-2 bg-white">
+        <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle"></i> Max 25 Mo, 50 000 lignes, 80 colonnes. Formules cellule désactivées (sécurité).</p>
+      </div>
+
+      <div id="panel-mysql" class="hidden border-t pt-6 space-y-3">
+        <label class="block text-sm font-medium text-gray-700 mb-2">3. Connexion MySQL externe</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" name="mysql_host" placeholder="Hôte" class="border rounded-lg px-3 py-2">
+          <input type="number" name="mysql_port" placeholder="Port (3306)" value="3306" class="border rounded-lg px-3 py-2">
+          <input type="text" name="mysql_user" placeholder="Utilisateur" class="border rounded-lg px-3 py-2">
+          <input type="password" name="mysql_password" placeholder="Mot de passe" class="border rounded-lg px-3 py-2">
+          <input type="text" name="mysql_database" placeholder="Base de données" class="border rounded-lg px-3 py-2 md:col-span-2">
+        </div>
+        <textarea name="mysql_query" rows="4" placeholder="SELECT * FROM ma_table" class="w-full border rounded-lg px-3 py-2 font-mono text-sm"></textarea>
+        <p class="text-xs text-gray-500"><i class="fas fa-shield-alt"></i> Seules les requêtes SELECT sont autorisées.</p>
+      </div>
+
+      <div id="panel-api" class="hidden border-t pt-6 space-y-3">
+        <label class="block text-sm font-medium text-gray-700 mb-2">3. Endpoint API</label>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <select name="api_method" class="border rounded-lg px-3 py-2">
+            <option>GET</option><option>POST</option>
+          </select>
+          <input type="url" name="api_url" placeholder="https://api.exemple.com/etudiants" class="border rounded-lg px-3 py-2 md:col-span-3">
+        </div>
+        <textarea name="api_headers" rows="2" placeholder="Authorization: Bearer xxx&#10;Accept: application/json" class="w-full border rounded-lg px-3 py-2 font-mono text-xs"></textarea>
+        <textarea name="api_params" rows="2" placeholder="page: 1&#10;limit: 100" class="w-full border rounded-lg px-3 py-2 font-mono text-xs"></textarea>
+        <input type="text" name="api_data_path" placeholder="Chemin données dans réponse JSON (ex: result.items)" class="w-full border rounded-lg px-3 py-2">
+      </div>
+
+      <div class="flex justify-end gap-3 border-t pt-6">
+        <a href="{{ url_for('imports.index') }}" class="px-4 py-2 rounded-lg border hover:bg-gray-100">Annuler</a>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium">
+          <i class="fas fa-upload mr-1"></i> Extraire vers staging
+        </button>
+      </div>
+    </form>
+  </div>
+
+</main>
+
+<script>
+function showPanel(src) {
+  document.getElementById('panel-file').classList.add('hidden');
+  document.getElementById('panel-mysql').classList.add('hidden');
+  document.getElementById('panel-api').classList.add('hidden');
+  if (['excel','csv','word'].includes(src)) document.getElementById('panel-file').classList.remove('hidden');
+  if (src === 'mysql') document.getElementById('panel-mysql').classList.remove('hidden');
+  if (src === 'api')   document.getElementById('panel-api').classList.remove('hidden');
+}
+</script>
+</body>
+</html>

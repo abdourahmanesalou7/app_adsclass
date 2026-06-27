@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attestation - {{ demande.numero_attestation }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Crimson Text', serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+        }
+        
+        .attestation-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* En-tête avec logo */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 40px;
+            color: white;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 50%, 0 100%);
+        }
+
+        .logo-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .logo {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .institution-info {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 9px;
+            line-height: 1.5;
+            text-align: right;
+            opacity: 0.95;
+        }
+
+        .institution-name {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        /* Corps du document */
+        .content {
+            padding: 50px 40px 40px;
+            position: relative;
+        }
+        
+        /* Filigrane */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            font-weight: 700;
+            color: rgba(102, 126, 234, 0.03);
+            font-family: 'Montserrat', sans-serif;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .content > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Titre */
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title-box {
+            display: inline-block;
+            border: 3px solid #333;
+            padding: 10px 40px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Texte principal */
+        .main-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #2d3748;
+            margin-bottom: 25px;
+            text-align: justify;
+        }
+
+        .main-text p {
+            margin-bottom: 15px;
+        }
+
+        .student-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: #000;
+            text-transform: uppercase;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: #000;
+        }
+        
+        /* Date et lieu */
+        .date-location {
+            font-size: 14px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        /* Signature */
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .signature-block {
+            text-align: center;
+        }
+
+        .signature-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .signature-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 40px;
+        }
+
+        .stamp {
+            width: 120px;
+            height: 120px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: #667eea;
+            font-size: 11px;
+            text-align: center;
+            line-height: 1.3;
+            transform: rotate(-15deg);
+            opacity: 0.8;
+        }
+
+        /* Pied de page */
+        .footer {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            padding: 15px 40px;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 7.5px;
+            line-height: 1.4;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-left, .footer-right {
+            flex: 1;
+        }
+
+        .footer-right {
+            text-align: right;
+        }
+
+        /* Blockchain badge */
+        .blockchain-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 8px;
+        }
+
+        .blockchain-badge .title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9px;
+        }
+
+        .blockchain-hash {
+            font-family: 'Courier New', monospace;
+            font-size: 7px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        /* Numéro d'attestation */
+        .attestation-number {
+            position: absolute;
+            top: 15px;
+            right: 40px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .attestation-number strong {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        /* Bouton d'impression */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .print-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .attestation-container {
+                box-shadow: none;
+                width: 100%;
+                min-height: 100vh;
+            }
+
+            .print-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-button" onclick="window.print()">
+    <i class="fas fa-print"></i> Imprimer l'attestation
+</button>
+
+<div class="attestation-container">
+    <!-- Filigrane -->
+    <div class="watermark">ADSCLASS</div>
+
+    <!-- En-tête -->
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo">
+                <i class="fas fa-university"></i> AdsClass
+            </div>
+            <div class="institution-info">
+                <div class="institution-name">École Supérieure de Gestion et Commerce</div>
+                <div>Établissement d'Enseignement Supérieur Privé</div>
+                <div>Reconnu par le Ministère de l'Enseignement Supérieur</div>
+                <div style="margin-top: 5px; font-weight: 600;">Rabat - Royaume du Maroc</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Corps -->
+    <div class="content">
+        <!-- Numéro d'attestation -->
+        <div class="attestation-number">
+            N° <strong>{{ demande.numero_attestation }}</strong>
+        </div>
+
+        <!-- Titre -->
+        <div class="title">
+            <div class="title-box">
+                {{ demande.type_attestation|upper }}
+            </div>
+        </div>
+
+        <!-- Texte principal -->
+        <div class="main-text">
+            <p>
+                Le Directeur Général de l'<strong>École Supérieure de Gestion et Commerce AdsClass</strong>, établissement d'enseignement supérieur privé reconnu par l'État, certifie par la présente que :
+            </p>
+
+            <p>
+                <span class="student-name">{{ demande.nom|upper }} {{ demande.prenom|title }}</span>,
+                {% if demande.date_naissance %}
+                né(e) le <span class="highlight">{{ demande.date_naissance.strftime('%d/%m/%Y') if demande.date_naissance is not string else demande.date_naissance }}</span>,
+                {% endif %}
+                titulaire du numéro d'inscription <span class="highlight">{{ demande.etudiant_id }}</span>,
+
+                {% if demande.type_attestation == 'Attestation de réussite' %}
+                a satisfait avec succès aux exigences académiques de la <span class="highlight">{{ demande.niveau or 'N/A' }}</span> année du programme de formation en <span class="highlight">{{ demande.filiere or 'N/A' }}</span>, dispensé au titre de l'année universitaire <span class="highlight">{{ year_name or '2024/2025' }}</span>, conformément aux standards pédagogiques en vigueur.
+                {% elif demande.type_attestation == 'Attestation de scolarité' %}
+                poursuit régulièrement ses études en <span class="highlight">{{ demande.niveau or 'N/A' }}</span> année du cycle de formation en <span class="highlight">{{ demande.filiere or 'N/A' }}</span>, au titre de l'année universitaire <span class="highlight">{{ year_name or '2024/2025' }}</span>, et est inscrit(e) à temps plein dans notre établissement.
+                {% elif demande.type_attestation == "Attestation d'inscription" %}
+                est dûment inscrit(e) en <span class="highlight">{{ demande.niveau or 'N/A' }}</span> année du programme de formation en <span class="highlight">{{ demande.filiere or 'N/A' }}</span>, pour l'année universitaire <span class="highlight">{{ year_name or '2024/2025' }}</span>, et bénéficie du statut d'étudiant(e) régulier(ère) au sein de notre institution.
+                {% elif demande.type_attestation == 'Relevé de notes' %}
+                est inscrit(e) en <span class="highlight">{{ demande.niveau or 'N/A' }}</span> année du cursus <span class="highlight">{{ demande.filiere or 'N/A' }}</span>, et que le présent relevé de notes reflète fidèlement ses résultats académiques pour l'année universitaire <span class="highlight">{{ year_name or '2024/2025' }}</span>.
+                {% else %}
+                est étudiant(e) régulier(ère) en <span class="highlight">{{ demande.niveau or 'N/A' }}</span> année de la filière <span class="highlight">{{ demande.filiere or 'N/A' }}</span> au sein de notre établissement.
+                {% endif %}
+            </p>
+
+            <p>
+                La présente attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.
+            </p>
+        </div>
+
+        <!-- Date et lieu -->
+        <div class="date-location">
+            En foi de quoi, la présente attestation a été établie et délivrée à Rabat, le {{ demande.date_signature_directeur.strftime('%d %B %Y') if demande.date_signature_directeur else 'Date' }}.
+        </div>
+
+        <!-- Section signature -->
+        <div class="signature-section">
+            <div class="signature-block">
+                <div class="stamp">
+                    <div>
+                        ÉCOLE<br>
+                        ADSCLASS<br>
+                        <i class="fas fa-star"></i><br>
+                        RABAT
+                    </div>
+                </div>
+            </div>
+
+            <div class="signature-block">
+                <div class="signature-title">Le Directeur Général</div>
+                {% if demande.directeur_nom %}
+                <div class="signature-name">{{ demande.directeur_prenom|title }} {{ demande.directeur_nom|upper }}</div>
+                {% else %}
+                <div class="signature-name">Siham EL FILALI</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Badge Blockchain -->
+        {% if signature_valide and demande.hash_signature %}
+        <div class="blockchain-badge">
+            <div class="title">
+                <i class="fas fa-shield-check"></i>
+                <span>Authentification Blockchain Certifiée</span>
+            </div>
+            <div style="font-size: 11px; opacity: 0.95; line-height: 1.6;">
+                Ce document officiel est protégé par une signature numérique cryptographique SHA-256
+                et enregistré dans une blockchain sécurisée. Toute modification ultérieure sera détectable.
+                <br><strong>Empreinte numérique de vérification :</strong>
+            </div>
+            <div class="blockchain-hash">
+                {{ demande.hash_signature }}
+            </div>
+            <div style="margin-top: 10px; font-size: 10px; opacity: 0.9;">
+                <i class="fas fa-calendar-check"></i> Date de signature électronique : {{ demande.date_signature_directeur.strftime('%d/%m/%Y à %H:%M:%S') if demande.date_signature_directeur else 'N/A' }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pied de page -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <strong style="font-size: 11px; letter-spacing: 1px;">ADSCLASS</strong> - École Supérieure de Gestion et Commerce<br>
+                <strong>Siège Social :</strong> 4, Rue Talipa - Secteur 18 - Hay Riad - 10100 - Rabat - Royaume du Maroc<br>
+                <strong>RC :</strong> 136719 | <strong>Patente N° :</strong> 25563982 | <strong>ICE :</strong> 001599520000035
+            </div>
+            <div class="footer-right">
+                <strong>Attestation CNSS N° :</strong> 2118830<br>
+                <strong>Tél :</strong> +212 (0) 5 37 67 12 76<br>
+                <strong>Email :</strong> contact@adsclass.ma<br>
+                <strong>Web :</strong> www.adsclass.ma
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-print après 1 seconde (optionnel)
+// setTimeout(() => window.print(), 1000);
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement inscription — AdsClass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-indigo-950 min-h-screen flex items-center justify-center p-4 text-white">
+
+{% if deja_paye %}
+<div class="bg-white rounded-3xl p-10 max-w-md w-full text-center shadow-2xl text-gray-800">
+    <i class="fas fa-check-circle text-emerald-500 text-5xl mb-4"></i>
+    <h1 class="text-2xl font-bold mb-2">Paiement déjà effectué</h1>
+    <p class="text-gray-600">Merci {{ candidat.prenom }}, votre inscription est en cours de finalisation.</p>
+</div>
+{% else %}
+<div class="max-w-lg w-full">
+    <div class="text-center mb-8">
+        <div class="w-14 h-14 bg-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-credit-card text-xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold">Frais d'inscription</h1>
+        <p class="text-slate-400 text-sm mt-1">Dossier {{ candidat.reference }}</p>
+    </div>
+
+    <div class="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10 mb-6">
+        <div class="flex justify-between mb-2">
+            <span class="text-slate-400">Candidat</span>
+            <span class="font-semibold">{{ candidat.prenom }} {{ candidat.nom }}</span>
+        </div>
+        <div class="flex justify-between mb-2">
+            <span class="text-slate-400">Programme</span>
+            <span>{{ candidat.filiere_nom or candidat.programme_souhaite or 'AdsClass' }}</span>
+        </div>
+        <div class="flex justify-between pt-4 border-t border-white/10">
+            <span class="text-lg">Total</span>
+            <span class="text-3xl font-bold text-emerald-400">{{ montant|int }} FCFA</span>
+        </div>
+    </div>
+
+    <div class="space-y-3">
+        {% if stripe_ok %}
+        <form method="POST" action="{{ url_for('public_payment_stripe', token=token) }}">
+            <button type="submit" class="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold transition-all">
+                <i class="fab fa-stripe text-2xl"></i> Payer par carte (Stripe)
+            </button>
+        </form>
+        {% endif %}
+
+        {% if flutterwave_ok %}
+        <form method="POST" action="{{ url_for('public_payment_mobile', token=token) }}">
+            <input type="hidden" name="provider" value="mobilemoney">
+            <button type="submit" class="w-full flex items-center justify-center gap-3 bg-orange-500 hover:bg-orange-400 py-4 rounded-2xl font-bold transition-all">
+                <i class="fas fa-mobile-alt"></i> Orange Money / Airtel / Mobile Money
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('public_payment_mobile', token=token) }}">
+            <input type="hidden" name="provider" value="orange_money">
+            <button type="submit" class="w-full flex items-center justify-center gap-3 bg-orange-600/80 hover:bg-orange-500 py-3 rounded-xl font-semibold text-sm">
+                <i class="fas fa-signal"></i> Orange Money Niger
+            </button>
+        </form>
+        {% endif %}
+
+        {% if not stripe_ok and not flutterwave_ok %}
+        <div class="bg-amber-500/20 border border-amber-500/30 rounded-xl p-4 text-sm text-amber-200">
+            <i class="fas fa-info-circle mr-1"></i> Paiement en ligne en cours de configuration. Contactez le service admissions.
+        </div>
+        {% endif %}
+    </div>
+
+    <p class="text-center text-xs text-slate-500 mt-6">
+        Paiement sécurisé · AdsClass Admissions<br>
+        Nita · Amana · Zamani via Flutterwave
+    </p>
+</div>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistant IA - AdsClass Étudiant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+
+    /* Scrollbar personnalisé */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #6366f1, #a855f7); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: linear-gradient(to bottom, #4f46e5, #9333ea); }
+
+    /* Animations */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); } 50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.6); } }
+    @keyframes typing { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+    @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+    .animate-fade-in-up { animation: fadeInUp 0.3s ease-out; }
+    .typing-dot { animation: typing 1.4s ease-in-out infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    .pulse-glow { animation: pulse-glow 2s infinite; }
+
+    /* Gradient animé */
+    .animated-gradient {
+      background: linear-gradient(-45deg, #6366f1, #8b5cf6, #a855f7, #ec4899);
+      background-size: 400% 400%;
+      animation: gradient-shift 8s ease infinite;
+    }
+
+    /* Message styles */
+    .message-user { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); }
+    .message-bot { background: #ffffff; border: 1px solid #e5e7eb; }
+
+    /* Sidebar */
+    .sidebar-gradient { background: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #3730a3 100%); }
+    .sidebar-item:hover { background: rgba(255,255,255,0.1); }
+    .sidebar-item.active { background: rgba(255,255,255,0.15); border-left: 3px solid #a855f7; }
+
+    /* Input glow effect */
+    .input-glow:focus-within { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3); }
+
+    /* Bot message formatting */
+    .bot-message p { margin-bottom: 0.75rem; line-height: 1.7; }
+    .bot-message ul, .bot-message ol { margin-left: 1.5rem; margin-bottom: 0.75rem; }
+    .bot-message li { margin-bottom: 0.375rem; }
+    .bot-message strong { font-weight: 600; color: #4f46e5; }
+    .bot-message h3, .bot-message h4 { font-weight: 700; color: #1e293b; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .bot-message code { background: #f1f5f9; color: #6366f1; padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875rem; }
+    .bot-message blockquote { border-left: 3px solid #8b5cf6; padding-left: 1rem; color: #64748b; margin: 0.75rem 0; }
+
+    /* Suggestion chips */
+    .suggestion-chip {
+      transition: all 0.2s ease;
+      background: linear-gradient(135deg, #f0f9ff 0%, #ede9fe 100%);
+    }
+    .suggestion-chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+      background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+    }
+
+    /* Sources badge */
+    .source-badge {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 1px solid #bbf7d0;
+    }
+
+    /* Confidence indicator */
+    .confidence-high { color: #22c55e; }
+    .confidence-medium { color: #eab308; }
+    .confidence-low { color: #ef4444; }
+
+    /* Fullscreen mode */
+    .fullscreen-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+      z-index: 9999 !important;
+    }
+  </style>
+</head>
+<body class="h-full bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30">
+  <div id="chatbot-container" class="flex h-full">
+    
+    <!-- Sidebar -->
+    <aside class="w-72 sidebar-gradient text-white flex flex-col shadow-xl">
+      <!-- Logo -->
+      <div class="p-4 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg pulse-glow">
+            <i class="fas fa-brain text-white text-lg"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">AdsClass AI</h1>
+            <p class="text-xs text-indigo-300">Assistant Étudiant</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- New Chat Button -->
+      <div class="p-3">
+        <button onclick="startNewConversation()" class="w-full flex items-center gap-3 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-medium border border-white/10 hover:border-white/20">
+          <i class="fas fa-plus"></i>
+          <span>Nouvelle conversation</span>
+        </button>
+      </div>
+      
+      <!-- Conversations History -->
+      <div class="flex-1 overflow-y-auto px-3 py-2">
+        <p class="text-xs text-indigo-300 uppercase tracking-wider mb-2 px-2">Historique</p>
+        <div id="conversations-list" class="space-y-1">
+          <!-- Conversations dynamiques -->
+        </div>
+      </div>
+      
+      <!-- Topics/Categories -->
+      <div class="p-3 border-t border-white/10">
+        <p class="text-xs text-indigo-300 uppercase tracking-wider mb-2 px-2">Thèmes populaires</p>
+        <div class="space-y-1" id="popular-topics">
+          <button onclick="sendCommand('Qu\\'est-ce que le Big Data ?')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-indigo-200 hover:text-white transition-all">
+            <i class="fas fa-database text-purple-400 w-5"></i>
+            <span>Big Data</span>
+          </button>
+          <button onclick="sendCommand('Explique-moi le Machine Learning')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-indigo-200 hover:text-white transition-all">
+            <i class="fas fa-robot text-pink-400 w-5"></i>
+            <span>Machine Learning</span>
+          </button>
+          <button onclick="sendCommand('Comment fonctionne Spark ?')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-indigo-200 hover:text-white transition-all">
+            <i class="fas fa-bolt text-yellow-400 w-5"></i>
+            <span>Apache Spark</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- User Profile -->
+      <div class="p-3 border-t border-white/10">
+        <a href="{{ url_for('student_dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all">
+          <div class="w-9 h-9 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+            {{ session.get('prenom', 'E')[0] }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium truncate">{{ session.get('prenom', 'Étudiant') }} {{ session.get('nom', '') }}</p>
+            <p class="text-xs text-indigo-300">{{ session.get('filiere', '') }} {{ session.get('niveau', '') }}</p>
+          </div>
+          <i class="fas fa-arrow-left text-indigo-300 hover:text-white transition-colors"></i>
+        </a>
+      </div>
+    </aside>
+    
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col bg-white/80 backdrop-blur-sm">
+      <!-- Header -->
+      <header class="px-6 py-4 border-b border-gray-200/50 animated-gradient">
+        <div class="flex items-center justify-between max-w-4xl mx-auto">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <i class="fas fa-brain text-white"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white" id="conversation-title">AdsClass AI</h2>
+              <p class="text-xs text-white/80 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                En ligne
+              </p>
+            </div>
+            <span id="doc-count-badge" class="px-2 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full">
+              <i class="fas fa-file-pdf mr-1"></i>
+              <span id="doc-count">0</span> documents
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleFullscreen()" id="fullscreen-btn" class="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all" title="Agrandir">
+              <i class="fas fa-expand"></i>
+            </button>
+            <button onclick="clearConversation()" class="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all" title="Effacer">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button onclick="window.location.href='{{ url_for('student_dashboard') }}'" class="p-2.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all" title="Fermer">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Messages Container -->
+      <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-6">
+        <div class="max-w-4xl mx-auto space-y-6" id="messages-list">
+          <!-- Welcome Message -->
+          <div class="flex gap-4 animate-fade-in-up">
+            <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+              <i class="fas fa-brain text-white"></i>
+            </div>
+            <div class="flex-1">
+              <div class="message-bot rounded-2xl rounded-tl-none p-5 max-w-3xl shadow-sm">
+                <div class="bot-message text-gray-700">
+                  <p class="text-lg font-semibold mb-3 text-gray-800">👋 Bonjour {{ session.get('prenom', 'Étudiant') }} !</p>
+                  <p>Je suis votre <strong>assistant IA personnel</strong>, spécialement conçu pour vous aider à comprendre vos cours. Je peux analyser les documents PDF de vos professeurs et répondre à vos questions.</p>
+
+                  <div class="grid grid-cols-2 gap-3 mt-4 mb-4">
+                    <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-3 border border-indigo-100">
+                      <i class="fas fa-book text-indigo-600 text-lg mb-1"></i>
+                      <p class="text-sm font-medium text-gray-700">Définitions</p>
+                      <p class="text-xs text-gray-500">Concepts & termes</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 border border-purple-100">
+                      <i class="fas fa-cogs text-purple-600 text-lg mb-1"></i>
+                      <p class="text-sm font-medium text-gray-700">Explications</p>
+                      <p class="text-xs text-gray-500">Comment ça marche</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl p-3 border border-pink-100">
+                      <i class="fas fa-lightbulb text-pink-600 text-lg mb-1"></i>
+                      <p class="text-sm font-medium text-gray-700">Exemples</p>
+                      <p class="text-xs text-gray-500">Cas pratiques</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-100">
+                      <i class="fas fa-balance-scale text-emerald-600 text-lg mb-1"></i>
+                      <p class="text-sm font-medium text-gray-700">Comparaisons</p>
+                      <p class="text-xs text-gray-500">Différences clés</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Suggestion chips -->
+              <div class="flex flex-wrap gap-2 mt-3" id="welcome-suggestions">
+                <button onclick="sendCommand('Qu\\'est-ce que Hadoop ?')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-indigo-700 border border-indigo-200">
+                  🐘 Qu'est-ce que Hadoop ?
+                </button>
+                <button onclick="sendCommand('Explique-moi MapReduce')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-purple-700 border border-purple-200">
+                  🗺️ Explique MapReduce
+                </button>
+                <button onclick="sendCommand('Différence entre SQL et NoSQL')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-pink-700 border border-pink-200">
+                  🔄 SQL vs NoSQL
+                </button>
+                <button onclick="sendCommand('Quels documents sont disponibles ?')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-emerald-700 border border-emerald-200">
+                  📚 Mes documents
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="border-t border-gray-200/50 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-purple-50/30 p-4">
+        <div class="max-w-4xl mx-auto">
+          <form id="chat-form" class="relative">
+            <div class="input-glow flex items-end gap-3 bg-white rounded-2xl border border-gray-300 p-2 transition-all shadow-sm">
+              <textarea
+                id="chat-input"
+                rows="1"
+                placeholder="Posez votre question sur vos cours... (Ex: Qu'est-ce que le Big Data ?)"
+                class="flex-1 resize-none bg-transparent px-4 py-3 text-gray-700 focus:outline-none text-sm leading-relaxed"
+                style="max-height: 200px;"
+              ></textarea>
+              <button type="submit" id="send-btn" class="p-3 animated-gradient text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+            <p class="text-center text-xs text-gray-400 mt-2">
+              <kbd class="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Entrée</kbd> pour envoyer •
+              <kbd class="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Shift+Entrée</kbd> pour nouvelle ligne •
+              <span class="text-indigo-500">✨ Propulsé par IA</span>
+            </p>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // === STATE ===
+    let conversationHistory = [];
+    let messageCount = 0;
+
+    // === DOM Elements ===
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const messagesList = document.getElementById('messages-list');
+    const messagesContainer = document.getElementById('messages-container');
+
+    // === INITIALIZE ===
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDocumentCount();
+      loadConversationHistory();
+    });
+
+    // === AUTO-RESIZE TEXTAREA ===
+    chatInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+    });
+
+    // === HANDLE ENTER KEY ===
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // === LOAD DOCUMENT COUNT ===
+    async function loadDocumentCount() {
+      try {
+        const response = await fetch('/api/chatbot/documents');
+        const data = await response.json();
+        document.getElementById('doc-count').textContent = data.count || 0;
+      } catch (e) {
+        console.error('Erreur chargement documents:', e);
+      }
+    }
+
+    // === LOAD CONVERSATION HISTORY ===
+    function loadConversationHistory() {
+      const saved = localStorage.getItem('student_chat_history');
+      if (saved) {
+        try {
+          const history = JSON.parse(saved);
+          displayConversationsList(history);
+        } catch (e) {}
+      }
+    }
+
+    function displayConversationsList(history) {
+      const container = document.getElementById('conversations-list');
+      container.innerHTML = '';
+
+      if (!history || history.length === 0) {
+        container.innerHTML = '<p class="text-xs text-indigo-300/60 px-2 italic">Aucune conversation</p>';
+        return;
+      }
+
+      history.slice(-10).reverse().forEach((conv, idx) => {
+        const div = document.createElement('div');
+        div.className = 'sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-indigo-200 hover:text-white cursor-pointer transition-all';
+        div.innerHTML = `
+          <i class="fas fa-comment-dots text-indigo-400 w-5"></i>
+          <span class="truncate flex-1">${escapeHtml(conv.title || 'Conversation')}</span>
+        `;
+        div.onclick = () => loadConversation(conv);
+        container.appendChild(div);
+      });
+    }
+
+    function saveConversation() {
+      if (conversationHistory.length === 0) return;
+
+      const saved = localStorage.getItem('student_chat_history');
+      let history = saved ? JSON.parse(saved) : [];
+
+      const title = conversationHistory[0]?.content?.substring(0, 30) + '...' || 'Conversation';
+      history.push({
+        id: Date.now(),
+        title: title,
+        messages: conversationHistory,
+        date: new Date().toISOString()
+      });
+
+      // Garder les 20 dernières conversations
+      if (history.length > 20) history = history.slice(-20);
+      localStorage.setItem('student_chat_history', JSON.stringify(history));
+      displayConversationsList(history);
+    }
+
+    function loadConversation(conv) {
+      clearConversation(false);
+      conversationHistory = conv.messages || [];
+
+      conversationHistory.forEach(msg => {
+        if (msg.role === 'user') {
+          addUserMessage(msg.content, false);
+        } else {
+          addBotMessage(msg.content, msg.type || 'text', null, null, false);
+        }
+      });
+
+      document.getElementById('conversation-title').textContent = conv.title || 'Conversation';
+    }
+
+    // === SEND MESSAGE ===
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      // Masquer les suggestions de bienvenue
+      const welcomeSuggestions = document.getElementById('welcome-suggestions');
+      if (welcomeSuggestions) welcomeSuggestions.style.display = 'none';
+
+      addUserMessage(message);
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+
+      const loadingId = addLoadingMessage();
+
+      try {
+        const response = await fetch('/api/chatbot/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: message })
+        });
+
+        const data = await response.json();
+        removeLoadingMessage(loadingId);
+
+        if (data.error) {
+          addBotMessage('❌ ' + data.error, 'error');
+        } else {
+          addBotMessage(data.response, 'success', data.sources, data);
+        }
+
+        saveConversation();
+      } catch (error) {
+        removeLoadingMessage(loadingId);
+        addBotMessage('❌ Erreur de connexion. Veuillez réessayer.', 'error');
+      }
+    });
+
+    function sendCommand(text) {
+      chatInput.value = text;
+      chatForm.dispatchEvent(new Event('submit'));
+    }
+
+    // === ADD USER MESSAGE ===
+    function addUserMessage(text, save = true) {
+      messageCount++;
+      const div = document.createElement('div');
+      div.className = 'flex gap-4 justify-end animate-fade-in-up';
+      div.innerHTML = `
+        <div class="flex-1 flex justify-end">
+          <div class="message-user rounded-2xl rounded-tr-none p-4 max-w-3xl text-white shadow-md">
+            <p class="text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>
+          </div>
+        </div>
+        <div class="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <i class="fas fa-user text-white"></i>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      scrollToBottom();
+
+      if (save) {
+        conversationHistory.push({ role: 'user', content: text });
+      }
+    }
+
+    // === ADD BOT MESSAGE ===
+    function addBotMessage(text, type = 'text', sources = null, data = null, save = true) {
+      messageCount++;
+      const div = document.createElement('div');
+      div.className = 'flex gap-4 animate-fade-in-up';
+
+      let formattedText = formatMessage(text);
+      let sourcesHtml = '';
+      let followUpHtml = '';
+      let aiIndicator = '';
+
+      // Indicateur IA
+      if (data && data.ai_powered) {
+        aiIndicator = `
+          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-indigo-100">
+            <span class="px-2 py-0.5 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 text-xs font-medium rounded-full flex items-center gap-1">
+              <i class="fas fa-sparkles text-amber-500"></i>
+              Réponse IA
+            </span>
+            ${data.confidence ? `<span class="text-xs ${data.confidence > 70 ? 'confidence-high' : (data.confidence > 40 ? 'confidence-medium' : 'confidence-low')}">${data.confidence}% confiance</span>` : ''}
+          </div>
+        `;
+      }
+
+      // Sources
+      if (sources && sources.length > 0) {
+        sourcesHtml = `
+          <div class="mt-4 pt-3 border-t border-gray-100">
+            <p class="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <i class="fas fa-file-alt"></i> Sources
+            </p>
+            <div class="flex flex-wrap gap-2">
+              ${sources.map(s => `
+                <span class="source-badge px-2 py-1 rounded-md text-xs text-emerald-700">
+                  📄 ${escapeHtml(typeof s === 'string' ? s : (s.titre || s.document || 'Document'))}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Questions de suivi
+      if (data && !data.error) {
+        followUpHtml = `
+          <div class="mt-4 pt-3 border-t border-gray-100">
+            <p class="text-xs text-gray-500 mb-2">Questions de suivi :</p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="sendCommand('Donne-moi un exemple concret')" class="suggestion-chip px-3 py-1.5 rounded-full text-xs font-medium text-indigo-600 border border-indigo-200">
+                💡 Exemple
+              </button>
+              <button onclick="sendCommand('Explique plus en détail')" class="suggestion-chip px-3 py-1.5 rounded-full text-xs font-medium text-purple-600 border border-purple-200">
+                🔍 Plus de détails
+              </button>
+              <button onclick="sendCommand('Quels sont les avantages ?')" class="suggestion-chip px-3 py-1.5 rounded-full text-xs font-medium text-pink-600 border border-pink-200">
+                ✅ Avantages
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      div.innerHTML = `
+        <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <i class="fas fa-brain text-white"></i>
+        </div>
+        <div class="flex-1">
+          <div class="message-bot rounded-2xl rounded-tl-none p-5 max-w-3xl shadow-sm">
+            ${aiIndicator}
+            <div class="bot-message text-gray-700">${formattedText}</div>
+            ${sourcesHtml}
+            ${followUpHtml}
+          </div>
+          <div class="flex items-center gap-3 mt-2 ml-1 text-xs text-gray-400">
+            <span>${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+            <button onclick="copyMessage(this)" class="hover:text-indigo-600 transition-colors" title="Copier">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      scrollToBottom();
+
+      if (save) {
+        conversationHistory.push({ role: 'assistant', content: text, type: type });
+      }
+    }
+
+    // === LOADING MESSAGE ===
+    function addLoadingMessage() {
+      const id = 'loading-' + Date.now();
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = 'flex gap-4 animate-fade-in-up';
+      div.innerHTML = `
+        <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <i class="fas fa-brain text-white animate-pulse"></i>
+        </div>
+        <div class="flex-1">
+          <div class="message-bot rounded-2xl rounded-tl-none p-5 max-w-xs shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex gap-1">
+                <div class="w-2.5 h-2.5 bg-indigo-500 rounded-full typing-dot"></div>
+                <div class="w-2.5 h-2.5 bg-purple-500 rounded-full typing-dot"></div>
+                <div class="w-2.5 h-2.5 bg-pink-500 rounded-full typing-dot"></div>
+              </div>
+              <span class="text-sm text-gray-500">Analyse en cours...</span>
+            </div>
+          </div>
+        </div>
+      `;
+      messagesList.appendChild(div);
+      scrollToBottom();
+      return id;
+    }
+
+    function removeLoadingMessage(id) {
+      const elem = document.getElementById(id);
+      if (elem) elem.remove();
+    }
+
+    // === FORMAT MESSAGE ===
+    function formatMessage(text) {
+      if (!text) return '';
+
+      return text
+        // Titres
+        .replace(/^### (.*?)$/gm, '<h4 class="font-bold text-gray-800 text-sm mt-3 mb-2">$1</h4>')
+        .replace(/^## (.*?)$/gm, '<h3 class="font-bold text-gray-900 text-base mt-2 mb-2">$1</h3>')
+        // Gras
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-indigo-700">$1</strong>')
+        // Italique
+        .replace(/\*(.*?)\*/g, '<em class="italic text-gray-600">$1</em>')
+        // Listes
+        .replace(/^[•\-]\s+(.*?)$/gm, '<li class="ml-4 text-gray-700 flex items-start gap-2 py-1"><span class="text-indigo-500 mt-0.5">▸</span><span>$1</span></li>')
+        .replace(/^(\d+)\.\s+(.*?)$/gm, '<li class="ml-4 text-gray-700 flex items-start gap-2 py-1"><span class="text-indigo-500 font-semibold">$1.</span><span>$2</span></li>')
+        // Code inline
+        .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-sm font-mono">$1</code>')
+        // Citations
+        .replace(/^>\s+(.*?)$/gm, '<blockquote class="border-l-3 border-purple-400 pl-3 text-gray-600 italic my-2">$1</blockquote>')
+        // Lignes horizontales
+        .replace(/^---$/gm, '<hr class="my-4 border-gray-200">')
+        // Paragraphes
+        .replace(/\n\n/g, '</p><p class="mb-2">')
+        .replace(/\n/g, '<br>');
+    }
+
+    // === UTILITIES ===
+    function scrollToBottom() {
+      setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 100);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function copyMessage(btn) {
+      const messageDiv = btn.closest('.flex-1').querySelector('.bot-message');
+      if (messageDiv) {
+        navigator.clipboard.writeText(messageDiv.innerText);
+        btn.innerHTML = '<i class="fas fa-check text-green-500"></i>';
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fas fa-copy"></i>';
+        }, 2000);
+      }
+    }
+
+    // Fonction pour basculer en mode plein écran
+    function toggleFullscreen() {
+      const container = document.getElementById('chatbot-container');
+      const btn = document.getElementById('fullscreen-btn');
+
+      if (container.classList.contains('fullscreen-mode')) {
+        // Sortir du mode plein écran
+        container.classList.remove('fullscreen-mode');
+        btn.innerHTML = '<i class="fas fa-expand"></i>';
+        btn.title = 'Agrandir';
+      } else {
+        // Entrer en mode plein écran
+        container.classList.add('fullscreen-mode');
+        btn.innerHTML = '<i class="fas fa-compress"></i>';
+        btn.title = 'Réduire';
+      }
+    }
+
+    function clearConversation(resetHistory = true) {
+      messagesList.innerHTML = '';
+      if (resetHistory) {
+        conversationHistory = [];
+        document.getElementById('conversation-title').textContent = 'AdsClass AI';
+      }
+
+      // Réafficher le message de bienvenue
+      const welcomeHtml = `
+        <div class="flex gap-4 animate-fade-in-up">
+          <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+            <i class="fas fa-brain text-white"></i>
+          </div>
+          <div class="flex-1">
+            <div class="message-bot rounded-2xl rounded-tl-none p-5 max-w-3xl shadow-sm">
+              <div class="bot-message text-gray-700">
+                <p class="text-lg font-semibold mb-3 text-gray-800">👋 Bonjour !</p>
+                <p>Je suis prêt à répondre à vos questions sur vos cours. Que voulez-vous savoir ?</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-3" id="welcome-suggestions">
+              <button onclick="sendCommand('Qu\\'est-ce que Hadoop ?')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-indigo-700 border border-indigo-200">
+                🐘 Hadoop
+              </button>
+              <button onclick="sendCommand('Explique-moi MapReduce')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-purple-700 border border-purple-200">
+                🗺️ MapReduce
+              </button>
+              <button onclick="sendCommand('Quels documents sont disponibles ?')" class="suggestion-chip px-4 py-2 rounded-full text-sm font-medium text-emerald-700 border border-emerald-200">
+                📚 Documents
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      messagesList.innerHTML = welcomeHtml;
+    }
+
+    function startNewConversation() {
+      saveConversation();
+      clearConversation();
+    }
+  </script>
+</body>
+</html>
+

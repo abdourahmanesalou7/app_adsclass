@@ -92,11 +92,13 @@
                         </label>
                         <select name="filiere" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
                             <option value="">Choisir une filière</option>
-                            <option value="IA">Intelligence Artificielle</option>
-                            <option value="CCA">CCA</option>
-                            <option value="Marketing Digital">Marketing Digital</option>
-                            <option value="Finance">Finance</option>
-                            <option value="Transport Logistique">Transport Logistique</option>
+                            {% if filieres %}
+                                {% for f in filieres %}
+                                    <option value="{{ f.nom }}">{{ f.nom }}</option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="" disabled>Aucune filière active. Créez-en une dans « Filière & Module ».</option>
+                            {% endif %}
                         </select>
                     </div>
                     <!-- Niveau -->

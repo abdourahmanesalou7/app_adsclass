@@ -1,0 +1,116 @@
+{# Mon Abonnement — vue détaillée de l'abonnement de l'école courante #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mon Abonnement — ADSClass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-gray-800">
+
+<nav class="bg-white border-b shadow-sm sticky top-0 z-40">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="{{ url_for('admin_home') if session.role == 'admin' else url_for('login') }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+      <h1 class="text-xl font-bold"><i class="fas fa-crown text-amber-500 mr-2"></i> Mon Abonnement</h1>
+    </div>
+    {% if current_school %}
+      <span class="text-sm text-gray-500"><i class="fas fa-school mr-1"></i> {{ current_school.nom }}</span>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="max-w-6xl mx-auto px-6 py-8">
+
+  {% if subscription %}
+    {% set badge = 'bg-emerald-100 text-emerald-700' if is_active else 'bg-rose-100 text-rose-700' %}
+    {% set warn = days_left is not none and days_left < 15 %}
+
+    <section class="bg-white border rounded-2xl shadow-sm p-6 mb-6">
+      <div class="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <h2 class="text-2xl font-bold">{{ subscription.plan_nom }}</h2>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ badge }}">{{ subscription.status|upper }}</span>
+          </div>
+          <p class="text-gray-500 text-sm">Code plan : <code class="bg-gray-100 px-2 py-0.5 rounded">{{ subscription.plan_code }}</code></p>
+        </div>
+        <div class="text-right">
+          <div class="text-3xl font-bold text-indigo-600">
+            {{ '{:,.0f}'.format(subscription.prix_mensuel or 0).replace(',', ' ') }} {{ subscription.plan_devise or 'XOF' }}
+            <span class="text-base font-normal text-gray-500">/ mois</span>
+          </div>
+          {% if subscription.prix_annuel %}
+            <div class="text-sm text-gray-500">{{ '{:,.0f}'.format(subscription.prix_annuel).replace(',', ' ') }} {{ subscription.plan_devise or 'XOF' }} / an</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+        <div>
+          <div class="text-xs text-gray-500 uppercase">Début</div>
+          <div class="font-semibold mt-1">{{ subscription.started_at.strftime('%d/%m/%Y') if subscription.started_at else '—' }}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase">Échéance</div>
+          <div class="font-semibold mt-1">{{ subscription.ends_at.strftime('%d/%m/%Y') if subscription.ends_at else '—' }}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase">Jours restants</div>
+          <div class="font-semibold mt-1 {{ 'text-rose-600' if warn else 'text-emerald-600' }}">
+            {% if days_left is not none %}{{ days_left }} jours{% else %}—{% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase">Renouvellement</div>
+          <div class="font-semibold mt-1">
+            {% if subscription.auto_renew %}<span class="text-emerald-600"><i class="fas fa-check"></i> Auto</span>
+            {% else %}<span class="text-gray-500">Manuel</span>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if warn %}
+        <div class="mt-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-4 text-sm">
+          <i class="fas fa-exclamation-triangle mr-2"></i>
+          Votre abonnement expire dans {{ days_left }} jour(s). Contactez votre administrateur pour renouveler.
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="bg-white border rounded-2xl shadow-sm p-6 mb-6">
+      <h3 class="font-bold text-lg mb-4"><i class="fas fa-cube text-indigo-500 mr-2"></i> Limites & fonctionnalités du plan</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-gray-500 uppercase">Étudiants max</div>
+          <div class="text-2xl font-bold text-indigo-600 mt-1">{{ subscription.max_students }}</div>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-gray-500 uppercase">Utilisateurs max</div>
+          <div class="text-2xl font-bold text-indigo-600 mt-1">{{ subscription.max_users }}</div>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-gray-500 uppercase">Devise</div>
+          <div class="text-2xl font-bold text-indigo-600 mt-1">{{ subscription.plan_devise or 'XOF' }}</div>
+        </div>
+      </div>
+    </section>
+
+  {% else %}
+    <div class="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-6 mb-6">
+      <i class="fas fa-circle-exclamation mr-2"></i>
+      Aucun abonnement actif. Contactez l'équipe ADSClass.
+    </div>
+  {% endif %}
+
+  <section class="bg-white border rounded-2xl shadow-sm p-6">
+    <h3 class="font-bold text-lg mb-4"><i class="fas fa-list text-indigo-500 mr-2"></i> Plans disponibles</h3>
+    <a href="{{ url_for('subscription.plans_view') }}" class="text-indigo-600 hover:underline text-sm">
+      Voir tous les plans <i class="fas fa-arrow-right ml-1"></i>
+    </a>
+  </section>
+
+</main>
+</body>
+</html>

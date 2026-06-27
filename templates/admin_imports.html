@@ -1,0 +1,123 @@
+{# Liste des jobs d'import — page standalone #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Imports — ADSClass Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-gray-800">
+
+<nav class="bg-white border-b shadow-sm sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="{{ url_for('admin_home') }}" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+      <h1 class="text-xl font-bold"><i class="fas fa-database text-indigo-600 mr-2"></i> Module d'Import — ETL</h1>
+    </div>
+    <a href="{{ url_for('imports.new') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium">
+      <i class="fas fa-plus mr-1"></i> Nouvel import
+    </a>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="mb-4 px-4 py-3 rounded-lg
+        {{ 'bg-green-50 text-green-800 border border-green-200' if cat=='success'
+           else 'bg-red-50 text-red-800 border border-red-200' if cat=='danger'
+           else 'bg-amber-50 text-amber-800 border border-amber-200' if cat=='warning'
+           else 'bg-blue-50 text-blue-800 border border-blue-200' }}">
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white p-5 rounded-xl shadow-sm border">
+      <div class="text-xs text-gray-500 uppercase">Total imports</div>
+      <div class="text-3xl font-bold text-indigo-600 mt-1">{{ jobs|length }}</div>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm border">
+      <div class="text-xs text-gray-500 uppercase">Schémas disponibles</div>
+      <div class="text-3xl font-bold text-emerald-600 mt-1">{{ schemas|length }}</div>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm border">
+      <div class="text-xs text-gray-500 uppercase">Lignes commit total</div>
+      <div class="text-3xl font-bold text-purple-600 mt-1">{{ jobs|sum(attribute='committed_rows') }}</div>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm border">
+      <div class="text-xs text-gray-500 uppercase">Connecteurs actifs</div>
+      <div class="text-3xl font-bold text-amber-600 mt-1">5</div>
+      <div class="text-xs text-gray-400 mt-1">Excel · CSV · Word · MySQL · API</div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between">
+      <h2 class="font-semibold text-lg"><i class="fas fa-history mr-2 text-gray-500"></i>Historique des jobs</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+          <tr>
+            <th class="px-4 py-3 text-left">#</th>
+            <th class="px-4 py-3 text-left">Source</th>
+            <th class="px-4 py-3 text-left">Cible</th>
+            <th class="px-4 py-3 text-left">Fichier</th>
+            <th class="px-4 py-3 text-center">Lignes</th>
+            <th class="px-4 py-3 text-center">Valides</th>
+            <th class="px-4 py-3 text-center">Commit</th>
+            <th class="px-4 py-3 text-center">Statut</th>
+            <th class="px-4 py-3 text-left">Date</th>
+            <th class="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for j in jobs %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 text-gray-500">#{{ j.id }}</td>
+            <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700">{{ j.source_type }}</span></td>
+            <td class="px-4 py-3 font-medium">{{ j.target_table }}</td>
+            <td class="px-4 py-3 text-gray-600 truncate max-w-xs">{{ j.original_filename or '—' }}</td>
+            <td class="px-4 py-3 text-center">{{ j.total_rows }}</td>
+            <td class="px-4 py-3 text-center text-emerald-600 font-medium">{{ j.valid_rows }}</td>
+            <td class="px-4 py-3 text-center text-purple-600 font-medium">{{ j.committed_rows }}</td>
+            <td class="px-4 py-3 text-center">
+              {% set color = 'bg-emerald-100 text-emerald-700' if j.status=='committed'
+                              else 'bg-red-100 text-red-700' if j.status=='failed'
+                              else 'bg-amber-100 text-amber-700' if j.status=='validated'
+                              else 'bg-gray-100 text-gray-700' %}
+              <span class="px-2 py-1 rounded text-xs font-medium {{ color }}">{{ j.status }}</span>
+            </td>
+            <td class="px-4 py-3 text-gray-500">{{ j.created_at.strftime('%d/%m %H:%M') if j.created_at else '' }}</td>
+            <td class="px-4 py-3 text-right">
+              <a href="{{ url_for('imports.detail', job_id=j.id) }}" class="text-indigo-600 hover:underline mr-3"><i class="fas fa-eye"></i></a>
+              {% if j.status in ['parsed','mapped','validated'] %}
+                <a href="{{ url_for('imports.mapping', job_id=j.id) }}" class="text-amber-600 hover:underline"><i class="fas fa-arrow-right"></i> Reprendre</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10" class="text-center py-12 text-gray-400">Aucun import pour l'instant. Cliquez sur « Nouvel import » pour démarrer.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% for key, label, desc in schemas %}
+    <div class="bg-white p-5 rounded-xl shadow-sm border">
+      <div class="font-semibold text-gray-800"><i class="fas fa-cube text-indigo-500 mr-2"></i>{{ label }}</div>
+      <div class="text-sm text-gray-500 mt-1">{{ desc }}</div>
+      <div class="text-xs text-gray-400 mt-2 font-mono">{{ key }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+</main>
+</body>
+</html>

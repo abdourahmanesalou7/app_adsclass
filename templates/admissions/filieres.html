@@ -1,0 +1,78 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}Filières — Admissions{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap justify-between items-center gap-3 mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-graduation-cap text-indigo-500 mr-2"></i>Filières disponibles</h2>
+        <p class="text-sm text-gray-500">Programmes ouverts aux candidatures — frais et places</p>
+    </div>
+    <a href="{{ url_for('public_apply') }}" target="_blank" class="text-sm bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-medium">
+        <i class="fas fa-external-link-alt mr-1"></i> Voir formulaire /apply
+    </a>
+</div>
+
+<div class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+    {% for f in filieres %}
+    <div class="glass rounded-2xl shadow-lg overflow-hidden {% if not f.est_ouvert %}opacity-60{% endif %}">
+        <div class="bg-gradient-to-r from-indigo-500 to-sky-500 p-5 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-lg">{{ f.nom }}</h3>
+                    {% if f.code %}<span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">{{ f.code }}</span>{% endif %}
+                </div>
+                {% if f.est_ouvert %}
+                <span class="text-xs bg-emerald-400/30 px-2 py-1 rounded-full">Ouvert</span>
+                {% else %}
+                <span class="text-xs bg-red-400/30 px-2 py-1 rounded-full">Fermé</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-white/80 mt-2">{{ f.niveau or 'Tous niveaux' }} · {{ f.duree_annees or 1 }} an(s)</p>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+                <div class="bg-sky-50 rounded-xl p-2">
+                    <p class="text-lg font-bold text-sky-600">{{ f.nb_candidats or 0 }}</p>
+                    <p class="text-xs text-gray-500">Candidats</p>
+                </div>
+                <div class="bg-emerald-50 rounded-xl p-2">
+                    <p class="text-lg font-bold text-emerald-600">{{ f.nb_admis or 0 }}</p>
+                    <p class="text-xs text-gray-500">Admis</p>
+                </div>
+                <div class="bg-purple-50 rounded-xl p-2">
+                    <p class="text-lg font-bold text-purple-600">{{ f.nb_modules or 0 }}</p>
+                    <p class="text-xs text-gray-500">Modules</p>
+                </div>
+            </div>
+            <p class="text-2xl font-bold text-gray-800 mb-1">{{ f.frais_inscription|int }} <span class="text-sm font-normal text-gray-500">FCFA</span></p>
+            <p class="text-xs text-gray-400 mb-4">Frais d'inscription · {{ f.places_disponibles }} places</p>
+            {% if f.description_admission %}
+            <p class="text-sm text-gray-600 mb-4">{{ f.description_admission }}</p>
+            {% elif f.description %}
+            <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ f.description }}</p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('admin_admissions_filiere_update', filiere_id=f.id) }}" class="space-y-2 border-t pt-4">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" name="frais_inscription" value="{{ f.frais_inscription|int }}" placeholder="Frais FCFA"
+                           class="border rounded-lg px-2 py-1.5 text-sm w-full">
+                    <input type="number" name="places_disponibles" value="{{ f.places_disponibles }}" placeholder="Places"
+                           class="border rounded-lg px-2 py-1.5 text-sm w-full">
+                </div>
+                <textarea name="description_admission" rows="2" placeholder="Description pour candidats..."
+                          class="border rounded-lg px-2 py-1.5 text-sm w-full">{{ f.description_admission or '' }}</textarea>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="est_ouvert" {% if f.est_ouvert %}checked{% endif %} class="rounded">
+                    Ouvert aux candidatures
+                </label>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-semibold">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-span-full glass rounded-2xl p-12 text-center text-gray-400">
+        <i class="fas fa-graduation-cap text-4xl mb-3"></i>
+        <p>Aucune filière active. Créez-en dans <a href="{{ url_for('admin_filieres_modules') }}" class="text-indigo-600 underline">Filières & Modules</a>.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

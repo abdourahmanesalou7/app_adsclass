@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Attestations - Service Scolarité</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="glass-effect sticky top-0 z-50 shadow-lg border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-clipboard-check text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">Service Scolarité</h1>
+                    <p class="text-xs text-gray-500">Validation des demandes d'attestations</p>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_home') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-xl transition-all">
+                <i class="fas fa-home mr-2"></i> Tableau de bord
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="max-w-7xl mx-auto px-6 pt-4">
+    {% for category, message in messages %}
+    <div class="p-4 rounded-xl mb-2 {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Total</p>
+            <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">En attente</p>
+            <p class="text-3xl font-bold text-orange-600">{{ stats.en_attente }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Approuvées</p>
+            <p class="text-3xl font-bold text-blue-600">{{ stats.approuvees }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Signées</p>
+            <p class="text-3xl font-bold text-purple-600">{{ stats.signees }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Délivrées</p>
+            <p class="text-3xl font-bold text-emerald-600">{{ stats.delivrees }}</p>
+        </div>
+        <div class="glass-effect rounded-2xl p-6 shadow-lg text-center">
+            <p class="text-gray-500 text-sm mb-1">Rejetées</p>
+            <p class="text-3xl font-bold text-red-600">{{ stats.rejetees }}</p>
+        </div>
+    </div>
+
+    <!-- Liste des demandes -->
+    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Demandes d'attestations</h2>
+        
+        {% if demandes %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b-2 border-gray-200">
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Numéro</th>
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Étudiant</th>
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Type</th>
+                        <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600">Date</th>
+                        <th class="text-center py-4 px-4 text-sm font-semibold text-gray-600">Statut</th>
+                        <th class="text-center py-4 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for demande in demandes %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <span class="font-mono text-sm font-semibold text-blue-600">{{ demande.numero_attestation }}</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="font-semibold text-gray-800">{{ demande.nom }} {{ demande.prenom }}</div>
+                            <div class="text-xs text-gray-500">{{ demande.filiere }} - {{ demande.niveau }}</div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="font-semibold text-gray-800">{{ demande.type_attestation }}</div>
+                            {% if demande.motif %}
+                            <div class="text-xs text-gray-500 mt-1">{{ demande.motif[:40] }}...</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="text-sm text-gray-600">{{ demande.date_demande.strftime('%d/%m/%Y') }}</span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if demande.statut == 'en_attente' %}
+                            <span class="px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-clock"></i> En attente
+                            </span>
+                            {% elif demande.statut == 'approuve_scolarite' %}
+                            <span class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-check"></i> Approuvée
+                            </span>
+                            {% elif demande.statut == 'signe_directeur' %}
+                            <span class="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-signature"></i> Signée
+                            </span>
+                            {% elif demande.statut == 'delivre' %}
+                            <span class="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-check-double"></i> Délivrée
+                            </span>
+                            {% elif demande.statut == 'rejete' %}
+                            <span class="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-semibold rounded-lg">
+                                <i class="fas fa-times"></i> Rejetée
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center justify-center space-x-2">
+                                {% if demande.statut == 'en_attente' %}
+                                <button onclick="approuverDemande({{ demande.id }})"
+                                        class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all text-sm font-semibold">
+                                    <i class="fas fa-check"></i> Approuver
+                                </button>
+                                <button onclick="rejeterDemande({{ demande.id }})"
+                                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm font-semibold">
+                                    <i class="fas fa-times"></i> Rejeter
+                                </button>
+                                {% else %}
+                                <button onclick="voirDetails({{ demande.id }})"
+                                        class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all text-sm">
+                                    <i class="fas fa-eye"></i> Détails
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-inbox text-gray-400 text-3xl"></i>
+            </div>
+            <p class="text-gray-500">Aucune demande d'attestation pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</main>
+
+<!-- Modal: Approuver -->
+<div id="approuverModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4">
+        <form id="approuverForm" method="POST">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-white">Approuver la demande</h3>
+                    <button type="button" onclick="closeApprouverModal()" class="text-white/80 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="px-8 py-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Commentaire (optionnel)</label>
+                <textarea name="commentaire" rows="4"
+                          class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Ajouter un commentaire..."></textarea>
+            </div>
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeApprouverModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 font-semibold">
+                    <i class="fas fa-check mr-2"></i> Approuver
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Rejeter -->
+<div id="rejeterModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4">
+        <form id="rejeterForm" method="POST">
+            <div class="bg-gradient-to-r from-red-600 to-rose-600 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-white">Rejeter la demande</h3>
+                    <button type="button" onclick="closeRejeterModal()" class="text-white/80 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="px-8 py-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Motif du rejet *</label>
+                <textarea name="motif_rejet" rows="4" required
+                          class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500"
+                          placeholder="Expliquez pourquoi cette demande est rejetée..."></textarea>
+            </div>
+            <div class="px-8 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" onclick="closeRejeterModal()"
+                        class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-semibold">
+                    Annuler
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 font-semibold">
+                    <i class="fas fa-times mr-2"></i> Rejeter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentDemandeId = null;
+
+function approuverDemande(id) {
+    currentDemandeId = id;
+    document.getElementById('approuverForm').action = `/scolarite/attestations/${id}/approuver`;
+    document.getElementById('approuverModal').classList.remove('hidden');
+}
+
+function closeApprouverModal() {
+    document.getElementById('approuverModal').classList.add('hidden');
+}
+
+function rejeterDemande(id) {
+    currentDemandeId = id;
+    document.getElementById('rejeterForm').action = `/scolarite/attestations/${id}/rejeter`;
+    document.getElementById('rejeterModal').classList.add('hidden');
+}
+
+function closeRejeterModal() {
+    document.getElementById('rejeterModal').classList.add('hidden');
+}
+
+// Soumettre approuver
+document.getElementById('approuverForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeApprouverModal();
+            location.reload();
+        } else {
+            alert(data.message || 'Erreur');
+        }
+    });
+});
+
+// Soumettre rejeter
+document.getElementById('rejeterForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeRejeterModal();
+            location.reload();
+        } else {
+            alert(data.message || 'Erreur');
+        }
+    });
+});
+</script>
+
+</body>
+</html>

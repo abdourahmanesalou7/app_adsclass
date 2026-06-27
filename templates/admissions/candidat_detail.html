@@ -1,0 +1,275 @@
+{% extends 'admissions/layout.html' %}
+{% block title %}{{ candidat.prenom }} {{ candidat.nom }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('admin_admissions') }}" class="text-sm text-indigo-600 hover:underline"><i class="fas fa-arrow-left mr-1"></i> Pipeline</a>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+    <!-- Fiche principale -->
+    <div class="lg:col-span-2 space-y-6">
+        <div class="glass rounded-2xl p-6 shadow-lg">
+            <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
+                <div>
+                    <span class="text-xs font-mono text-gray-400">{{ candidat.reference }}</span>
+                    <h2 class="text-2xl font-bold text-gray-800">{{ candidat.prenom }} {{ candidat.nom }}</h2>
+                    <span class="inline-block mt-2 text-sm px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                        {{ stage_labels.get(candidat.statut, candidat.statut) }}
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    {% if candidat.statut not in ('admis','paiement','inscrit') and candidat.statut in ('evaluation','entretien','documents_recus') %}
+                    <form method="POST" action="{{ url_for('admin_admissions_admit_candidat', candidat_id=candidat.id) }}">
+                        <button class="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow">
+                            <i class="fas fa-check mr-1"></i> Admettre + WhatsApp
+                        </button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin_admissions_payment_link', candidat_id=candidat.id) }}">
+                        <button class="bg-sky-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow">
+                            <i class="fas fa-link mr-1"></i> Lien paiement
+                        </button>
+                    </form>
+                    {% if candidat.payment_token %}
+                    <a href="{{ url_for('public_payment_page', token=candidat.payment_token) }}" target="_blank"
+                       class="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow inline-flex items-center">
+                        <i class="fas fa-credit-card mr-1"></i> Page paiement
+                    </a>
+                    {% endif %}
+                    {% if candidat.statut in ('admis', 'paiement', 'entretien', 'evaluation') and not candidat.etudiant_id %}
+                    <form method="POST" action="{{ url_for('admin_admissions_convert_student', candidat_id=candidat.id) }}"
+                          onsubmit="return confirm('Inscrire ce candidat et générer ses identifiants de connexion ?')">
+                        <button class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow">
+                            <i class="fas fa-user-graduate mr-1"></i> Inscrire & générer identifiants
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if candidat.etudiant_id %}
+                    <a href="{{ url_for('admin_student_credentials_print', etudiant_id=candidat.etudiant_id) }}" target="_blank"
+                       class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow inline-flex items-center">
+                        <i class="fas fa-print mr-1"></i> Imprimer identifiants
+                    </a>
+                    {% if candidat.filiere_nom and candidat.niveau %}
+                    <a href="{{ url_for('admin_class_students', filiere=candidat.filiere_nom|urlencode, niveau=candidat.niveau|urlencode, mode='classes') }}"
+                       class="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow inline-flex items-center">
+                        <i class="fas fa-users mr-1"></i> Voir la classe
+                    </a>
+                    {% endif %}
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('admin_admissions_evaluate_ai', candidat_id=candidat.id) }}">
+                        <button class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow">
+                            <i class="fas fa-robot mr-1"></i> Évaluer (IA)
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin_admissions_predict', candidat_id=candidat.id) }}">
+                        <button class="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow">
+                            <i class="fas fa-chart-line mr-1"></i> Prédiction IA
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('admin_admissions_update_candidat', candidat_id=candidat.id) }}" class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs text-gray-500">Prénom</label>
+                    <input name="prenom" value="{{ candidat.prenom }}" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Nom</label>
+                    <input name="nom" value="{{ candidat.nom }}" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Email</label>
+                    <input name="email" type="email" value="{{ candidat.email }}" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Téléphone</label>
+                    <input name="telephone" value="{{ candidat.telephone or '' }}" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Pays</label>
+                    <input name="pays" value="{{ candidat.pays or 'Niger' }}" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Programme souhaité</label>
+                    <input name="programme_souhaite" value="{{ candidat.programme_souhaite or '' }}" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Filière</label>
+                    <select name="filiere_id" class="border rounded-lg px-3 py-2 w-full text-sm">
+                        <option value="">—</option>
+                        {% for f in filieres %}
+                        <option value="{{ f.id }}" {% if candidat.filiere_id == f.id %}selected{% endif %}>{{ f.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Niveau</label>
+                    <select name="niveau" class="border rounded-lg px-3 py-2 w-full text-sm">
+                        {% for n in ['L1','L2','L3','M1','M2'] %}
+                        <option value="{{ n }}" {% if candidat.niveau == n %}selected{% endif %}>{{ n }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Source du lead</label>
+                    <select name="source_lead" class="border rounded-lg px-3 py-2 w-full text-sm">
+                        {% for val, lbl in lead_sources %}
+                        <option value="{{ val }}" {% if candidat.source_lead == val %}selected{% endif %}>{{ lbl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-xs text-gray-500">Notes internes</label>
+                    <textarea name="notes" rows="2" class="border rounded-lg px-3 py-2 w-full text-sm">{{ candidat.notes or '' }}</textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="bg-gray-800 text-white px-6 py-2 rounded-xl text-sm font-semibold">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Évaluation IA -->
+        {% if candidat.score_ia %}
+        <div class="glass rounded-2xl p-6 shadow-lg border-l-4 border-indigo-500">
+            <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-robot text-indigo-500 mr-2"></i>Évaluation IA</h3>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="text-4xl font-bold text-indigo-600">{{ candidat.score_ia }}<span class="text-lg text-gray-400">/100</span></div>
+                {% if candidat.probabilite_inscription %}
+                <div class="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl">
+                    <span class="text-xs block">Probabilité d'inscription</span>
+                    <span class="text-2xl font-bold">{{ candidat.probabilite_inscription }}%</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs font-semibold text-emerald-600 uppercase mb-2">Points forts</p>
+                    <ul class="space-y-1">
+                        {% for pt in points_forts %}
+                        <li class="text-sm text-gray-700 flex gap-2"><i class="fas fa-check text-emerald-500 mt-1"></i> {{ pt }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-rose-600 uppercase mb-2">Points faibles</p>
+                    <ul class="space-y-1">
+                        {% for pt in points_faibles %}
+                        <li class="text-sm text-gray-700 flex gap-2"><i class="fas fa-exclamation text-rose-500 mt-1"></i> {{ pt }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Documents -->
+        <div class="glass rounded-2xl p-6 shadow-lg">
+            <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-folder-open text-amber-500 mr-2"></i>Documents ({{ documents|length }})</h3>
+            <div class="grid sm:grid-cols-2 gap-3">
+                {% for d in documents %}
+                <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                    <div>
+                        <p class="text-sm font-medium">{{ d.type_document|replace('_',' ')|title }}</p>
+                        <p class="text-xs text-gray-400">{{ d.nom_fichier }}</p>
+                    </div>
+                    <a href="{{ url_for('admin_admissions_download_document', doc_id=d.id) }}"
+                       class="text-indigo-600 hover:text-indigo-800"><i class="fas fa-download"></i></a>
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-400 col-span-2">Aucun document téléversé</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar actions -->
+    <div class="space-y-6">
+        <!-- Communication -->
+        <div class="glass rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-paper-plane text-sky-500 mr-2"></i>Communication</h3>
+            <form method="POST" action="{{ url_for('admin_admissions_communicate', candidat_id=candidat.id) }}" class="space-y-3">
+                <select name="canal" id="canalSelect" class="border rounded-lg px-3 py-2 w-full text-sm">
+                    <option value="whatsapp">WhatsApp Business API</option>
+                    <option value="email">Email</option>
+                    <option value="sms">SMS</option>
+                </select>
+                <select name="template_key" class="border rounded-lg px-3 py-2 w-full text-sm">
+                    <option value="">— Message libre —</option>
+                    {% for key, tpl in whatsapp_templates.items() %}
+                    <option value="{{ key }}">{{ key|replace('_',' ')|title }}</option>
+                    {% endfor %}
+                </select>
+                <input name="sujet" placeholder="Sujet (email)" class="border rounded-lg px-3 py-2 w-full text-sm">
+                <textarea name="message" rows="4" placeholder="Message personnalisé (optionnel si modèle choisi)"
+                          class="border rounded-lg px-3 py-2 w-full text-sm"></textarea>
+                {% if integrations.whatsapp.connected %}
+                <p class="text-xs text-green-600"><i class="fas fa-check-circle"></i> WhatsApp Business API active</p>
+                {% else %}
+                <p class="text-xs text-amber-600"><i class="fas fa-info-circle"></i> Fallback wa.me si API non configurée</p>
+                {% endif %}
+                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-xl text-sm font-semibold">
+                    <i class="fab fa-whatsapp mr-1"></i> Envoyer
+                </button>
+            </form>
+        </div>
+
+        <!-- Historique communications -->
+        <div class="glass rounded-2xl p-5 shadow-lg max-h-64 overflow-y-auto">
+            <h3 class="font-bold text-gray-800 mb-3 text-sm">Historique</h3>
+            {% for comm in communications %}
+            <div class="border-b border-gray-100 py-2 last:border-0">
+                <div class="flex items-center gap-2 text-xs">
+                    {% if comm.canal == 'whatsapp' %}<i class="fab fa-whatsapp text-green-500"></i>
+                    {% elif comm.canal == 'email' %}<i class="fas fa-envelope text-blue-500"></i>
+                    {% else %}<i class="fas fa-sms text-purple-500"></i>{% endif %}
+                    <span class="text-gray-400">{{ comm.date_envoi.strftime('%d/%m %H:%M') if comm.date_envoi else '' }}</span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ comm.message[:100] }}</p>
+            </div>
+            {% else %}
+            <p class="text-xs text-gray-400">Aucune communication</p>
+            {% endfor %}
+        </div>
+
+        <!-- Entretiens -->
+        <div class="glass rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 mb-3 text-sm"><i class="fas fa-calendar text-purple-500 mr-2"></i>Entretiens</h3>
+            {% for e in entretiens %}
+            <div class="bg-purple-50 rounded-lg p-3 mb-2 text-sm">
+                <p class="font-semibold">{{ e.date_entretien.strftime('%d/%m/%Y %H:%M') if e.date_entretien else '' }}</p>
+                <p class="text-xs text-gray-500">{{ e.lieu or e.type_entretien }}</p>
+            </div>
+            {% else %}
+            <p class="text-xs text-gray-400">Aucun entretien planifié</p>
+            {% endfor %}
+        </div>
+
+        <!-- Paiements -->
+        <div class="glass rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 mb-3 text-sm"><i class="fas fa-credit-card text-amber-500 mr-2"></i>Paiements</h3>
+            {% for p in paiements %}
+            <div class="flex justify-between text-sm py-1 border-b border-gray-50">
+                <span>{{ p.montant|int }} FCFA</span>
+                <span class="text-xs {% if p.statut=='confirme' %}text-emerald-600{% else %}text-gray-400{% endif %}">{{ p.moyen_paiement }}</span>
+            </div>
+            {% else %}
+            <p class="text-xs text-gray-400">Aucun paiement</p>
+            {% endfor %}
+        </div>
+
+        <!-- Audit trail -->
+        <div class="glass rounded-2xl p-5 shadow-lg max-h-48 overflow-y-auto">
+            <h3 class="font-bold text-gray-800 mb-3 text-sm">Activité</h3>
+            {% for h in historique %}
+            <div class="text-xs py-1 border-b border-gray-50">
+                <span class="text-gray-400">{{ h.date_action.strftime('%d/%m %H:%M') if h.date_action else '' }}</span>
+                — {{ h.action|replace('_',' ') }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
