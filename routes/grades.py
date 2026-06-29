@@ -7,6 +7,7 @@ import tenant
 from datetime import datetime
 from mysql.connector import Error
 from student_enrollment_service import build_classes_par_filiere
+from permissions import require_permission
 
 
 def register_grades_routes(app, deps):
@@ -19,6 +20,9 @@ def register_grades_routes(app, deps):
     get_current_year_id = deps['get_current_year_id']
 
     @app.route('/admin/grades')
+    @login_required
+    @admin_required
+    @require_permission('notes.view')
     def admin_grades():
         """Grille des notes — mêmes filières canoniques que Gestion des classes."""
         conn = get_db_connection()

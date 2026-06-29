@@ -6,6 +6,7 @@ Routes d'administration des professeurs (liste, affectation de classes, identifi
 import tenant
 from mysql.connector import Error
 from student_enrollment_service import get_active_filieres
+from permissions import require_permission
 
 
 def register_teachers_routes(app, deps):
@@ -24,6 +25,7 @@ def register_teachers_routes(app, deps):
     @app.route('/admin/professeurs')
     @login_required
     @admin_required
+    @require_permission('users.view')
     def admin_professeurs():
         """Liste des professeurs avec leurs classes assignées."""
         _init_professeur_classes_table()

@@ -35,7 +35,7 @@ def init_academic_years():
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS academic_years (
             id INT PRIMARY KEY AUTO_INCREMENT,
-            nom VARCHAR(20) NOT NULL UNIQUE,
+            nom VARCHAR(20) NOT NULL,
             date_debut DATE NOT NULL,
             date_fin DATE NOT NULL,
             est_active BOOLEAN DEFAULT FALSE,

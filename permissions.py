@@ -498,7 +498,7 @@ def require_permission(permission_code):
             user_id = session['user_id']
             if not PermissionManager.has_permission(user_id, permission_code):
                 flash(f'Vous n\'avez pas la permission requise: {permission_code}', 'danger')
-                return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('admin_home'))
 
             return f(*args, **kwargs)
         return decorated_function
@@ -521,7 +521,7 @@ def require_any_permission(*permission_codes):
             user_id = session['user_id']
             if not PermissionManager.has_any_permission(user_id, permission_codes):
                 flash('Vous n\'avez pas les permissions requises.', 'danger')
-                return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('admin_home'))
 
             return f(*args, **kwargs)
         return decorated_function
@@ -544,7 +544,7 @@ def require_all_permissions(*permission_codes):
             user_id = session['user_id']
             if not PermissionManager.has_all_permissions(user_id, permission_codes):
                 flash('Vous n\'avez pas toutes les permissions requises.', 'danger')
-                return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('admin_home'))
 
             return f(*args, **kwargs)
         return decorated_function

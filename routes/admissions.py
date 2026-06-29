@@ -17,6 +17,7 @@ from services.admissions_services import (
     WHATSAPP_TEMPLATES,
 )
 from student_enrollment_service import enrollir_candidat_en_etudiant
+from permissions import require_permission
 import tenant
 
 # === CONSTANTES ===
@@ -579,6 +580,7 @@ Notes internes: {candidat.get('notes') or 'Aucune'}"""
     @app.route('/admin/admissions')
     @login_required
     @admin_required
+    @require_permission('admissions.view')
     def admin_admissions():
         conn = get_db_connection()
         if not conn:

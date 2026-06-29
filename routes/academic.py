@@ -5,6 +5,7 @@ Routes d'administration des filières et modules (CRUD + API).
 
 import tenant
 import mysql.connector
+from permissions import require_permission
 
 
 def register_academic_routes(app, deps):
@@ -22,6 +23,7 @@ def register_academic_routes(app, deps):
     @app.route('/admin/filieres-modules')
     @login_required
     @admin_required
+    @require_permission('classes.manage')
     def admin_filieres_modules():
         """Page de gestion des filières et modules"""
         conn = get_db_connection()

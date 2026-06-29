@@ -122,14 +122,18 @@
                             <i class="fas fa-user-tie text-purple-600 mr-2"></i>Professeur
                         </label>
                         <div class="relative">
-                            <input type="text" name="professeur_nom"
-                                   placeholder="Ex: Albert Diompy, Marie Dupont..."
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <i class="fas fa-edit text-gray-400"></i>
+                            <select name="professeur_id"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg appearance-none bg-white">
+                                <option value="">-- Aucun professeur --</option>
+                                {% for prof in professeurs %}
+                                <option value="{{ prof.id }}">{{ prof.prenom }} {{ prof.nom }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Saisissez directement le nom du professeur</p>
+                        <p class="text-xs text-gray-500 mt-1">Sélectionnez un professeur de votre école à assigner à ce cours</p>
                     </div>
 
                     <!-- Salle -->
